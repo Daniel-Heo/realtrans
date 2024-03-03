@@ -83,7 +83,7 @@ NHNDQ/nllb-finetuned-en2ko Model : 2.4GB VRAM
 
 The use of the source for the following purposes is prohibited.
 
-* MIT License와 해당 국가의 법률에 위배되는 행위
+* Any act that violates the MIT License and the laws of your country. (MIT License와 해당 국가의 법률에 위배되는 행위)
 
 ## Disclaimer
 
