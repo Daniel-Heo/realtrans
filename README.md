@@ -9,6 +9,7 @@ Whisper 모델을 사용하여 음성에서 영어 문장을 만들고, NHNDQ/nl
 영어에서 한국어로 번역하는 부분은 DeepL API를 사용하여 번역을 할 수 있는 기능도 제공합니다.
 
 - 지원 API : OpenAI API ( 요약 ), DeepL ( 실시간 한글 번역 )
+- 지원 OS : Windows 10, 11 ~
 
 Showcase: Not available yet
 
