@@ -84,4 +84,4 @@ The use of the source for the following purposes is prohibited.
 
 I am not liable for any direct, indirect, consequential, incidental, or special damages arising out of or in any way connected with the use/misuse or inability to use this software.
 
-<div class="bmc-btn-container"><a class="bmc-btn" target="_blank" href="https://buymeacoffee.com/realtrans">📬<span class="bmc-btn-text">Buy me a coffee and Cheering</span></a></div>
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/realtrans)
