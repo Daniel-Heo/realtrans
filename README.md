@@ -49,6 +49,10 @@ Copy the entire torch folder and insert it in install directory / _internal.
 
 ( Torch를 pip으로 설치하고 pip show torch로 location을 확인한 후에 해당 디렉토리로 이동하여 torch폴더를 설치폴더에 있는 _internal 디렉토리 밑에 카피한다. )
 
+When you run it for the first time, run runTransWin.exe, turn on YouTube, and input sound. You can accurately check that two models are being downloaded. From then on, just start with runTrans.exe.
+
+(처음 실행시에는 runTransWin.exe를 실행시키고 유튜브를 켜놓고 소리를 입력시키면 모델 2개를 다운받는 것을 정확하게 확인할 수 있습니다. 그 다음부터는 runTrans.exe로 시작을 하면 됩니다.)
+
 ## Usage
 
 실행하기전에 Nvidia GPU가 있는 경우, Nvidia CUDA Toolkit을 설치해야 합니다.
