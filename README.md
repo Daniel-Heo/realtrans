@@ -69,10 +69,13 @@ Nvidia GPU는 1660 Super, 3080을 사용하여 테스트 되었습니다.
 1660 Super에서 정상적으로 작동하는 것을 확인하였습니다. 그 이하에서는 테스트되지 않았습니다.
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
+
 Fast Whisper Large Model : 3GB VRAM
+
 NHNDQ/nllb-finetuned-en2ko Model : 2.4GB VRAM
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
+  
   small 모델은 인식 품질이 떨어질 수 있습니다.
 
 * 프로그램 실행시에 실행중인 Python 프로그램이 종료됩니다. ( 비정상 종료시에 남아있는 프로세스를 종료시키기 위하여 )
