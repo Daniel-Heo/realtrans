@@ -32,22 +32,6 @@ If you have an Nvidia GPU, you should install the Nvidia CUDA Toolkit to enable 
 
 Download and install the Nvidia CUDA Toolkit from [here](https://developer.nvidia.com/cuda-toolkit-archive).
 
-### Install
-
-require torch, torchaudio, torchvision, transformer
-
-windows start > cmd
-
-move install directory
-
-> venv/Scripts/activate.bat
-
-- Torch CUDA 12.1 <br>
-pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
-
-- Transformer <br>
-pip install transformers
-
 ## Usage
 
 실행하기전에 Nvidia GPU가 있는 경우, Nvidia CUDA Toolkit을 설치해야 합니다.
