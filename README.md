@@ -32,6 +32,19 @@ If you have an Nvidia GPU, you should install the Nvidia CUDA Toolkit to enable 
 
 Download and install the Nvidia CUDA Toolkit from [here](https://developer.nvidia.com/cuda-toolkit-archive).
 
+### Install
+
+Require Torch ( 3.5GB : not support because very huge )
+
+pip install torch==2.1.2 --index-url https://download.pytorch.org/whl/cu121
+
+pip show torch
+
+Show Location: C:\Users\XXXX\AppData\Local\Programs\Python\Python310\Lib\site-packages\torch
+
+Copy the entire torch folder and insert it in install directory / _internal.
+( Torch를 pip으로 설치하고 pip show torch로 location을 확인한 후에 해당 디렉토리로 이동하여 torch폴더를 설치폴더에 있는 _internal 디렉토리 밑에 카피한다. )
+
 ## Usage
 
 실행하기전에 Nvidia GPU가 있는 경우, Nvidia CUDA Toolkit을 설치해야 합니다.
