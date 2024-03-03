@@ -42,10 +42,10 @@ move install directory
 
 > venv/Scripts/activate.bat
 
-- Torch CUDA 12.1
+- Torch CUDA 12.1 <br>
 pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu121
 
-- Transformer
+- Transformer <br>
 pip install transformers
 
 ## Usage
