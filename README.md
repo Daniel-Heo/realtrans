@@ -22,8 +22,6 @@ Require Torch ( 3.5GB : not support because very huge )
 
 ### Install
 
-Require Torch ( 3.5GB : not support because very huge )
-
 pip install torch==2.1.2 --index-url https://download.pytorch.org/whl/cu121
 
 pip show torch
