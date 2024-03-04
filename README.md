@@ -18,22 +18,7 @@ Setup Guide: Not available yet
 ## Setup
 
 ### Prerequisites
-
-#### Install Git
-
-Follow the instructions [here](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) to install Git on your computer.
-
-#### Install 7-Zip
-
-Download and Install the 7-Zip application from [here](https://www.7-zip.org/download.html).
-
-This is used to extract the zipped RVC WebUI application after it has been downloaded.
-
-### Install Nvidia CUDA Toolkit
-
-If you have an Nvidia GPU, you should install the Nvidia CUDA Toolkit to enable GPU acceleration for training voice models. If you do not have an Nvidia GPU, you can skip this step.
-
-Download and install the Nvidia CUDA Toolkit from [here](https://developer.nvidia.com/cuda-toolkit-archive).
+Require Torch ( 3.5GB : not support because very huge )
 
 ### Install
 
@@ -54,10 +39,6 @@ When you run it for the first time, run runTransWin.exe, turn on YouTube, and in
 (처음 실행시에는 runTransWin.exe를 실행시키고 유튜브를 켜놓고 소리를 입력시키면 모델 2개를 다운받는 것을 정확하게 확인할 수 있습니다. 그 다음부터는 runTrans.exe로 시작을 하면 됩니다.)
 
 ## Usage
-
-실행하기전에 Nvidia GPU가 있는 경우, Nvidia CUDA Toolkit을 설치해야 합니다.
-이 프로그램은 Cuda Toolkit 12.x을 사용하여 개발되었습니다.
-
 realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 실행후에는 현재의 소리 출력 장치에서 들리는 소리를 입력으로 받아, 영어 문장을 만들어 한국어로 번역을 합니다.
 
