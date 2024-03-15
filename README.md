@@ -11,10 +11,6 @@ Showcase: Not available yet
 
 Setup Guide: Not available yet
 
-### Prerequisites
-
-Require Torch ( 3.5GB : not support because very huge )
-
 ### Install
 
 Install Python ( Require 3.10.x ) : https://www.python.org/downloads/
