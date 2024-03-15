@@ -32,10 +32,13 @@ After execution, the sound heard from the current sound output device is receive
 ## Support Language
  
 UI : Korean, English, German, Spanish, French, Italian, Japanese, Portuguese, Russian, Chinese, Arabic, Hindi
+
 Voice recognition language : ALL ( automatic recognition ), Korean, English, German, French, Italian, Arabic, Hindi, Polish, Russian, Turkish, Dutch, Spanish, Thai, Portuguese, Indonesian, Swedish, Czech, Romanian
                             ,Catalan, Hungarian, Ukrainian, Greek, Bulgarian, Serbian, Macedonian, Latvian, Slovenian, Galician, Danish, Urdu, Slovak, Hebrew, Finnish, Azerbaijani Latn/Arab, Lithuanian, Estonian
                             ,Nynorsk, Welsh, Punjabi Guru, Basque, Vietnamese, Bengali, Nepali, Marathi, Belarusian, Kazakh, Armenian, Swahili, Tamil, Albanian, Mandarin(TW), Cantonese(HK), Mandarin(CN), Cantonese(CN), Japanese
+			    
 Translation language : 
+
 	Korean, Hangul
 	English, Latin 
 	Acehnese, Arabic 
@@ -283,10 +286,13 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 ## 지원 언어
  
 UI : 한국어, 영어, 독일어, 스페인어, 프랑스어, 이탈리아어, 일본어, 포르투갈어, 러시아어, 중국어, 아랍어, 힌디어
+
 음성인식 언어 : ALL(자동인식), 한국어, 영어, 독일어, 프랑스어, 이탈리아어, 아랍어, 힌디어, 폴란드어, 러시아어, 터키어, 네덜란드어, 스페인어, 태국어, 포르투갈어, 인도네시아어, 스웨덴어, 체코어, 루마니아어
                              ,카탈로니아어, 헝가리어, 우크라이나어, 그리스어, 불가리아어, 세르비아어, 마케도니아어, 라트비아어, 슬로베니아어, 갈리시아어, 덴마크어, 우르두어, 슬로바키아어, 히브리어, 핀란드어, 아제르바이잔어 라트/아랍어, 리투아니아어, 에스토니아어
                              ,뉘노르스크, 웨일스어, 펀자브 구루, 바스크어, 베트남어, 벵골어, 네팔어, 마라티어, 벨로루시어, 카자흐어, 아르메니아어, 스와힐리어, 타밀어, 알바니아어, 북경어(TW), 광둥어(HK), 북경어(CN), 광둥어(CN), 일본어
+			     
 번역 언어:
+
 	한국어, 한글
 	영어, 라틴어
 	아체어, 아랍어
