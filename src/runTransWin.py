@@ -13,11 +13,17 @@ import numpy as np
 import torch
 import threading
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer, pipeline
 
 # 글로벌 변수
 exit_flag = False
 transcript = ""
-testDir = ""
+cuda_dev = None
+use_en2ko = False
+cmdCheckTime = time.time()
+use_trans = True
+trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
+isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
 
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
 def read_file_if_exists(file_path):
@@ -87,17 +93,18 @@ class VADAudio(Audio):
 
         if frames is None:
             frames = self.frame_generator()
-        num_padding_frames = padding_ms // self.frame_duration_ms # 100ms / 20ms = 5 frames
+        num_padding_frames = padding_ms // self.frame_duration_ms # 100ms // 20ms = 5 frames : //(나눗셈의 정수형)
         ring_buffer = collections.deque(maxlen=num_padding_frames) # 5 frames
         triggered = False # 음성 감지 여부 초기화(감지 안된 상태)
 
         for frame in frames: # 5개의 프레임이 든 frames에서 한개씩 가져옴.
+            # 640개면 20ms * 640 = 12.8초
             if len(frame) < 640:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
                 return
             
             # 2 channel float data를 mono int16 data로 변환
             mono_frame = np.mean(frame, axis=1)
-            frame = np.int16(mono_frame * 32768)
+            frame = np.int16(mono_frame * 32768) # frame수는 640개
 
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
             # 320개의 샘플을 가진 프레임을 VAD에 전달하여 음성 여부를 판단합니다.
@@ -122,11 +129,12 @@ class VADAudio(Audio):
                 else:
                     voiced_duration += self.frame_duration_ms
                     silence_duration += self.frame_duration_ms
-                    if voiced_duration > 3000 and silence_duration > 10:  # 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기
+                    if voiced_duration > 2000 and silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
+                        #print("voiced_duration: ", voiced_duration)
                         voiced_duration = 0  # 정적 지속 시간을 리셋
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
-                    elif voiced_duration > 4000: # 4초 이상 음성 감지시 그대로 음성 자르기
+                    elif voiced_duration > 3000: # 6초 이상 음성 감지시 그대로 음성 자르기
                         voiced_duration = 0  # 정적 지속 시간을 리셋
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
@@ -168,14 +176,25 @@ class LoopbackAudio(threading.Thread):
         self.stop_event.set()
 
 # text to text 번역 모델 로드
-def load_ko2en_model():
+def load_en2ko_model():
+    #global cuda_dev
     # 모델과 토크나이저 초기화
+
+    # NHNDQ Model
     tokenizer = AutoTokenizer.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
     model = AutoModelForSeq2SeqLM.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
+    #model.to(cuda_dev) # torch에서 사용하고 있기 때문에 사용할 수 없다. 
+
+
+    # 양자화된 상태 딕셔너리 로드 및 모델에 적용
+    #quantized_model_path = "D:/git/QuantizationModel/qtModel/qt.pth"
+    #quantized_state_dict = torch.load(quantized_model_path)
+    #model.load_state_dict(quantized_state_dict, strict=False)
+
     return model, tokenizer
 
 # text to text 번역
-def translate_text_with_e2ko(model, token, text: str):
+def translate_text_with_en2ko(model, token, text: str):
     inputs = token(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
     outputs = model.generate(inputs["input_ids"], attention_mask=inputs["attention_mask"], do_sample=False, num_beams=2, no_repeat_ngram_size=2, max_length=512)
     
@@ -183,16 +202,39 @@ def translate_text_with_e2ko(model, token, text: str):
     translated_text = token.decode(outputs[0], skip_special_tokens=True)
     return translated_text
 
+def translate_pipe_text(text: str, src_lang, tgt_lang):
+    translator = pipeline('translation', model='facebook/nllb-200-distilled-600M', device=0, src_lang=src_lang, tgt_lang=tgt_lang, max_length=512, do_sample=False, num_beams=2, no_repeat_ngram_size=2)
+    output = translator(text, max_length=512)[0]['translation_text']
+
+    return output
+
+# JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
+def find_keys_with_value(json_data, target_value):
+    # JSON 데이터를 순회하며 키와 값을 확인합니다.
+    for key, value in json_data.items():
+        # 찾고자 하는 값과 일치하는 경우, 결과 리스트에 키를 추가합니다.
+        if value == target_value:
+            return key
+        # 값이 딕셔너리인 경우, 재귀적으로 함수를 호출해 내부에서도 검색합니다.
+        #elif isinstance(value, dict):
+        #    keys_found.extend(find_keys_with_value(value, target_value))
+    
+    return "en_Latn" # 못찾으면 영어로 설정 
+
 # 음성에서 추출된 텍스트로 번역 작업과 관련된 것들을 처리
 def transSound(ARGS):
     global transcript
     global exit_flag
-    global testDir
+    global use_en2ko
+    global use_trans
+    global trans_lang
+    global isDecoding
+    global lock
+    global whisper_lang_map
 
     isLoadModel = False
-    e2ko_model = None
-    e2ko_token = None
-    cmdCheckTime = time.time()
+    en2ko_model = None
+    en2ko_token = None
     
     decText = ""
     while True:
@@ -200,61 +242,121 @@ def transSound(ARGS):
         if exit_flag:
             return 0
         
-        if transcript != "":
+        # 번역을 하지 않는다면, 다음 루프로 이동
+        if use_trans == False:
+            sleep(0.3)
+            continue
+        
+        if use_en2ko==False:
+            if ARGS.source_lang == "en_Latn" and ARGS.target_lang == "kor_Hang":
+                use_en2ko = True
+
+        if use_en2ko != True :
+            if isLoadModel == True:
+                if en2ko_model is not None:
+                    del en2ko_model
+                if en2ko_token is not None:
+                    del en2ko_token
+                isLoadModel = False
+        else:
+            if isLoadModel == False:
+                en2ko_model, en2ko_token = load_en2ko_model()
+                isLoadModel = True
+        
+        src_lang = ARGS.source_lang
+        if trans_lang != None:
+            # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
+            src_lang = find_keys_with_value(whisper_lang_map, trans_lang)
+
+        if len(transcript) > 1:
             lock.acquire()
             tmpText = transcript
             transcript=""
             lock.release()
 
-            try:
-                outPut = '-'+tmpText.encode('utf-8', errors='ignore').decode('utf-8')
-                print(outPut)
-            except Exception as e:
-                pass  # 에러가 발생해도 아무런 행동을 취하지 않음
-            
-            # 시스템 명령 체크 ( 번역을 할지 말지 ) : 3초에 한번
-            if time.time() > (cmdCheckTime+3):
-                cmdCheckTime = time.time()
-                work=read_file_if_exists(testDir+"childcmd.temp")
-                #print("Read file: "+ ("None" if work is None else work) )
-                if work != None:
-                    if( work.find("ko")>=0 ):
-                        ARGS.translang = work
-                    else:
-                        if e2ko_model is not None:
-                            del e2ko_model
-                        if e2ko_token is not None:
-                            del e2ko_token
-                        isLoadModel = False
-                        ARGS.translang = None
+            if len(tmpText) > 1:
+                try:
+                    output = '-'+tmpText
+                    if isDecoding==True:
+                        print(output.encode('utf-8', errors='ignore').decode('utf-8'))
+                    else :
+                        print(output.encode('utf-8', errors='ignore'))
+                except Exception as e:
+                    pass  # 에러가 발생해도 아무런 행동을 취하지 않음
 
-                    os.remove(testDir+"childcmd.temp")
+                if ARGS.target_lang is None:
+                    continue
 
-            if ARGS.translang is None:
-                continue
+                if src_lang == ARGS.target_lang:
+                    continue
+                
+                if use_en2ko == True:
+                    outPut = translate_text_with_en2ko(en2ko_model, en2ko_token, tmpText)
+                else:
+                    outPut = translate_pipe_text(tmpText, src_lang, ARGS.target_lang)
 
-            if isLoadModel is False:
-                e2ko_model, e2ko_token = load_ko2en_model()
-                isLoadModel = True
-
-            outPut = translate_text_with_e2ko(e2ko_model, e2ko_token, tmpText)
-            try:
-                outPut = outPut.encode('utf-8', errors='ignore').decode('utf-8')
-                print(outPut)
-            except Exception as e:
-                pass  # 에러가 발생해도 아무런 행동을 취하지 않음
+                try:
+                    output = ' '+outPut
+                    if isDecoding==True:
+                        print(output.encode('utf-8', errors='ignore').decode('utf-8'))
+                    else :
+                        print(outPut.encode('utf-8', errors='ignore'))
+                except Exception as e:
+                    pass  # 에러가 발생해도 아무런 행동을 취하지 않음
         
-        sleep(0.3)
+        sleep(0.1)
 
     exit_flag = True
 
+import json
+
+# JSON 파일을 열고 그 내용을 읽어서 파이썬 객체로 변환하는 함수입니다.
+def load_json_file(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='UTF-8') as file:
+            data = json.load(file)
+            return data
+    else: 
+        #print(f"{file_path} 파일이 존재하지 않습니다.")
+        return None
+
+import re
+def halu_filter(src_txt, filter_list):    
+    for filter_txt in filter_list:
+        if filter_txt.startswith('(') and filter_txt.endswith(')'):
+            pattern = filter_txt[1:-1]
+            # [text] 형식의 필터 포함
+            if pattern in src_txt and (len(src_txt)-len(pattern)) <= 5: return True
+            # (text) 형식의 필터: 2회 이상 반복되고 반복문자의 비중이 50%를 넘는 문자열 검색
+            try:
+                matches = re.findall(pattern, src_txt)
+            except:
+                matches = []
+            if len(matches) >= 2 and (len(pattern)*len(matches)*2)>=len(src_txt): return True
+        if filter_txt.startswith('[') and filter_txt.endswith(']'):
+            # [text] 형식의 필터: 포함이 되고 나머지 문자의 길이가 2 이하인 경우
+            pattern = filter_txt[1:-1]
+            if pattern in src_txt and (len(src_txt)-len(pattern)) <= 2: return True
+        else:
+            # 일치여부 검사
+            if src_txt == filter_txt: return True
+    return False
+    
 # 음성 입력을 처리하는 메인 함수
 def main(ARGS):
     global transcript
     global exit_flag
+    global cuda_dev
+    global cmdCheckTime
+    global lock
+    global use_en2ko
+    global whisper_lang_map
+    global use_trans
+    global trans_lang
 
-    # Whisper 모델 환상 제거용 필터
-    filter_list = {".", "you", "Thank you.", "Thanks for watching!", "Thanks you for watching.", "We'll be right back.", "We'll see you next week.", "www.mooji.org", "BANG!"}
+    # Whisper 모델 환상 제거용 필터 
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hallucination_filter.json")
+    json_filter = load_json_file(file_path)
 
     devNo=getDevNo(ARGS)
     if devNo<0:
@@ -267,33 +369,69 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
-    spinner = None
-    if not ARGS.nospinner:
-        spinner = Halo(spinner='line')
+    # spinner = None
+    # if not ARGS.nospinner:
+    #     spinner = Halo(spinner='line')
 
-    whisper_model = whisper.load_model("large") # base, large
-    #print("Voice Model loaded")
+    whisper_model = whisper.load_model("large") # base, large, medium.en
+    whisper_model.to(cuda_dev)
 
     wav_data = bytearray()
     for frame in frames:
         if exit_flag:
             exit
+        
+        # 시스템 명령 체크 ( 번역에 관한 변경사항 적용 ) : 3초에 한번
+        if time.time() > (cmdCheckTime+3):
+            cmdCheckTime = time.time()
+            work=load_json_file(os.getcwd()+"/pymsg.json")
+            if work != None:
+                ARGS.source_lang = work["src_lang"]
+                ARGS.target_lang = work["tgt_lang"]
+                if ARGS.target_lang=="xx": 
+                    ARGS.target_lang = None
+                    use_trans = False
+                else: 
+                    use_trans = True
+                
+                if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
+                    use_en2ko = True
+                else:
+                    use_en2ko = False
+                os.remove(os.getcwd()+"/pymsg.json")
             
         if frame is not None:
             wav_data.extend(frame)
         else:
             if len(wav_data) > 0:
                 newsound = np.frombuffer(wav_data, np.int16)
-                audio_float32 = Int2Float(newsound)
+                # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
+                audio_length_seconds = len(newsound) / vad_audio.RATE_PROCESS
+                #print( "sec:"+ str(audio_length_seconds))
 
-                srcText = whisper_model.transcribe(audio=audio_float32, language=ARGS.voicelang, fp16=False)
+                audio_float32 = Int2Float(newsound)
+                if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
+                    srcText = whisper_model.transcribe(audio=audio_float32, language=trans_lang, fp16=False)
+                else:
+                    if( ARGS.source_lang == "ALL"):
+                        srcText = whisper_model.transcribe(audio=audio_float32, fp16=False)
+                        trans_lang = srcText['language']
+                    else:
+                        trans_lang = whisper_lang_map[ARGS.source_lang]
+                        srcText = whisper_model.transcribe(audio=audio_float32, language=trans_lang, fp16=False)
+                        #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=False)
                 
                 if len(srcText['text'])>1:
                     tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
-                    if tmp not in filter_list:
+                    hallucination_filter = json_filter[trans_lang]
+                    if halu_filter(tmp, hallucination_filter) == False:
                         lock.acquire()
                         transcript += " "+tmp
                         lock.release()
+                    # if tmp not in hallucination_filter:
+                    #     lock.acquire()
+                    #     transcript += " "+tmp
+                    #     lock.release()
 
                 frame = bytearray()
                 wav_data = bytearray()
@@ -329,14 +467,14 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser(description="Stream from microphone to webRTC and silero VAD")
-    parser.add_argument('--nospinner', action='store_true', help="Disable spinner")
+    #parser.add_argument('--nospinner', action='store_true', help="Disable spinner")
     parser.add_argument('-d', '--device', type=str, default=None,
                         help="Device active sound input name")
     parser.add_argument('-name', '--silaro_model_name', type=str, default="silero_vad",
                         help="select the name of the model. You can select between 'silero_vad',''silero_vad_micro','silero_vad_micro_8k','silero_vad_mini','silero_vad_mini_8k'")
-    parser.add_argument('-v', '--voicelang', type=str, default="en",
+    parser.add_argument('-s', '--source_lang', type=str, default=None, # en_Latn, ALL
                         help="Voice input Language : en, ko, ja")
-    parser.add_argument('-t', '--translang', type=str, default="ko",
+    parser.add_argument('-t', '--target_lang', type=str, default=None, # ko_Hang
                         help="Transfer Language : en, ko, xx")
     parser.add_argument('-i', '--origintext', type=str, default=None,
                         help="Original text output : true, false")
@@ -354,12 +492,28 @@ if __name__ == '__main__':
         default_output = p.get_default_output_device_info()
         ARGS.device = default_output['name']
 
-    if ARGS.translang != "en" and ARGS.translang != "ko":
-        ARGS.translang = None
+    if( ARGS.source_lang == None):
+        ARGS.source_lang = "eng_Latn"
+        isDecoding = True
+
+    if ARGS.target_lang == "xx" :
+        ARGS.target_lang = None
+        use_trans = False # 번역을 하지 않는다.
+    else:
+        if( ARGS.target_lang == None):
+            ARGS.target_lang = "kor_Hang"
+        
+    if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
+        use_en2ko = True
+
+    # Whisper 지원 언어 목록
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "whisper_lang_map.json")
+    whisper_lang_map = load_json_file(file_path)
 
     #cuda activate : Translation processing with CPU
-    cuda_dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print('Translation processing with ' + 'cuda' if torch.cuda.is_available() else 'cpu')
+    cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
+    torch.device(cuda_dev)
+    print('Translation processing with ' + cuda_dev)
 
     #thread
     # t1 : voice -> text
