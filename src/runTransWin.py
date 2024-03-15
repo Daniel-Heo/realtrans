@@ -11,9 +11,8 @@ import whisper
 import os
 import numpy as np
 import torch
-import threading
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from transformers import Wav2Vec2ForCTC, Wav2Vec2Tokenizer, pipeline
+from transformers import pipeline
 
 # 글로벌 변수
 exit_flag = False
@@ -73,14 +72,12 @@ silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 
 # 음성 활동 감지 클래스 : 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기, 4초는 그대로 음성 자르기
 class VADAudio(Audio):
-    """Filter & segment audio with voice activity detection."""
 
     def __init__(self, aggressiveness=3, device=None, input_rate=None):
         super().__init__(device=device, input_rate=input_rate)
         self.vad = webrtcvad.Vad(aggressiveness)
 
     def frame_generator(self):
-        """Generator that yields all audio frames from microphone."""
         if self.input_rate == self.RATE_PROCESS:
             while True:
                 yield self.read()
@@ -98,21 +95,27 @@ class VADAudio(Audio):
         triggered = False # 음성 감지 여부 초기화(감지 안된 상태)
 
         for frame in frames: # 5개의 프레임이 든 frames에서 한개씩 가져옴.
-            # 640개면 20ms * 640 = 12.8초
+            # 882개 20ms : 44100 * 20 / 1000 = 882개를 가져와서 resampling해서 16000으로 만들면 인식이 잘안된다. 속도도 느려진다.
+            # 640개 14.5ms
             if len(frame) < 640:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
                 return
             
+            # frame 예시: np.array([[0.1, -0.1], [0.2, -0.2], ...]) 형태로, shape가 (640, 2)
+            # 첫 번째 채널(왼쪽 채널)만 선택
+            mono_frame = frame[:, 0]
             # 2 channel float data를 mono int16 data로 변환
-            mono_frame = np.mean(frame, axis=1)
+            #print( frame.shape)
+            #mono_frame = np.mean(frame, axis=1) # 2 channel을 평균을 내서 1 channel로 만든다.
+
+
             frame = np.int16(mono_frame * 32768) # frame수는 640개
 
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
-            # 320개의 샘플을 가진 프레임을 VAD에 전달하여 음성 여부를 판단합니다.
             is_speech = self.vad.is_speech(frame, self.sample_rate)
 
             # 기존 프레임이 음성이 아닌 상태에서 음성이 감지되면, 링 버퍼를 초기화하고 음성 감지를 시작합니다. f:frame, s:is_speech
             if not triggered:
-                ring_buffer.append((frame, is_speech)) # 링버퍼에 320개의 샘플과 음성 여부를 추가
+                ring_buffer.append((frame, is_speech)) # 링버퍼에 샘플과 음성 여부를 추가
                 num_voiced = len([f for f, speech in ring_buffer if speech]) # 링버퍼에 있는 음성 프레임의 개수를 계산
 
                 if num_voiced > ratio * ring_buffer.maxlen: # 링버퍼에 있는 음성 프레임의 비율이 설정된 ratio를 초과하면 음성 감지를 시작
@@ -120,12 +123,17 @@ class VADAudio(Audio):
                     silence_duration = 0
                     triggered = True # 음성 감지 상태로 변경
                     for f, s in ring_buffer:
-                        yield f
+                        if s:
+                            yield f
                     ring_buffer.clear()
             else:
                 if is_speech:
                     voiced_duration += self.frame_duration_ms
                     silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
+                    if voiced_duration > 3000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                        voiced_duration = 0  # 정적 지속 시간을 리셋
+                        silence_duration = 0  # 정적 지속 시간을 리셋
+                        yield None 
                 else:
                     voiced_duration += self.frame_duration_ms
                     silence_duration += self.frame_duration_ms
@@ -139,7 +147,8 @@ class VADAudio(Audio):
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
 
-                yield frame
+                if is_speech:
+                    yield frame
                 ring_buffer.append((frame, is_speech))
                 num_unvoiced = len(
                     [f for f, speech in ring_buffer if not speech])
@@ -178,13 +187,10 @@ class LoopbackAudio(threading.Thread):
 # text to text 번역 모델 로드
 def load_en2ko_model():
     #global cuda_dev
-    # 모델과 토크나이저 초기화
 
-    # NHNDQ Model
     tokenizer = AutoTokenizer.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
     model = AutoModelForSeq2SeqLM.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
     #model.to(cuda_dev) # torch에서 사용하고 있기 때문에 사용할 수 없다. 
-
 
     # 양자화된 상태 딕셔너리 로드 및 모델에 적용
     #quantized_model_path = "D:/git/QuantizationModel/qtModel/qt.pth"
@@ -203,7 +209,7 @@ def translate_text_with_en2ko(model, token, text: str):
     return translated_text
 
 def translate_pipe_text(text: str, src_lang, tgt_lang):
-    translator = pipeline('translation', model='facebook/nllb-200-distilled-600M', device=0, src_lang=src_lang, tgt_lang=tgt_lang, max_length=512, do_sample=False, num_beams=2, no_repeat_ngram_size=2)
+    translator = pipeline('translation', model='facebook/nllb-200-distilled-600M', tokenizer='facebook/nllb-200-distilled-600M', device=cuda_dev, src_lang=src_lang, tgt_lang=tgt_lang, max_length=512, do_sample=False, num_beams=2, no_repeat_ngram_size=2)
     output = translator(text, max_length=512)[0]['translation_text']
 
     return output
@@ -212,14 +218,14 @@ def translate_pipe_text(text: str, src_lang, tgt_lang):
 def find_keys_with_value(json_data, target_value):
     # JSON 데이터를 순회하며 키와 값을 확인합니다.
     for key, value in json_data.items():
-        # 찾고자 하는 값과 일치하는 경우, 결과 리스트에 키를 추가합니다.
+        # 찾고자 하는 값과 일치하는 경우 키를 리턴합니다.
         if value == target_value:
             return key
         # 값이 딕셔너리인 경우, 재귀적으로 함수를 호출해 내부에서도 검색합니다.
         #elif isinstance(value, dict):
         #    keys_found.extend(find_keys_with_value(value, target_value))
     
-    return "en_Latn" # 못찾으면 영어로 설정 
+    return None
 
 # 음성에서 추출된 텍스트로 번역 작업과 관련된 것들을 처리
 def transSound(ARGS):
@@ -247,9 +253,10 @@ def transSound(ARGS):
             sleep(0.3)
             continue
         
-        if use_en2ko==False:
-            if ARGS.source_lang == "en_Latn" and ARGS.target_lang == "kor_Hang":
-                use_en2ko = True
+        if ( ARGS.source_lang == "eng_Latn" or trans_lang == "en" ) and ARGS.target_lang == "kor_Hang":
+            use_en2ko = True
+        else :
+            use_en2ko = False
 
         if use_en2ko != True :
             if isLoadModel == True:
@@ -263,10 +270,13 @@ def transSound(ARGS):
                 en2ko_model, en2ko_token = load_en2ko_model()
                 isLoadModel = True
         
-        src_lang = ARGS.source_lang
-        if trans_lang != None:
+        try:
             # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
             src_lang = find_keys_with_value(whisper_lang_map, trans_lang)
+            if( src_lang == None ):
+                src_lang = "eng_Latn"
+        except Exception as e:
+            src_lang = "eng_Latn"
 
         if len(transcript) > 1:
             lock.acquire()
@@ -293,7 +303,7 @@ def transSound(ARGS):
                 if use_en2ko == True:
                     outPut = translate_text_with_en2ko(en2ko_model, en2ko_token, tmpText)
                 else:
-                    outPut = translate_pipe_text(tmpText, src_lang, ARGS.target_lang)
+                    outPut = translate_pipe_text(tmpText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
 
                 try:
                     output = ' '+outPut
@@ -369,10 +379,6 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
-    # spinner = None
-    # if not ARGS.nospinner:
-    #     spinner = Halo(spinner='line')
-
     whisper_model = whisper.load_model("large") # base, large, medium.en
     whisper_model.to(cuda_dev)
 
@@ -423,15 +429,28 @@ def main(ARGS):
                 
                 if len(srcText['text'])>1:
                     tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
-                    hallucination_filter = json_filter[trans_lang]
-                    if halu_filter(tmp, hallucination_filter) == False:
+                    try:
+                        hallucination_filter = json_filter[trans_lang]
+                    except Exception as e:
+                        hallucination_filter = None
+                        trans_lang = "en"
+
+                    if hallucination_filter != None:
+                        if halu_filter(tmp, hallucination_filter) == False:
+                            lock.acquire()
+                            if ARGS.view != None:
+                                transcript += " "+trans_lang+"> "+tmp
+                            else :
+                                transcript += " "+tmp
+                            lock.release()
+                    else:
                         lock.acquire()
-                        transcript += " "+tmp
+                        if ARGS.view != None:
+                            transcript += " "+trans_lang+"> "+tmp
+                        else :
+                            transcript += " "+tmp
+                        
                         lock.release()
-                    # if tmp not in hallucination_filter:
-                    #     lock.acquire()
-                    #     transcript += " "+tmp
-                    #     lock.release()
 
                 frame = bytearray()
                 wav_data = bytearray()
@@ -453,7 +472,7 @@ def getDevNo(ARGS):
 
 # int16 -> float32로 변환
 def Int2Float(sound):
-    _sound = np.copy(sound)  #
+    _sound = np.copy(sound)  
     abs_max = np.abs(_sound).max()
     _sound = _sound.astype('float32')
     if abs_max > 0:
@@ -466,18 +485,15 @@ if __name__ == '__main__':
     DEFAULT_SAMPLE_RATE = 16000
 
     import argparse
-    parser = argparse.ArgumentParser(description="Stream from microphone to webRTC and silero VAD")
-    #parser.add_argument('--nospinner', action='store_true', help="Disable spinner")
+    parser = argparse.ArgumentParser(description="Stream from speacker to whisper and translate")
     parser.add_argument('-d', '--device', type=str, default=None,
                         help="Device active sound input name")
-    parser.add_argument('-name', '--silaro_model_name', type=str, default="silero_vad",
-                        help="select the name of the model. You can select between 'silero_vad',''silero_vad_micro','silero_vad_micro_8k','silero_vad_mini','silero_vad_mini_8k'")
-    parser.add_argument('-s', '--source_lang', type=str, default=None, # en_Latn, ALL
-                        help="Voice input Language : en, ko, ja")
-    parser.add_argument('-t', '--target_lang', type=str, default=None, # ko_Hang
-                        help="Transfer Language : en, ko, xx")
-    parser.add_argument('-i', '--origintext', type=str, default=None,
-                        help="Original text output : true, false")
+    parser.add_argument('-s', '--source_lang', type=str, default=None, # eng_Latn, ALL
+                        help="Voice input Language : eng_Latn, kor_Hang")
+    parser.add_argument('-t', '--target_lang', type=str, default=None, # kor_Hang
+                        help="Transfer Language : eng_Latn, kor_Hang, xx")
+    parser.add_argument('-v', '--view', type=str, default=None,
+                        help="Debug mode : None, not None")
     parser.add_argument('-w', '--webRTC_aggressiveness', type=int, default=3,
                         help="Set aggressiveness of webRTC: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive. Default: 3")      
 
