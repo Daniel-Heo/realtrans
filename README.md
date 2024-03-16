@@ -7,10 +7,6 @@ This is a program for real-time voice translation. Recognizes and translates the
 - Support API : OpenAI API ( Summary ), DeepL ( real time translation )
 - Support OS : Windows 10, 11 ~
 
-Showcase: Not available yet
-
-Setup Guide: Not available yet
-
 ### Install
 
 Install Python ( Require 3.10.x ) : https://www.python.org/downloads/
