@@ -259,10 +259,6 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 - 지원 API : OpenAI API ( 요약 ), DeepL ( 실시간 번역 )
 - 지원 OS : Windows 10, 11 ~
 
-Showcase: 미지원
-
-Setup Guide: 미지원
-
 ### 설치
 
 파이선 설치 
