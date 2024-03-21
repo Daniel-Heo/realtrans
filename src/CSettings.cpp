@@ -1,47 +1,102 @@
-#include "CSettings.h"
+ï»¿#include "CSettings.h"
 #include <fstream>
 #include <iostream>
-#include <stdexcept> // std::invalid_argument, std::out_of_range ¿¹¿Ü¸¦ Ã³¸®ÇÏ±â À§ÇØ Æ÷ÇÔ
+#include <stdexcept> // std::invalid_argument, std::out_of_range ì˜ˆì™¸ë¥¼ ì²˜ë¦¬í•˜ê¸° ìœ„í•´ í¬í•¨
 #include "Resource.h"
-#include "json.hpp" // ¶Ç´Â °æ·Î¸¦ ÁöÁ¤ÇØ¾ß ÇÒ °æ¿ì: #include "External/json.hpp"
+#include "json.hpp" // ë˜ëŠ” ê²½ë¡œë¥¼ ì§€ì •í•´ì•¼ í•  ê²½ìš°: #include "External/json.hpp"
 #include "StrConvert.h"
 #include "CDlgSummary.h"
+#include "language.h"
 
-// nlohmann ¶óÀÌºê·¯¸®ÀÇ ³×ÀÓ½ºÆäÀÌ½º »ç¿ë
+// nlohmann ë¼ì´ë¸ŒëŸ¬ë¦¬ì˜ ë„¤ì„ìŠ¤í˜ì´ìŠ¤ ì‚¬ìš©
 using json = nlohmann::json;
 
-// È¯°æ ¼³Á¤À» À§ÇÑ JSON °´Ã¼ »ı¼º
+// í™˜ê²½ ì„¤ì •ì„ ìœ„í•œ JSON ê°ì²´ ìƒì„±
 extern json settings;
 extern BOOL isRefreshEnv;
 extern time_t nSummaryTime;
 extern CDlgSummary* DlgSum;
 
-// JSON °´Ã¼¸¦ ¹®ÀÚ¿­·Î Ãâ·ÂÇÏ´Â ÇÔ¼ö
+// ë²ˆì—­ ê²°ê³¼ ì–¸ì–´
+WCHAR langArr[32][2][40] = {
+	{L"Korean", L"KO"}, {L"American English", L"EN-US"}, {L"British English", L"EN-GB"}, {L"Arabic", L"AR"}, {L"Bulgarian", L"BG"},
+	{L"Czech", L"CS"}, {L"Danish", L"DA"}, {L"German", L"DE"}, {L"Greek", L"EL"}, {L"Spanish", L"ES"}, {L"Estonian", L"ET"},
+	{L"Finnish", L"FI"}, {L"French", L"FR"}, {L"Hungarian", L"HU"}, {L"Indonesian", L"ID"}, {L"Italian", L"IT"}, {L"Japanese", L"JA"},
+	{L"Lithuanian", L"LT"}, {L"Latvian", L"LV"}, {L"Norwegian", L"NB"}, {L"Dutch", L"NL"}, {L"Polish", L"PL"}, {L"Brazilian Portuguese", L"PT-BR"},
+	{L"Portuguese", L"PT-PT"}, {L"Romanian", L"RO"}, {L"Russian", L"RU"}, {L"Slovak", L"SK"}, {L"Slovenian", L"SL"}, {L"Swedish", L"SV"},
+	{L"Turkish", L"TR"}, {L"Ukrainian", L"UK"}, {L"Chinese", L"ZH"}
+};
+
+// í™˜ê²½ì„¤ì • ì–¸ì–´,  ìš”ì•½ ì–¸ì–´
+LPCWSTR langEnv[] = {
+	L"Korean",
+	L"English",
+	L"German",
+	L"Spanish",
+	L"French",
+	L"Italian",
+	L"Japanese",
+	L"Portuguese",
+	L"Russian",
+	L"Chinese",
+	L"Arabic",
+	L"Hindi"
+};
+
+// JSON ê°ì²´ë¥¼ ë¬¸ìì—´ë¡œ ì¶œë ¥í•˜ëŠ” í•¨ìˆ˜
 void PrintJson()
 {
-	// JSON °´Ã¼ »ı¼º ¹× »ç¿ë ¿¹½Ã
+	// JSON ê°ì²´ ìƒì„± ë° ì‚¬ìš© ì˜ˆì‹œ
 	json j;
 	j["name"] = "John";
 	j["age"] = 30;
 	j["is_student"] = false;
 	j["skills"] = { "C++", "Python", "JavaScript" };
 
-	// JSON °´Ã¼¸¦ ¹®ÀÚ¿­·Î Ãâ·Â
+	// JSON ê°ì²´ë¥¼ ë¬¸ìì—´ë¡œ ì¶œë ¥
 	//std::cout << j.dump(4) << std::endl;
 }
 
-// Python ÇÁ·Î±×·¥¿¡ Àü´ŞÇÒ ¸í·ÉÀ» childcmd.temp ÆÄÀÏ·Î ÀúÀåÇÏ´Â ÇÔ¼ö : Python ÇÁ·Î±×·¥Àº childcmd.temp ÆÄÀÏÀ» ÀĞ¾î¼­ ¸í·ÉÀ» ¼öÇà
-void MakeChildCmd(const char* cmd)
+// Python í”„ë¡œê·¸ë¨ì— ì „ë‹¬í•  ëª…ë ¹ì„ pymsg.json íŒŒì¼ë¡œ ì €ì¥í•˜ëŠ” í•¨ìˆ˜ : Python í”„ë¡œê·¸ë¨ì€ pymsg.json íŒŒì¼ì„ ì½ì–´ì„œ ëª…ë ¹ì„ ìˆ˜í–‰
+void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang )
 {
-	std::ofstream file("childcmd.temp");
-	file << cmd;
+	std::string txt = "{ \"src_lang\": \"" + src_lang + "\", \"tgt_lang\": \"" + tgt_lang + "\" }";
+	std::ofstream file("pymsg.json");
+	file << txt;
 }
 
-// ÇöÀç ¼³Á¤À» ÆÄÀÏ·Î ÀúÀå
+// í˜„ì¬ ì„¤ì •ì„ íŒŒì¼ë¡œ ì €ì¥
 void SaveSettings(HWND hwnd, const std::string& filePath) {
 	BOOL old_pctrans = settings["ck_pctrans"];
+	int nSel = 0;
+	LPARAM itemData;
+	HWND hCbBox;
+	WCHAR comboBoxItem[256];
 
-	// Checkbox »óÅÂ ÀĞ±â (¿¹½Ã: Ã¼Å©¹Ú½ºÀÇ ID°¡ IDC_CHECKBOX1ÀÌ¶ó°í °¡Á¤)
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_UI_LANG);
+	settings["ui_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+
+	// ì–¸ì–´ ì„¤ì •
+			
+	switch (settings["ui_lang"].get<int>())
+	{
+	case 0: 	SetUserLocale(L"en-US");
+		break;
+	case 1: SetUserLocale(L"ko-KR"); break; // í•œêµ­ì–´ ( Korean )
+	case 2: SetUserLocale(L"en-US"); break; // ì˜ì–´ ( English )
+	case 3: SetUserLocale(L"de-DE"); break; // ë…ì¼ì–´ ( German )
+	case 4: SetUserLocale(L"es-ES"); break; // ìŠ¤í˜ì¸ì–´ ( Spanish )
+	case 5: SetUserLocale(L"fr-FR"); break; // í”„ë‘ìŠ¤ì–´ ( French )
+	case 6: SetUserLocale(L"it-IT"); break; // ì´íƒˆë¦¬ì•„ì–´ ( Italian )
+	case 7: SetUserLocale(L"ja-JP"); break; // ì¼ë³¸ì–´ ( Japanese )
+	case 8: SetUserLocale(L"pt-BR"); break; // í¬ë¥´íˆ¬ê°ˆì–´ ( Portuguese )
+	case 9: SetUserLocale(L"ru-RU"); break; // ëŸ¬ì‹œì•„ì–´ ( Russian )
+	case 10: SetUserLocale(L"zh-CN"); break; // ì¤‘êµ­ì–´ ( Chinese )
+	case 11: SetUserLocale(L"ar-SA"); break; // ì•„ëì–´ ( Arabic )
+	case 12: SetUserLocale(L"hi-IN"); break; // íŒë””ì–´ ( Hindi )
+	}
+
+	// Checkbox ìƒíƒœ ì½ê¸° (ì˜ˆì‹œ: ì²´í¬ë°•ìŠ¤ì˜ IDê°€ IDC_CHECKBOX1ì´ë¼ê³  ê°€ì •)
 	bool checkBoxState = (IsDlgButtonChecked(hwnd, IDC_CHECK_VSUB) == BST_CHECKED);
 	settings["ck_orgin_subtext"] = checkBoxState;
 	checkBoxState = (IsDlgButtonChecked(hwnd, IDC_CHECK_PCTRANS) == BST_CHECKED);
@@ -51,28 +106,36 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	checkBoxState = (IsDlgButtonChecked(hwnd, IDC_CHECK_SUMMARY) == BST_CHECKED);
 	settings["ck_summary"] = checkBoxState;
 
-	if (settings["ck_pctrans"] != old_pctrans)
-	{
-		if(settings["ck_pctrans"] )
-			MakeChildCmd("ko");
-		else
-			MakeChildCmd("xx");
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_VOICE_LANG);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	itemData = SendMessage(hCbBox, CB_GETITEMDATA, nSel, 0);
+	if (itemData != CB_ERR) {
+		settings["cb_voice_lang"] = WCHARToString((WCHAR*)itemData);
 	}
 
-	// Combobox ¼±ÅÃµÈ ¾ÆÀÌÅÛ ÀĞ±â (¿¹½Ã: ÄŞº¸¹Ú½ºÀÇ ID°¡ IDC_COMBOBOX1ÀÌ¶ó°í °¡Á¤)
-	WCHAR comboBoxItem[256];
-	HWND hCbBox = GetDlgItem(hwnd, IDC_COMBO_VOICE_LANG);
-	settings["cb_voice_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 	hCbBox = GetDlgItem(hwnd, IDC_COMBO_PCTRANS_LANG);
-	settings["cb_pctrans_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	itemData = SendMessage(hCbBox, CB_GETITEMDATA, nSel, 0);
+	if (itemData != CB_ERR) {
+		settings["cb_pctrans_lang"] = WCHARToString((WCHAR*)itemData);
+	}
+
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_APITRANS_LANG);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	itemData = SendMessage(hCbBox, CB_GETITEMDATA, nSel, 0);
+	if (itemData != CB_ERR) {
+		settings["cb_apitrans_lang"] = WCHARToString((WCHAR*)itemData);
+	}
+
+	// json íŒŒì¼ë¡œ ì €ì¥
+	std::string tgt_lang;
+	if (settings["ck_pctrans"] == true) tgt_lang = settings["cb_pctrans_lang"];
+	else tgt_lang = "xx";
+	MakeChildCmd(settings["cb_voice_lang"], tgt_lang);
+
 	hCbBox = GetDlgItem(hwnd, IDC_COMBO_SUMMARY);
 	settings["cb_summary_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 
-	/*GetDlgItemText(hwnd, IDC_EDIT_TRANS_API_SEC, comboBoxItem, 256);
-	settings["cb_apitrans_sec"] = wstringToInt(comboBoxItem);*/
-
-	hCbBox = GetDlgItem(hwnd, IDC_COMBO_APITRANS_LANG);
-	settings["cb_apitrans_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 	hCbBox = GetDlgItem(hwnd, IDC_COMBO_TRANS_API);
 	settings["cb_trans_api"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 
@@ -107,152 +170,435 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	GetDlgItemText(hwnd, IDC_EDIT_SUMMARY_API_KEY, comboBoxItem, 256);
 	settings["ed_summary_api_key"] = WCHARToString(comboBoxItem);
 
-	// ¿ä¾à ÈùÆ®
+	// ìš”ì•½ íŒíŠ¸
 	WCHAR lpString[512];
 	GetDlgItemText(hwnd, IDC_EDIT_SUMMARY_HINT, lpString, 512);
 	settings["ed_summary_hint"] = WCHARToString(lpString);
 
-	// ¿ä¾à °»½Å½Ã°£ ÃÊ±âÈ­
+	// ìš”ì•½ ê°±ì‹ ì‹œê°„ ì´ˆê¸°í™”
 	nSummaryTime = 0;
 
-	// ÆùÆ® ÃÊ±âÈ­
+	// í°íŠ¸ ì´ˆê¸°í™”
 	DlgSum->SetFont();
 
-	// JSON ÆÄÀÏ·Î ÀúÀå
+	// JSON íŒŒì¼ë¡œ ì €ì¥
 	std::ofstream file(filePath);
-	file << settings.dump(4); // ¿¹»Ú°Ô Ãâ·ÂÇÏ±â À§ÇØ 4¸¦ µé¿©¾²±â·Î »ç¿ë
+	file << settings.dump(4); // ì˜ˆì˜ê²Œ ì¶œë ¥í•˜ê¸° ìœ„í•´ 4ë¥¼ ë“¤ì—¬ì“°ê¸°ë¡œ ì‚¬ìš©
 }
 
-// JSON °´Ã¼¿¡ ±âº»°ª ¼³Á¤ : ÃÊ±âÈ­ ½Ã¿¡µµ »ç¿ë
+// JSON ê°ì²´ì— ê¸°ë³¸ê°’ ì„¤ì • : ì´ˆê¸°í™” ì‹œì—ë„ ì‚¬ìš©
 void defaultJson() {
-	settings["ck_orgin_subtext"] = false; // ¿ø¹® ÀÚ¸· Ç¥½Ã
-	settings["ck_pctrans"] = true; // ÀÚµ¿ ¹ø¿ª PC
-	settings["ck_apitrans"] = false; // ÀÚµ¿ ¹ø¿ª API
-	settings["ck_summary"] = false; // ¿ä¾à API »ç¿ë
+	settings["ui_lang"] = 0; // ì–¸ì–´
+	settings["ck_orgin_subtext"] = false; // ì›ë¬¸ ìë§‰ í‘œì‹œ
+	settings["ck_pctrans"] = true; // ìë™ ë²ˆì—­ PC
+	settings["ck_apitrans"] = false; // ìë™ ë²ˆì—­ API
+	settings["ck_summary"] = false; // ìš”ì•½ API ì‚¬ìš©
 
-	settings["cb_voice_lang"] = 0; // À½¼º ¾ğ¾î
-	settings["cb_pctrans_lang"] = 0; // ¹ø¿ª °á°ú ¾ğ¾î ( PC )
-	settings["cb_summary_lang"] = 0; // ¿ä¾à ¾ğ¾î
-	settings["cb_apitrans_sec"] = 1000; // API ¹ø¿ª ÁÖ±â : Sec
-	settings["cb_apitrans_lang"] = 0; // ¹ø¿ª °á°ú ¾ğ¾î ( API )
-	settings["cb_trans_api"] = 0; // ¹ø¿ª¿¡ »ç¿ëÇÒ API
-	settings["cb_summary_min"] = 1; // ¿ä¾à ÁÖ±â : Minute
-	settings["cb_summary_api"] = 0; // ¿ä¾à¿¡ »ç¿ëÇÒ API
+	settings["cb_voice_lang"] = "eng_Latn"; // ìŒì„± ì–¸ì–´
+	settings["cb_pctrans_lang"] = "kor_Hang"; // ë²ˆì—­ ê²°ê³¼ ì–¸ì–´ ( PC )
+	settings["cb_summary_lang"] = 0; // ìš”ì•½ ì–¸ì–´
+	settings["cb_apitrans_lang"] = "KO"; // ë²ˆì—­ ê²°ê³¼ ì–¸ì–´ ( API )
+	settings["cb_trans_api"] = 0; // ë²ˆì—­ì— ì‚¬ìš©í•  API
+	settings["cb_summary_min"] = 1; // ìš”ì•½ ì£¼ê¸° : Minute
+	settings["cb_summary_api"] = 0; // ìš”ì•½ì— ì‚¬ìš©í•  API
 
-	// ÆùÆ® ÄÃ·¯
+	// í°íŠ¸ ì»¬ëŸ¬
 	settings["ed_font_color"] = "#C8C8FF";
 	settings["ed_oldfont_color"] = "#8C8C8C";
 	settings["cb_font_size"] = 20;
 	settings["cb_oldfont_size"] = 20;
-	// ¿ä¾àÃ¢ ÆùÆ® ÄÃ·¯
+	// ìš”ì•½ì°½ í°íŠ¸ ì»¬ëŸ¬
 	settings["ed_sumfont_color"] = "#C8C8FF";
 	settings["cb_sumfont_size"] = 13;
 
-	settings["ed_trans_api_key"] = ""; // ¹ø¿ª¿¡ »ç¿ëÇÒ API Key
-	settings["ed_summary_api_key"] = ""; // ¿ä¾à¿¡ »ç¿ëÇÒ API Key
-	settings["ed_summary_hint"] = "The following text is a conversation related to securities and economics. Please summarize the main topics, key data points, and conclusions in around 300 words. The summary should be arrange them in number list form to keep them short and concise."; // ¿ä¾à ÈùÆ®
+	settings["ed_trans_api_key"] = ""; // ë²ˆì—­ì— ì‚¬ìš©í•  API Key
+	settings["ed_summary_api_key"] = ""; // ìš”ì•½ì— ì‚¬ìš©í•  API Key
+	settings["ed_summary_hint"] = "The following text is a conversation related to securities and economics. Please summarize the main topics, key data points, and conclusions in around 300 words. The summary should be arrange them in number list form to keep them short and concise."; // ìš”ì•½ íŒíŠ¸
 }
 
-// ¼³Á¤ È­¸é °»½Å
+// ì„¤ì • í™”ë©´ ê°±ì‹ 
 void RefreshSettings(HWND hwnd, BOOL isStart)
 {
 	WCHAR tmp[10];
+	int index;
+	int itemCount;
+	HWND hListBox;
+	//json langMap;
 
-	// ¿ø¹® ÀÚ¸· Ç¥½Ã
+	// í™˜ê²½ ì„¤ì • ì–¸ì–´
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_UI_LANG); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
+	if (hListBox != NULL) {
+		if (isStart) {
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"None");
+
+			// languages ë°°ì—´ì„ ìˆœíšŒí•˜ë©° ê° ì–¸ì–´ë¥¼ hListBoxì— ì¶”ê°€í•©ë‹ˆë‹¤.
+			int lenLang = sizeof(langEnv) / sizeof(langEnv[0]);
+			for (int i = 0; i < lenLang; ++i) {
+				SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)langEnv[i]);
+			}
+		}
+
+		SendMessage(hListBox, CB_SETCURSEL, settings["ui_lang"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
+	}
+
+	// ì›ë¬¸ ìë§‰ í‘œì‹œ
 	CheckDlgButton(hwnd, IDC_CHECK_VSUB, settings["ck_orgin_subtext"].get<bool>() ? BST_CHECKED : BST_UNCHECKED);
-	// ÀÚµ¿ ¹ø¿ª PC
+	// ìë™ ë²ˆì—­ PC
 	CheckDlgButton(hwnd, IDC_CHECK_PCTRANS, settings["ck_pctrans"].get<bool>() ? BST_CHECKED : BST_UNCHECKED);
-	// ÀÚµ¿ ¹ø¿ª API
+	// ìë™ ë²ˆì—­ API
 	CheckDlgButton(hwnd, IDC_CHECK_APITRANS, settings["ck_apitrans"].get<bool>() ? BST_CHECKED : BST_UNCHECKED);
-	// ¿ä¾à API
+	// ìš”ì•½ API
 	CheckDlgButton(hwnd, IDC_CHECK_SUMMARY, settings["ck_summary"].get<bool>() ? BST_CHECKED : BST_UNCHECKED);
 
-	// ¹ø¿ª ÀÔ·Â ¾ğ¾î
-	HWND hListBox = GetDlgItem(hwnd, IDC_COMBO_VOICE_LANG); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ë²ˆì—­ ì…ë ¥ ì–¸ì–´
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_VOICE_LANG); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"English");
+			// ì–¸ì–´ì™€ ê´€ë ¨ ë°ì´í„° ìŒì„ ë°°ì—´ë¡œ ì´ˆê¸°í™”
+			LanguageData languages[] = {
+				{L"ALL", L"ALL"}, {L"Korean", L"kor_Hang"}, {L"English", L"eng_Latn"},
+				{L"German", L"deu_Latn"}, {L"French", L"fra_Latn"}, {L"Italian", L"ita_Latn"},
+				{L"Arabic", L"kas_Arab"}, {L"Hindi", L"hin_Deva"}, {L"Polish", L"pol_Latn"},
+				{L"Russian", L"rus_Cyrl"}, {L"Turkish", L"tur_Latn"}, {L"Dutch", L"nld_Latn"},
+				{L"Spanish", L"spa_Latn"}, {L"Thai", L"tha_Thai"}, {L"Portuguese", L"por_Latn"},
+				{L"Indonesian", L"ind_Latn"}, {L"Swedish", L"swe_Latn"}, {L"Czech", L"ces_Latn"},
+				{L"Romanian", L"ron_Latn"}, {L"Catalan", L"cat_Latn"}, {L"Hungarian", L"hun_Latn"},
+				{L"Ukrainian", L"ukr_Cyrl"}, {L"Greek", L"ell_Grek"}, {L"Bulgarian", L"bul_Cyrl"},
+				{L"Serbian", L"srp_Cyrl"}, {L"Macedonian", L"mkd_Cyrl"}, {L"Latvian", L"lav_Latn"},
+				{L"Slovenian", L"slv_Latn"}, {L"Galician", L"glg_Latn"}, {L"Danish", L"dan_Latn"},
+				{L"Urdu", L"urd_Arab"}, {L"Slovak", L"slk_Latn"}, {L"Hebrew", L"heb_Hebr"},
+				{L"Finnish", L"fin_Latn"}, {L"Azerbaijani Latn", L"azj_Latn"},
+				{L"Azerbaijani Arab", L"azb_Arab"}, {L"Lithuanian", L"lit_Latn"},
+				{L"Estonian", L"est_Latn"}, {L"Nynorsk", L"nno_Latn"}, {L"Welsh", L"cym_Latn"},
+				{L"Punjabi Guru", L"pan_Guru"}, {L"Basque", L"eus_Latn"},
+				{L"Vietnamese", L"vie_Latn"}, {L"Bengali", L"ben_Beng"}, {L"Nepali", L"npi_Deva"},
+				{L"Marathi", L"mar_Deva"}, {L"Belarusian", L"bel_Cyrl"}, {L"Kazakh", L"kaz_Cyrl"},
+				{L"Armenian", L"hye_Armn"}, {L"Swahili", L"swh_Latn"}, {L"Tamil", L"tam_Taml"},
+				{L"Albanian", L"sqi_Latn"}, {L"Mandarin(TW)", L"zho_Hant"},
+				{L"Cantonese(HK)", L"yue_Hant"}, {L"Mandarin(CN)", L"zho_Hans"},
+				{L"Cantonese(CN)", L"zho_Hant"}, {L"Japanese", L"jpn_Jpan"}
+			};
+
+			// languages ë°°ì—´ì„ ìˆœíšŒí•˜ë©° ê° ì–¸ì–´ì™€ ë°ì´í„°ë¥¼ hListBoxì— ì¶”ê°€
+			int lenLang = sizeof(languages) / sizeof(languages[0]);
+			for (int i = 0; i < lenLang; ++i) {
+				// ì–¸ì–´ ë¬¸ìì—´ì„ ë¦¬ìŠ¤íŠ¸ ë°•ìŠ¤ì— ì¶”ê°€í•˜ê³  ì¸ë±ìŠ¤ë¥¼ ë°›ìŒ
+				index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)languages[i].language);
+				// ì–»ì€ ì¸ë±ìŠ¤ë¥¼ ì‚¬ìš©í•˜ì—¬ í•´ë‹¹ ì–¸ì–´ì— ê´€ë ¨ ë°ì´í„° ì„¤ì •
+				SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)languages[i].data);
+			}
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_voice_lang"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		// ì²« ë²ˆì§¸ ì•„ì´í…œì„ ì„ íƒ ìƒíƒœë¡œ ì„¤ì •
+		//SendMessage(hListBox, CB_SETCURSEL, settings["cb_voice_lang"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
+			//if (settings["cb_voice_lang"] == itemData ) {
+			if (CompareStringAndWString(settings.value("cb_voice_lang", ""),(WCHAR*)itemData)==true) {
+				// ì›í•˜ëŠ” ë°ì´í„°ë¥¼ ê°€ì§„ í•­ëª©ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, í•´ë‹¹ í•­ëª©ì„ ì„ íƒí•©ë‹ˆë‹¤.
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
 	}
 
-	// ¹ø¿ª °á°ú ¾ğ¾î ( PC )
-	hListBox = GetDlgItem(hwnd, IDC_COMBO_PCTRANS_LANG); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ë²ˆì—­ ê²°ê³¼ ì–¸ì–´ ( PC )
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_PCTRANS_LANG); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"Korean");
+			// ì–¸ì–´ì™€ ê´€ë ¨ ë°ì´í„° ìŒì„ ì´ˆê¸°í™”í•©ë‹ˆë‹¤.
+			LanguageData languages[] = {
+				{L"Korean, Hangul", L"kor_Hang"},
+				{L"English, Latin", L"eng_Latn"},
+				{L"Acehnese, Arabic", L"ace_Arab"},
+				{L"Acehnese, Latin", L"ace_Latn"},
+				{L"Mesopotamian Arabic, Arabic", L"acm_Arab"},
+				{L"Ta'izzi-Adeni Arabic, Arabic", L"acq_Arab"},
+				{L"Tunisian Arabic, Arabic", L"aeb_Arab"},
+				{L"Afrikaans, Latin", L"afr_Latn"},
+				{L"South Arabian Arabic, Arabic", L"ajp_Arab"},
+				{L"Akan, Latin", L"aka_Latn"},
+				{L"Amharic, Ethiopic", L"amh_Ethi"},
+				{L"Levantine Arabic, Arabic", L"apc_Arab"},
+				{L"Standard Arabic, Arabic", L"arb_Arab"},
+				{L"Najdi Arabic, Arabic", L"ars_Arab"},
+				{L"Moroccan Arabic, Arabic", L"ary_Arab"},
+				{L"Egyptian Arabic, Arabic", L"arz_Arab"},
+				{L"Assamese, Bengali", L"asm_Beng"},
+				{L"Asturian, Latin", L"ast_Latn"},
+				{L"Awadhi, Devanagari", L"awa_Deva"},
+				{L"Aymara, Latin", L"ayr_Latn"},
+				{L"South Azerbaijani, Arabic", L"azb_Arab"},
+				{L"North Azerbaijani, Latin", L"azj_Latn"},
+				{L"Bashkir, Cyrillic", L"bak_Cyrl"},
+				{L"Bambara, Latin", L"bam_Latn"},
+				{L"Balinese, Latin", L"ban_Latn"},
+				{L"Belarusian, Cyrillic", L"bel_Cyrl"},
+				{L"Bemba, Latin", L"bem_Latn"},
+				{L"Bengali, Bengali", L"ben_Beng"},
+				{L"Bhojpuri, Devanagari", L"bho_Deva"},
+				{L"Banjar, Arabic", L"bjn_Arab"},
+				{L"Banjar, Latin", L"bjn_Latn"},
+				{L"Tibetan, Tibetan", L"bod_Tibt"},
+				{L"Bosnian, Latin", L"bos_Latn"},
+				{L"Buginese, Latin", L"bug_Latn"},
+				{L"Bulgarian, Cyrillic", L"bul_Cyrl"},
+				{L"Catalan, Latin", L"cat_Latn"},
+				{L"Cebuano, Latin", L"ceb_Latn"},
+				{L"Czech, Latin", L"ces_Latn"},
+				{L"Chakma, Latin", L"cjk_Latn"},
+				{L"Sorani Kurdish, Arabic", L"ckb_Arab"},
+				{L"Crimean Tatar, Latin", L"crh_Latn"},
+				{L"Welsh, Latin", L"cym_Latn"},
+				{L"Danish, Latin", L"dan_Latn"},
+				{L"German, Latin", L"deu_Latn"},
+				{L"Dinka, Latin", L"dik_Latn"},
+				{L"Dyula, Latin", L"dyu_Latn"},
+				{L"Dzongkha, Tibetan", L"dzo_Tibt"},
+				{L"Greek, Greek", L"ell_Grek"},
+				{L"Esperanto, Latin", L"epo_Latn"},
+				{L"Estonian, Latin", L"est_Latn"},
+				{L"Basque, Latin", L"eus_Latn"},
+				{L"Ewe, Latin", L"ewe_Latn"},
+				{L"Faroese, Latin", L"fao_Latn"},
+				{L"Persian (Farsi), Arabic", L"pes_Arab"},
+				{L"Fijian, Latin", L"fij_Latn"},
+				{L"Finnish, Latin", L"fin_Latn"},
+				{L"Fon, Latin", L"fon_Latn"},
+				{L"French, Latin", L"fra_Latn"},
+				{L"Friulian, Latin", L"fur_Latn"},
+				{L"Fulfulde, Latin", L"fuv_Latn"},
+				{L"Scottish Gaelic, Latin", L"gla_Latn"},
+				{L"Irish, Latin", L"gle_Latn"},
+				{L"Galician, Latin", L"glg_Latn"},
+				{L"Guarani, Latin", L"grn_Latn"},
+				{L"Gujarati, Gujarati", L"guj_Gujr"},
+				{L"Haitian Creole, Latin", L"hat_Latn"},
+				{L"Hausa, Latin", L"hau_Latn"},
+				{L"Hebrew, Hebrew", L"heb_Hebr"},
+				{L"Hindi, Devanagari", L"hin_Deva"},
+				{L"Chhattisgarhi, Devanagari", L"hne_Deva"},
+				{L"Croatian, Latin", L"hrv_Latn"},
+				{L"Hungarian, Latin", L"hun_Latn"},
+				{L"Armenian, Armenian", L"hye_Armn"},
+				{L"Igbo, Latin", L"ibo_Latn"},
+				{L"Ilocano, Latin", L"ilo_Latn"},
+				{L"Indonesian, Latin", L"ind_Latn"},
+				{L"Icelandic, Latin", L"isl_Latn"},
+				{L"Italian, Latin", L"ita_Latn"},
+				{L"Javanese, Latin", L"jav_Latn"},
+				{L"Japanese, Japanese (Kana,Kanji)", L"jpn_Jpan"},
+				{L"Kabyle, Latin", L"kab_Latn"},
+				{L"Kachin, Latin", L"kac_Latn"},
+				{L"Kamba, Latin", L"kam_Latn"},
+				{L"Kannada, Kannada", L"kan_Knda"},
+				{L"Kashmiri (Arabic), Arabic", L"kas_Arab"},
+				{L"Kashmiri (Devanagari), Devanagari", L"kas_Deva"},
+				{L"Georgian, Georgian", L"kat_Geor"},
+				{L"Kazakh, Cyrillic", L"kaz_Cyrl"},
+				{L"KabiyÃ¨, Latin", L"kbp_Latn"},
+				{L"Cape Verdean Creole, Latin", L"kea_Latn"},
+				{L"Khmer, Khmer", L"khm_Khmr"},
+				{L"Kikuyu, Latin", L"kik_Latn"},
+				{L"Kinyarwanda, Latin", L"kin_Latn"},
+				{L"Kyrgyz, Cyrillic", L"kir_Cyrl"},
+				{L"Kimbundu, Latin", L"kmb_Latn"},
+				{L"Kongo, Latin", L"kon_Latn"},
+				{L"Northern Kurdish, Latin", L"kmr_Latn"},
+				{L"Lao, Lao", L"lao_Laoo"},
+				{L"Latin, Latin", L"lat_Latn"},
+				{L"Latvian, Latin", L"lav_Latn"},
+				{L"Limburgish, Latin", L"lim_Latn"},
+				{L"Lingala, Latin", L"lin_Latn"},
+				{L"Lithuanian, Latin", L"lit_Latn"},
+				{L"Lombard, Latin", L"lmo_Latn"},
+				{L"Luxembourgish, Latin", L"ltz_Latn"},
+				{L"Luba-Lulua, Latin", L"lua_Latn"},
+				{L"Ganda, Latin", L"lug_Latn"},
+				{L"Luo, Latin", L"luo_Latn"},
+				{L"Mizo, Latin", L"lus_Latn"},
+				{L"Malayalam, Malayalam", L"mal_Mlym"},
+				{L"Marathi, Devanagari", L"mar_Deva"},
+				{L"Macedonian, Cyrillic", L"mkd_Cyrl"},
+				{L"Malagasy, Latin", L"mlg_Latn"},
+				{L"Maltese, Latin", L"mlt_Latn"},
+				{L"Manipuri, Bengali", L"mni_Beng"},
+				{L"Mossi, Latin", L"mos_Latn"},
+				{L"Maori, Latin", L"mri_Latn"},
+				{L"Burmese, Myanmar", L"mya_Mymr"},
+				{L"Dutch, Latin", L"nld_Latn"},
+				{L"Nynorsk, Latin", L"nno_Latn"},
+				{L"BokmÃ¥l, Latin", L"nob_Latn"},
+				{L"Nepali (Individual), Devanagari", L"npi_Deva"},
+				{L"Northern Sotho, Latin", L"nso_Latn"},
+				{L"Chichewa, Latin", L"nya_Latn"},
+				{L"Occitan, Latin", L"oci_Latn"},
+				{L"Oriya, Oriya", L"ory_Orya"},
+				{L"Pangasinan, Latin", L"pag_Latn"},
+				{L"Punjabi (Gurmukhi), Gurmukhi", L"pan_Guru"},
+				{L"Papiamento, Latin", L"pap_Latn"},
+				{L"Polish, Latin", L"pol_Latn"},
+				{L"Portuguese, Latin", L"por_Latn"},
+				{L"Dari, Arabic", L"prs_Arab"},
+				{L"Southern Pashto, Arabic", L"pbt_Arab"},
+				{L"Quechua, Latin", L"quy_Latn"},
+				{L"Romanian, Latin", L"ron_Latn"},
+				{L"Rundi, Latin", L"run_Latn"},
+				{L"Russian, Cyrillic", L"rus_Cyrl"},
+				{L"Sango, Latin", L"sag_Latn"},
+				{L"Sanskrit, Devanagari", L"san_Deva"},
+				{L"Santali, Bengali", L"sat_Beng"},
+				{L"Sicilian, Latin", L"scn_Latn"},
+				{L"Shan, Myanmar", L"shn_Mymr"},
+				{L"Sinhala, Sinhala", L"sin_Sinh"},
+				{L"Slovak, Latin", L"slk_Latn"},
+				{L"Slovenian, Latin", L"slv_Latn"},
+				{L"Samoan, Latin", L"smo_Latn"},
+				{L"Shona, Latin", L"sna_Latn"},
+				{L"Sindhi, Arabic", L"snd_Arab"},
+				{L"Somali, Latin", L"som_Latn"},
+				{L"Sotho, Latin", L"sot_Latn"},
+				{L"Spanish, Latin", L"spa_Latn"},
+				{L"Sardinian, Latin", L"srd_Latn"},
+				{L"Serbian, Cyrillic", L"srp_Cyrl"},
+				{L"Swati, Latin", L"ssw_Latn"},
+				{L"Sundanese, Latin", L"sun_Latn"},
+				{L"Swedish, Latin", L"swe_Latn"},
+				{L"Swahili, Latin", L"swh_Latn"},
+				{L"Silesian, Latin", L"szl_Latn"},
+				{L"Tamil, Tamil", L"tam_Taml"},
+				{L"Tatar, Cyrillic", L"tat_Cyrl"},
+				{L"Telugu, Telugu", L"tel_Telu"},
+				{L"Tajik, Cyrillic", L"tgk_Cyrl"},
+				{L"Tagalog, Latin", L"tgl_Latn"},
+				{L"Thai, Thai", L"tha_Thai"},
+				{L"Tigrinya, Ethiopic", L"tir_Ethi"},
+				{L"Tok Pisin, Latin", L"tpi_Latn"},
+				{L"Tswana, Latin", L"tsn_Latn"},
+				{L"Tsonga, Latin", L"tso_Latn"},
+				{L"Turkmen, Latin", L"tuk_Latn"},
+				{L"Turkish, Latin", L"tur_Latn" },
+				{ L"Twi, Latin", L"twi_Latn" },
+				{ L"Uighur, Arabic", L"uig_Arab" },
+				{ L"Ukrainian, Cyrillic", L"ukr_Cyrl" },
+				{ L"Urdu, Arabic", L"urd_Arab" },
+				{ L"Uzbek, Latin", L"uzb_Latn" },
+				{ L"Venetian, Latin", L"vec_Latn" },
+				{ L"Vietnamese, Latin", L"vie_Latn" },
+				{ L"Waray, Latin", L"war_Latn" },
+				{ L"Wolof, Latin", L"wol_Latn" },
+				{ L"Xhosa, Latin", L"xho_Latn" },
+				{ L"Eastern Yiddish, Hebrew", L"ydd_Hebr" },
+				{ L"Yoruba, Latin", L"yor_Latn" },
+				{ L"Cantonese (Traditional), Traditional Chinese", L"yue_Hant" },
+				{ L"Chinese (Simplified), Simplified Chinese", L"zho_Hans" },
+				{ L"Chinese (Traditional), Traditional Chinese", L"zho_Hant" },
+				{ L"Zulu, Latin", L"zul_Latn" }
+			};
+
+			// languages ë°°ì—´ì„ ìˆœíšŒí•˜ë©° ê° ì–¸ì–´ì™€ ë°ì´í„°ë¥¼ hListBoxì— ì¶”ê°€
+			int lenLang = sizeof(languages) / sizeof(languages[0]);
+			for (int i = 0; i < lenLang; ++i) {
+				// ì–¸ì–´ ë¬¸ìì—´ì„ ë¦¬ìŠ¤íŠ¸ ë°•ìŠ¤ì— ì¶”ê°€í•˜ê³  ì¸ë±ìŠ¤ë¥¼ ë°›ìŒ
+				index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)languages[i].language);
+				// ì–»ì€ ì¸ë±ìŠ¤ë¥¼ ì‚¬ìš©í•˜ì—¬ í•´ë‹¹ ì–¸ì–´ì— ê´€ë ¨ ë°ì´í„° ì„¤ì •
+				SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)languages[i].data);
+			}
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_pctrans_lang"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		//SendMessage(hListBox, CB_SETCURSEL, settings["cb_pctrans_lang"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
+			//if (settings["cb_pctrans_lang"] == itemData) {
+			if (CompareStringAndWString(settings.value("cb_pctrans_lang", ""), (WCHAR*)itemData) == true) {
+				// ì›í•˜ëŠ” ë°ì´í„°ë¥¼ ê°€ì§„ í•­ëª©ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, í•´ë‹¹ í•­ëª©ì„ ì„ íƒí•©ë‹ˆë‹¤.
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
 	}
 
-	// ¿ä¾à ¾ğ¾î
-	hListBox = GetDlgItem(hwnd, IDC_COMBO_SUMMARY); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ë²ˆì—­ ê²°ê³¼ ì–¸ì–´ ( API ) 
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_APITRANS_LANG); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"Korean");
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"English");
+			for (int i = 0; i < 32;i++) {
+				index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)langArr[i][0]);
+				SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)langArr[i][1]);
+			}
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_lang"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
+			if (CompareStringAndWString(settings.value("cb_apitrans_lang", ""), (WCHAR*)itemData) == true) {
+				// ì›í•˜ëŠ” ë°ì´í„°ë¥¼ ê°€ì§„ í•­ëª©ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, í•´ë‹¹ í•­ëª©ì„ ì„ íƒí•©ë‹ˆë‹¤.
+				//DlgSum->Alert((WCHAR*)itemData);
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
+
+		// ì²« ë²ˆì§¸ ì•„ì´í…œì„ ì„ íƒ ìƒíƒœë¡œ ì„¤ì •
+		//SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_lang"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
 	}
 
-	// ¹ø¿ª °á°ú ¾ğ¾î ( API )
-	hListBox = GetDlgItem(hwnd, IDC_COMBO_APITRANS_LANG); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ìš”ì•½ ì–¸ì–´
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_SUMMARY); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"Korean");
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"English");
+			int lenLang = sizeof(langEnv) / sizeof(langEnv[0]);
+			for (int i = 0; i < lenLang; ++i) {
+				SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)langEnv[i]);
+			}
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_apitrans_lang"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		// ì²« ë²ˆì§¸ ì•„ì´í…œì„ ì„ íƒ ìƒíƒœë¡œ ì„¤ì •
+		SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_lang"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
 	}
 
-	// ¹ø¿ª¿¡ »ç¿ëÇÒ API
-	hListBox = GetDlgItem(hwnd, IDC_COMBO_TRANS_API); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ë²ˆì—­ì— ì‚¬ìš©í•  API
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_TRANS_API); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"DeepL");
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_trans_api"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		// ì²« ë²ˆì§¸ ì•„ì´í…œì„ ì„ íƒ ìƒíƒœë¡œ ì„¤ì •
+		SendMessage(hListBox, CB_SETCURSEL, settings["cb_trans_api"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
 	}
 
-	// ¿ä¾à¿¡ »ç¿ëÇÒ API
-	hListBox = GetDlgItem(hwnd, IDC_COMBO_SUM_API); // ListBoxÀÇ ÇÚµéÀ» °¡Á®¿É´Ï´Ù.
+	// ìš”ì•½ì— ì‚¬ìš©í•  API
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_SUM_API); // ListBoxì˜ í•¸ë“¤ì„ ê°€ì ¸ì˜µë‹ˆë‹¤.
 	if (hListBox != NULL) {
 		if (isStart) {
 			//SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"Google");
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"OpenAI");
 		}
 
-		// Ã¹ ¹øÂ° ¾ÆÀÌÅÛÀ» ¼±ÅÃ »óÅÂ·Î ¼³Á¤
-		SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_api"].get<int>(), 0); // µÎ¹øÂ° 1,0
+		// ì²« ë²ˆì§¸ ì•„ì´í…œì„ ì„ íƒ ìƒíƒœë¡œ ì„¤ì •
+		SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_api"].get<int>(), 0); // ë‘ë²ˆì§¸ 1,0
 	}
 
-	// ¿ä¾à ÁÖ±â : Minute
+	// ìš”ì•½ ì£¼ê¸° : Minute
 	wsprintf(tmp, L"%d", settings["cb_summary_min"].get<int>());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMMARY_MIN, tmp);
 
-	// ÆùÆ® »çÀÌÁî 
+	// í°íŠ¸ ì‚¬ì´ì¦ˆ 
 	wsprintf(tmp, L"%d", settings["cb_font_size"].get<int>());
 	SetDlgItemText(hwnd, IDC_EDIT_FONT_SIZE, tmp);
 
-	// Áö³ª°£ ÆùÆ® »çÀÌÁî 
+	// ì§€ë‚˜ê°„ í°íŠ¸ ì‚¬ì´ì¦ˆ 
 	wsprintf(tmp, L"%d", settings["cb_oldfont_size"].get<int>());
 	SetDlgItemText(hwnd, IDC_EDIT_OLDFONT_SIZE, tmp);
 
-	// ¿ä¾à ÆùÆ® »çÀÌÁî 
+	// ìš”ì•½ í°íŠ¸ ì‚¬ì´ì¦ˆ 
 	wsprintf(tmp, L"%d", settings["cb_sumfont_size"].get<int>());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMFONT_SIZE, tmp);
 
-	// ÆùÆ® ÄÃ·¯
+	// í°íŠ¸ ì»¬ëŸ¬
 	SetDlgItemText(hwnd, IDC_EDIT_FONT_COLOR, StringToWCHAR(settings.value("ed_font_color", "")).c_str());
 	SetDlgItemText(hwnd, IDC_EDIT_OLDFONT_COLOR, StringToWCHAR(settings.value("ed_oldfont_color", "")).c_str());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMFONT_COLOR, StringToWCHAR(settings.value("ed_sumfont_color", "")).c_str());
@@ -261,31 +607,31 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	SetDlgItemText(hwnd, IDC_EDIT_TRANS_API_KEY, StringToWCHAR(settings.value("ed_trans_api_key", "")).c_str());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMMARY_API_KEY, StringToWCHAR(settings.value("ed_summary_api_key", "")).c_str());
 
-	// ¿ä¾à ÈùÆ®
+	// ìš”ì•½ íŒíŠ¸
 	SetDlgItemText(hwnd, IDC_EDIT_SUMMARY_HINT, StringToWCHAR(settings.value("ed_summary_hint", "")).c_str());
 }
 
-// ÃÊ±âÈ­
+// ì´ˆê¸°í™”
 void InitSettings(HWND hwnd) {
-	// settings¿¡ Default °ª ¼ÂÆÃ
+	// settingsì— Default ê°’ ì…‹íŒ…
 	defaultJson();
 	RefreshSettings(hwnd, false);
 }
 
-// ¼³Á¤ ÆÄÀÏ ÀĞ±â
+// ì„¤ì • íŒŒì¼ ì½ê¸°
 void ReadSettings(const std::string& filePath) {
-	// ÆÄÀÏ¿¡¼­ JSON µ¥ÀÌÅÍ ÀĞ±â
+	// íŒŒì¼ì—ì„œ JSON ë°ì´í„° ì½ê¸°
 	std::ifstream file(filePath);
 	if (file.is_open()) {
 		file >> settings;
-		//std::cout << "ÀÔ·Â ¹ŞÀº ¹®ÀÚ¿­ :: " << file.dump() << std::endl;
+		//std::cout << "ì…ë ¥ ë°›ì€ ë¬¸ìì—´ :: " << file.dump() << std::endl;
 	}
 	else {
 		defaultJson();
 	}
 }
 
-// ¼³Á¤ ÆÄÀÏÀ» ÀĞ°í ÇöÀç ¼³Á¤¿¡	Àû¿ë
+// ì„¤ì • íŒŒì¼ì„ ì½ê³  í˜„ì¬ ì„¤ì •ì—	ì ìš©
 void LoadSettings(HWND hwnd, const std::string& filePath)
 {
 	ReadSettings(filePath);
@@ -293,7 +639,7 @@ void LoadSettings(HWND hwnd, const std::string& filePath)
 	RefreshSettings(hwnd, true);
 }
 
-// Setting Dialog ¸Ş½ÃÁö Ã³¸®
+// Setting Dialog ë©”ì‹œì§€ ì²˜ë¦¬
 INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 	//if (GetCurrentThreadId() != g_MainUIThreadID) return (INT_PTR)FALSE;
@@ -301,7 +647,7 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	switch (uMsg) {
 	case WM_INITDIALOG:
 	{
-		// ´ÙÀÌ¾ó·Î±× ÃÊ±âÈ­ ÄÚµå ½ÃÀÛ
+		// ë‹¤ì´ì–¼ë¡œê·¸ ì´ˆê¸°í™” ì½”ë“œ ì‹œì‘
 		LoadSettings(hwndDlg, "config.json");
 
 		return (INT_PTR)TRUE;
@@ -318,15 +664,15 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			switch (wmId)
 			{
-			case IDCANCEL: // Ãë¼Ò
+			case IDCANCEL: // ì·¨ì†Œ
 				EndDialog(hwndDlg, LOWORD(wParam));
 				return (INT_PTR)TRUE;
-			case IDSUPPLY: // ÀúÀå ¹× Á¾·á
+			case IDSUPPLY: // ì €ì¥ ë° ì¢…ë£Œ
 				SaveSettings(hwndDlg, "config.json");
 				isRefreshEnv = true;
 				EndDialog(hwndDlg, LOWORD(wParam));
 				return (INT_PTR)TRUE;
-			case ID_INIT: // ÃÊ±âÈ­
+			case ID_INIT: // ì´ˆê¸°í™”
 				if (wmEvent == BN_CLICKED)
 					InitSettings(hwndDlg);
 				//return (INT_PTR)TRUE;
@@ -334,22 +680,22 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			case IDC_CHECK_PCTRANS:
 				if (wmEvent == BN_CLICKED) {
-					// Ã¼Å©¹Ú½º »óÅÂ ÀĞ±â
-					bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_PCTRANS) == BST_CHECKED);
-					if (checked) {
-						// Ã¹ ¹øÂ° Ã¼Å©¹Ú½º°¡ Ã¼Å©µÇ¾î ÀÖÀ¸¸é, µÎ ¹øÂ° Ã¼Å©¹Ú½º¸¦ Ã¼Å© ÇØÁ¦ÇÕ´Ï´Ù. : Áßº¹»ç¿ëÀ» À§ÇØ ¸·À½
-						//CheckDlgButton(hwndDlg, IDC_CHECK_APITRANS, BST_UNCHECKED);
-					}
+					// ì²´í¬ë°•ìŠ¤ ìƒíƒœ ì½ê¸°
+					//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_PCTRANS) == BST_CHECKED);
+					//if (checked) {
+					//	// ì²« ë²ˆì§¸ ì²´í¬ë°•ìŠ¤ê°€ ì²´í¬ë˜ì–´ ìˆìœ¼ë©´, ë‘ ë²ˆì§¸ ì²´í¬ë°•ìŠ¤ë¥¼ ì²´í¬ í•´ì œí•©ë‹ˆë‹¤. : ì¤‘ë³µì‚¬ìš©ì„ ìœ„í•´ ë§‰ìŒ
+					//	//CheckDlgButton(hwndDlg, IDC_CHECK_APITRANS, BST_UNCHECKED);
+					//}
 				}
 				break;
 			case IDC_CHECK_APITRANS:
 				if (wmEvent == BN_CLICKED) {
-					// Ã¼Å©¹Ú½º »óÅÂ ÀĞ±â
-					bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_APITRANS) == BST_CHECKED);
-					if (checked) {
-						// Ã¹ ¹øÂ° Ã¼Å©¹Ú½º°¡ Ã¼Å©µÇ¾î ÀÖÀ¸¸é, µÎ ¹øÂ° Ã¼Å©¹Ú½º¸¦ Ã¼Å© ÇØÁ¦ÇÕ´Ï´Ù. : Áßº¹»ç¿ëÀ» À§ÇØ ¸·À½
-						//CheckDlgButton(hwndDlg, IDC_CHECK_PCTRANS, BST_UNCHECKED);
-					}
+					// ì²´í¬ë°•ìŠ¤ ìƒíƒœ ì½ê¸°
+					//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_APITRANS) == BST_CHECKED);
+					//if (checked) {
+					//	// ì²« ë²ˆì§¸ ì²´í¬ë°•ìŠ¤ê°€ ì²´í¬ë˜ì–´ ìˆìœ¼ë©´, ë‘ ë²ˆì§¸ ì²´í¬ë°•ìŠ¤ë¥¼ ì²´í¬ í•´ì œí•©ë‹ˆë‹¤. : ì¤‘ë³µì‚¬ìš©ì„ ìœ„í•´ ë§‰ìŒ
+					//	//CheckDlgButton(hwndDlg, IDC_CHECK_PCTRANS, BST_UNCHECKED);
+					//}
 				}
 				break;
 

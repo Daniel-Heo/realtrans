@@ -26,6 +26,9 @@ public:
     // RichEdit 컨트롤에서 텍스트 가져오기
     void GetText(wchar_t* buffer, int bufferSize);
 
+    // 테이블 추가
+    void InsertTable(const std::wstring& text);
+
     // tokken size 체크
     int getTokenSize(const std::string& wstr, int curPos);
 

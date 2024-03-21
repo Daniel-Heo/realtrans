@@ -51,6 +51,12 @@
     <ClInclude Include="openai_api.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="language.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CDlgInfo.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RealTrans.cpp">
@@ -77,6 +83,12 @@
     <ClCompile Include="deepl_api.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="language.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="CDlgInfo.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RealTrans.rc">
@@ -91,6 +103,9 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="icon\lmenu_normal.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="realtrans_icon4.ico">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>
