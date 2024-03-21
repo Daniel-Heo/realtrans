@@ -77,16 +77,12 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
     }
 
     // 필요한 헤더 추가
-    //std::wstring headers = L"Content-Type: application/x-www-form-urlencoded\r\n";
     std::wstring headers = L"Content-Type: application/json\r\n";
     headers += L"Authorization: DeepL-Auth-Key ";
     headers += StringToWString(api_key);
-    //std::string postData = "text=" + FilterString(text) + "&target_lang=" + lang;
     std::string postData = "{\"target_lang\": \"";
     postData += lang;
     postData += "\",\"text\": [\"" + FilterString(text) + "\"]}";
-
-    //DlgSum->Trace(StringToWString(postData));
 
     // debug
     if (0)

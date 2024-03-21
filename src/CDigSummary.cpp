@@ -35,14 +35,13 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 	case WM_INITDIALOG:
 	{
 		// 다이얼로그 초기화 코드 시작
-		// LoadSettings(hwndDlg, "config.json");
 		// RichEdit 컨트롤 생성
-		DlgSum->hSumRichEdit = CreateWindowEx(0, RICHEDIT_CLASS, TEXT(""),
+		DlgSum->hSumRichEdit = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
 			WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL,
 			10, 45, 824, 235, hwndDlg, NULL, DlgSum->hInstance, NULL);
 
 		if (!DlgSum->hSumRichEdit) {
-			MessageBox(DlgSum->hWndParent, TEXT("RichEdit 컨트롤을 생성할 수 없습니다."), TEXT("오류"), MB_OK);
+			MessageBox(DlgSum->hWndParent, TEXT("Error to create RichEdit control."), TEXT("오류"), MB_OK);
 		}
 		else {
 			HFONT hFont;
@@ -56,12 +55,12 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 				FALSE,                      // 이탤릭
 				FALSE,                      // 밑줄
 				FALSE,                      // 취소선
-				HANGUL_CHARSET, //ANSI_CHARSET,               // 문자 집합
+				ANSI_CHARSET, //HANGUL_CHARSET, //ANSI_CHARSET,               // 문자 집합
 				OUT_TT_PRECIS, //OUT_DEFAULT_PRECIS,         // 출력 정밀도
 				CLIP_DEFAULT_PRECIS,        // 클리핑 정밀도
 				DEFAULT_QUALITY,            // 출력 품질
 				DEFAULT_PITCH | FF_ROMAN, //| FF_DONTCARE, //DEFAULT_PITCH | FF_SWISS,   // 피치와 패밀리
-				TEXT("D2Coding"));             // 폰트 이름
+				TEXT("Arial"));             // 폰트 이름
 
 			// 폰트 적용
 			SendMessage(DlgSum->hSumRichEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -69,8 +68,6 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			// 배경색 변경
 			SendMessage(DlgSum->hSumRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
 
-			// 폰트 사이즈 및 컬러
-			//SetRichEditTextColor2(DlgSum->hSumRichEdit, RGB(200, 200, 255));
 			DlgSum->SetFont();
 
 
@@ -93,18 +90,12 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 		switch (wmId) {
 		case IDCANCEL:
 		{
-			//EndDialog(hwndDlg, LOWORD(wParam));
-			//DestroyWindow(hwndDlg);
 			DlgSum->Hide();
 			return (INT_PTR)TRUE;
 		}
 		break;
 		case IDOK:
 		{
-			HWND hFocus = GetFocus();
-			if (hFocus == DlgSum->hSumRichEdit) {
-				//SendMessage(hSumRichEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)L"OK");
-			}
 			return TRUE;
 		}
 		break;
@@ -115,6 +106,16 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 			switch (wmId) {
 			case IDC_SUM:
 			{
+				// api 키 존재여부 확인
+				if (settings.value("ed_summary_api_key", "") == "") {
+					MessageBox(hwndDlg, L"API Key is None.", L"Warning", MB_OK);
+					return FALSE;
+				}
+				// 처리할 내용이 있는지 확인
+				if (strEng.size() <= DlgSum->nParentRichPos) {
+					MessageBox(hwndDlg, L"Summary text is None.", L"Warning", MB_OK);
+					return FALSE;
+				}
 				//DlgSum->MakeSummary();
 				runSummary = true;
 				return (INT_PTR)TRUE;
@@ -135,8 +136,6 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 	}
 	break;
 	case WM_CLOSE:
-		//EndDialog(hwndDlg, 0);
-		//DestroyWindow(hwndDlg);
 		DlgSum->Hide();
 		return (INT_PTR)TRUE;
 	case WM_DESTROY:
@@ -144,8 +143,6 @@ INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPar
 		return 0;
 	}
 	return (INT_PTR)FALSE;
-
-	//return DefWindowProc(hwndDlg, uMsg, wParam, lParam);
 }
 
 // 클래스 선언
@@ -162,7 +159,6 @@ void CDlgSummary::Create(HWND hWndP) {
 		hWndParent = hWndP;
 		// Modaless Dialogue 생성
 		hDlgSummary = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_DIALOG_SUMMARY), hWndParent, SummaryProc);
-		//ShowWindow(hDlgSummary, SW_SHOW);
 		SetWindowLong(hDlgSummary, GWL_EXSTYLE, GetWindowLong(hDlgSummary, GWL_EXSTYLE) | WS_EX_LAYERED);
 		SetLayeredWindowAttributes(hDlgSummary, 0, (255 * 80) / 100, LWA_ALPHA);
 		bExistDlg = TRUE;
@@ -175,12 +171,48 @@ void CDlgSummary::Create(HWND hWndP) {
 
 // RichEdit 컨트롤에 텍스트 설정
 void CDlgSummary::SetText(const wchar_t* text) {
-	SendMessage(hSumRichEdit, WM_SETTEXT, 0, (LPARAM)text);
+	SETTEXTEX st;
+	st.flags = ST_DEFAULT; // 기본 설정 사용
+	st.codepage = 1200;    // UTF-16LE 코드 페이지
+	SendMessage(hSumRichEdit, EM_SETTEXTEX, (WPARAM)&st, (LPARAM)text);
 }
 
 // RichEdit 컨트롤에서 텍스트 가져오기
 void CDlgSummary::GetText(wchar_t* buffer, int bufferSize) {
 	SendMessage(hSumRichEdit, WM_GETTEXT, (WPARAM)bufferSize, (LPARAM)buffer);
+}
+
+// RTF 형식의 1x2 테이블을 생성하여 RichEdit 컨트롤에 삽입하는 함수
+void CDlgSummary::InsertTable(const std::wstring& text) {
+	// 셀 폭을 계산
+	HDC hdc = GetDC(hSumRichEdit);
+	int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+	ReleaseDC(hSumRichEdit, hdc);
+
+	RECT rect;
+	GetClientRect(hSumRichEdit, &rect);
+	int widthInPixels = rect.right - rect.left;
+
+	int cellWidth = static_cast<int>((widthInPixels * 1440) / dpiX);
+	wchar_t buffer[256]; // 임시 버퍼
+	std::wstring in_buf;
+	wsprintfW((LPWSTR)buffer, L"\\cellx%d ", cellWidth);
+	in_buf = buffer;
+
+	// RTF 형식의 1x2 테이블 정의
+	// 여기서는 테이블의 각 셀의 너비를 조절할 수 있습니다. \cellxN은 N 위치에 셀을 끝내는 것을 의미합니다.
+	std::wstring rtfTable = 
+		L"{\\rtf1"
+		L"\\trowd\\trgaph108\\trleft-108"
+		+ in_buf + // 1행 1열의 너비를 설정합니다.
+		L"\\intbl "
+		+ text + // 첫번째 셀 : 내용 
+		L"\\cell"
+		L"\\row" // 행을 종료합니다.
+		L"}";
+
+	AddText(rtfTable);
+	GoBottom();
 }
 
 // tokken size 체크
@@ -212,8 +244,6 @@ BOOL CDlgSummary::GetTextWithHandle(std::string& buf) {
 	//lenText = GetTextSize(hRich);
 	lenText = strEng.size();
 	if (nParentRichPos < lenText) {
-		//CharToWChar(buffer, (const char*)strEng.substr(nParentRichPos, lenText - nParentRichPos).c_str());
-		//buf =StringToWString(strEng.substr(nParentRichPos, lenText - nParentRichPos).c_str());
 		buf = strEng.substr(nParentRichPos, lenText - nParentRichPos).c_str();
 		nParentRichPos = lenText;
 
@@ -229,17 +259,12 @@ BOOL CDlgSummary::GetTextWithHandle(std::string& buf) {
 // RichEdit 컨트롤에 텍스트 설정
 void CDlgSummary::AddText(const std::wstring& text) {
 	// 텍스트의 마지막에 커서를 위치시킵니다. -1, -1은 텍스트의 끝을 나타냅니다.
-	//SetRichEditTextColor2(hSumRichEdit, DlgSum->HexToCOLORREF(settings["ed_sumfont_color"]));
 	SendMessage(hSumRichEdit, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
-	//SendMessage(hSumRichEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)L"\r\n\r\n");
 	SendMessage(hSumRichEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)text.c_str());
 }
 
 // RichEdit 컨트롤에 텍스트 사이즈 가져오기
 int CDlgSummary::GetTextSize(HWND hRich) {
-	// EM_GETLINECOUNT 메시지를 보내어 라인 수를 얻습니다.
-	//int lineCount = SendMessage(hRich, EM_GETLINECOUNT, 0, 0);
-
 	// 텍스트 사이즈 가져오기 ( 유니코드일 경우에 사이즈가 2배일 수 있음)
 	int ret = SendMessage(hRich, WM_GETTEXTLENGTH, (WPARAM)0, (LPARAM)0); // WPARAM과 LPARAM은 사용하지 않으므로 0으로 설정합니다.
 	return ret;
@@ -261,14 +286,22 @@ void CDlgSummary::Show() {
 BOOL CDlgSummary::BgSummary() {
 	// Parent Richedit에서 텍스트 가져오기
 	BOOL ret;
-	char lang[10];
+	char lang[30];
 	std::string req;
-	std::wstring strWOut;
+	std::wstring strWOut=L"";
 
 	ret = GetTextWithHandle(req);
 	if (ret == false) {
-		//MessageBox(hwndDlg, L"텍스트를 가져오지 못했습니다.", L"오류", MB_OK);
 		return ret;
+	}
+	else {
+		req=ConvertToUTF8(req);
+	}
+
+	// api 키 존재여부 확인
+	if (settings.value("ed_summary_api_key", "") == "") {
+		MessageBox(hDlgSummary, L"API Key is None.", L"Warning", MB_OK);
+		return false;
 	}
 
 	// req 사이즈가 10k 초과시 잘라서 처리한다.
@@ -277,13 +310,13 @@ BOOL CDlgSummary::BgSummary() {
 	size_t pos = 0;
 
 	while (1) {
-		if (reqSize > 4096) {
-			pos = req.find('\n', 4096);
+		if (reqSize > 9192) {
+			pos = req.find('\n', 9192);
 			if (pos == std::string::npos) {
-				pos = req.find(' ', 4096);
+				pos = req.find(' ', 9192);
 				if (pos == std::string::npos) {
-					tmpReq = req.substr(0, 4096);
-					req = req.substr(4096);
+					tmpReq = req.substr(0, 9192);
+					req = req.substr(9192);
 				}
 				else {
 					tmpReq = req.substr(0, pos);
@@ -307,9 +340,23 @@ BOOL CDlgSummary::BgSummary() {
 		// env에서 요약정보 가져오기
 		if (settings["cb_summary_api"] == 0) {
 			// openai API
-			if (settings["cb_summary_lang"] == 0) strcpy_s(lang, "Korean");
-			else strcpy_s(lang, "English");
-			RequestOpenAIChat(tmpReq, strWOut, lang, settings["ed_summary_hint"], StringToWCHAR(settings.value("ed_summary_api_key", "")).c_str());
+			// 언어 설정
+			switch(settings["cb_summary_lang"].get<int>()) {
+				case 0: strcpy_s(lang, "Korean"); break; // 한국어 ( Korean )
+				case 1: strcpy_s(lang, "English"); break; // 영어 ( English )
+				case 2: strcpy_s(lang, "German"); break; // 독일어 ( German )
+				case 3: strcpy_s(lang, "Spanish"); break; // 스페인어 ( Spanish ) 
+				case 4: strcpy_s(lang, "French"); break; // 프랑스어 ( French )
+				case 5: strcpy_s(lang, "Italian"); break; // 이탈리아어 ( Italian )
+				case 6: strcpy_s(lang, "Japanese"); break; // 일본어 ( Japanese )
+				case 7: strcpy_s(lang, "Portuguese"); break; // 포르투갈어 ( Portuguese )
+				case 8: strcpy_s(lang, "Russian"); break; // 러시아어 ( Russian )
+				case 9: strcpy_s(lang, "Chinese"); break; // 중국어 ( Chinese ) 
+				case 10: strcpy_s(lang, "Arabic"); break; // 아랍어 ( Arabic ) 
+				case 11: strcpy_s(lang, "Hindi"); break; // 힌디어 ( Hindi ) 
+				default: strcpy_s(lang, "English"); break; // 영어 ( English )
+			}
+			RequestOpenAIChat(tmpReq, strWOut, lang, settings["ed_summary_hint"], StringToWStringInSummary(settings.value("ed_summary_api_key", "")).c_str());
 		}
 		// child Richedit에 텍스트 추가
 		rich_buf += L"\r\n\r\n"+strWOut;
@@ -325,6 +372,7 @@ BOOL CDlgSummary::BgSummary() {
 
 BOOL CDlgSummary::AddRichText() {
 	if (addSummaryFlag == true) {
+		//InsertTable(rich_buf);
 		AddText(rich_buf);
 		GoBottom();
 		rich_buf.clear();

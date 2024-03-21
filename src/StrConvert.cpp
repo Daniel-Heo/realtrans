@@ -3,49 +3,58 @@
 #include <codecvt>
 #include "StrConvert.h"
 #include "json.hpp" // 또는 경로를 지정해야 할 경우: #include "External/json.hpp"
+#include "CDlgSummary.h"
 
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
+extern CDlgSummary* DlgSum;
 
-// char 형을 WCHAR* 로 변환하는 함수 : Locale 사용
-void CharToWChar(wchar_t* pwstrDest, const char* pstrSrc)
+int CharToWChar(wchar_t* pwstrDest, const char* pstrSrc)
 {
-    // 1. mbstowcs_s 함수를 사용
     size_t cn;
-    setlocale(LC_ALL, "ko-KR");
-    // 먼저 변환될 와이드 문자의 개수를 얻기 위해 mbstowcs_s 함수를 호출합니다.
-    mbstowcs_s(&cn, nullptr, 0, pstrSrc, _TRUNCATE);
-    mbstowcs_s(&cn, pwstrDest, cn + 1, pstrSrc, _TRUNCATE);
+    setlocale(LC_ALL, "");
 
-    // 2. MultiByteToWideChar 함수를 사용
     // 입력 문자열의 길이를 계산합니다. 반환되는 길이에는 널 종료 문자가 포함되지 않습니다.
-    //int nLen = MultiByteToWideChar(CP_ACP, 0, pstrSrc, -1, NULL, 0);
+    int nLen = MultiByteToWideChar(CP_ACP, 0, pstrSrc, -1, NULL, 0);
 
     // 실제 변환을 수행합니다. CP_ACP (ANSI Code Page)-locale에 기반한 그 지역의 문자 인코딩방식, CP_UTF8 (UTF-8 Code Page)- 국제 호환
-    //MultiByteToWideChar(CP_ACP, 0, pstrSrc, -1, pwstrDest, nLen);
+    MultiByteToWideChar(CP_ACP, 0, pstrSrc, -1, pwstrDest, nLen);
+    return nLen;
 }
 
-// UTF-8 문자열을 코드 페이지 949로 변환합니다.
-std::string Utf8ToCodePage949(const std::string& utf8Str) {
-    // UTF-8을 UTF-16(유니코드)로 변환
-    int wideCharsCount = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, NULL, 0);
-    if (wideCharsCount == 0) {
-        throw std::runtime_error("Failed converting UTF-8 to UTF-16.");
+int UTF8toUTF16(const std::string& utf8, WCHAR *outWStr)
+{
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, NULL, 0);
+    if (len > 0)
+    {
+        MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, outWStr, len);
+        outWStr[len] = 0;
     }
+    return len;
+}
 
-    std::vector<wchar_t> wideChars(wideCharsCount);
-    MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, &wideChars[0], wideCharsCount);
-
-    // UTF-16을 코드 페이지 949로 변환
-    int multiByteCount = WideCharToMultiByte(949, 0, &wideChars[0], -1, NULL, 0, NULL, NULL);
-    if (multiByteCount == 0) {
-        throw std::runtime_error("Failed converting UTF-16 to Code Page 949.");
+int UTF16toUTF8(const std::wstring& utf16, char *outStr)
+{
+    int len = WideCharToMultiByte(CP_ACP, 0, &utf16[0], -1, NULL, 0, 0, 0);
+    if (len > 1)
+    {
+        WideCharToMultiByte(CP_ACP, 0, &utf16[0], -1, outStr, len, 0, 0);
+        outStr[len] = 0;
     }
+    return len;
+}
 
-    std::vector<char> multiBytes(multiByteCount);
-    WideCharToMultiByte(949, 0, &wideChars[0], -1, &multiBytes[0], multiByteCount, NULL, NULL);
+std::wstring Utf8ToWideString(const std::string& utf8Str) {
+    // UTF-8 문자열의 길이를 계산합니다. -1은 널 종료 문자를 포함하도록 합니다.
+    int wideCharCount = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, NULL, 0);
 
-    return std::string(multiBytes.begin(), multiBytes.end() - 1); // 마지막 널 문자 제거
+    // 충분한 크기의 wstring 버퍼를 준비합니다.
+    std::wstring wideStr(wideCharCount, 0);
+
+    // UTF-8 문자열을 UTF-16으로 변환합니다.
+    MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, &wideStr[0], wideCharCount);
+
+    return wideStr;
 }
 
 // wstring을 string으로 변환하는 함수 : 단순변환
@@ -94,37 +103,26 @@ std::wstring StringToWString(const std::string& str) {
     return std::wstring(buffer.begin(), buffer.end() - 1); // Remove the null terminator
 }
 
-// string 형을 WCHAR* 로 변환하는 함수
-void StringToWChar(const std::string& s, WCHAR* outStr) {
-    // 변환된 문자열의 길이를 계산합니다. 멀티바이트를 와이드 문자로 변환할 때 필요한 길이를 얻습니다.
-    int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
+// std::string (UTF-8)을 std::wstring (WCHAR 배열)으로 변환하는 함수
+// string 형을 wstring으로 변환하는 함수 : MultiByteToWideChar 사용
+std::wstring StringToWStringInSummary(const std::string& str) {
+    if (str.empty()) return std::wstring();
 
-    // 실제 변환을 수행합니다.
-    MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, outStr, len);
-}
-
-// EUC-KR 문자열을 UTF-16으로 변환합니다.
-std::wstring EucKrToWString(const std::string& eucKrStr) {
-    if (eucKrStr.empty()) return std::wstring();
-
-    // EUC-KR을 유니코드로 변환할 때 사용하는 코드 페이지 번호는 949입니다.
-    const UINT codePage = 949;
-
-    // 필요한 와이드 문자의 수를 계산합니다.
-    int charsNeeded = MultiByteToWideChar(codePage, 0, eucKrStr.c_str(), -1, NULL, 0);
+    int charsNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
     if (charsNeeded == 0) {
-        throw std::runtime_error("Failed converting EUC-KR string to UTF-16");
+        //throw std::runtime_error("Failed converting UTF-8 string to UTF-16");
+        return std::wstring();
     }
 
     std::vector<wchar_t> buffer(charsNeeded);
-    int charsConverted = MultiByteToWideChar(codePage, 0, eucKrStr.c_str(), -1, buffer.data(), charsNeeded);
+    int charsConverted = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &buffer[0], charsNeeded);
 
     if (charsConverted == 0) {
-        throw std::runtime_error("Failed converting EUC-KR string to UTF-16");
+        //throw std::runtime_error("Failed converting UTF-8 string to UTF-16");
+        return std::wstring();
     }
 
-    // 버퍼에서 널 종료 문자를 제외하고 std::wstring 객체를 생성합니다.
-    return std::wstring(buffer.begin(), buffer.end() - 1);
+    return std::wstring(buffer.begin(), buffer.end() - 1); // Remove the null terminator
 }
 
 // std::string (UTF-8)을 std::wstring (WCHAR 배열)으로 변환하는 함수
@@ -147,17 +145,6 @@ std::wstring StringToWCHAR(const std::string& utf8String) {
 
     // std::wstring으로 변환하여 반환
     return std::wstring(wcharArray.begin(), wcharArray.end() - 1); // null 종료 문자 제거
-}
-
-// WCHAR을 std::string (UTF-8)으로 변환하는 함수
-std::string WCHARToString2(const WCHAR* wcharArray) {
-    if (!wcharArray) return std::string();
-
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wcharArray, -1, NULL, 0, NULL, NULL);
-    std::string strTo(sizeNeeded, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wcharArray, -1, &strTo[0], sizeNeeded, NULL, NULL);
-
-    return strTo;
 }
 
 // WCHAR을 std::string (UTF-8)으로 변환하는 함수 : NULL값 제거
@@ -195,6 +182,91 @@ int wstringToInt(const std::wstring& wstr) {
     return number;
 }
 
+// string과 wstring을 비교
+BOOL CompareStringAndWString(const std::string& str, const std::wstring& wstr) {
+    // wstring을 string으로 변환
+    std::string convertedStr = WStringToString(wstr);
+    // 변환된 string과 원본 string을 비교
+    return str == convertedStr;
+}
+
 void trace(const std::string& msg) {
     OutputDebugStringA(msg.c_str());
+}
+
+// 시스템의 현재 코드 페이지에서 UTF-8 문자열로 변환
+std::string ConvertToUTF8(const std::string& input) {
+    // 먼저, 입력 문자열을 UTF-16으로 변환
+    int wcharCount = MultiByteToWideChar(GetConsoleCP(), 0, input.c_str(), -1, NULL, 0);
+    std::vector<WCHAR> wstr(wcharCount);
+    MultiByteToWideChar(GetConsoleCP(), 0, input.c_str(), -1, &wstr[0], wcharCount);
+
+    // 그 다음, UTF-16 문자열을 UTF-8로 변환
+    int utf8Count = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], -1, NULL, 0, NULL, NULL);
+    std::vector<char> utf8Str(utf8Count);
+    WideCharToMultiByte(CP_UTF8, 0, &wstr[0], -1, &utf8Str[0], utf8Count, NULL, NULL);
+
+    return std::string(utf8Str.begin(), utf8Str.end() - 1); // null 종료 문자 제거
+}
+
+std::string ConvertBinaryToString(const std::string& binaryData) {
+    // 바이너리 데이터에서 b' '로 묶인 부분을 찾아냅니다.
+    size_t start = binaryData.find("b'");
+    size_t end = binaryData.rfind("'");
+
+    if (start == std::string::npos) {
+        start = binaryData.find("b\"");
+        end = binaryData.rfind("\"");
+	}
+
+    if (start != std::string::npos && end != std::string::npos && start < end) {
+        // b' '로 묶인 내용을 추출합니다.
+        std::string trimmed = binaryData.substr(start + 2, end - start - 2);
+
+        // 추출된 문자열에서 백슬래시 이스케이프 시퀀스를 실제 바이트 값으로 변환합니다.
+        std::string result;
+        for (size_t i = 0; i < trimmed.length(); ++i) {
+            // 문자 filter ( \n, \t, \r, \xHH )
+            if (trimmed[i] == '\n' || trimmed[i]=='\r') {
+                i++;
+                continue;
+            }
+            if (trimmed[i] == '\\' && i + 3 < trimmed.length() && trimmed[i + 1] == 'x') {
+                // \xHH 형식의 16진수 값을 문자로 변환합니다.
+                std::string hexValue = trimmed.substr(i + 2, 2);
+                char byteValue = static_cast<char>(std::stoi(hexValue, nullptr, 16));
+                result.push_back(byteValue);
+                i += 3; // 16진수 값과 이스케이프 시퀀스를 건너뜁니다.
+            }
+            else {
+                result.push_back(trimmed[i]);
+            }
+        }
+        return result;
+    }
+
+    // b' ' 형식이 아니라면 원본 데이터를 그대로 반환합니다.
+    return binaryData;
+}
+
+std::wstring ConvertBinaryToWString(const std::string& binaryData) {
+    // 바이너리 데이터에서 b' '로 묶인 부분을 제거합니다.
+    size_t start = binaryData.find("b'");
+    size_t end = binaryData.rfind("'");
+    std::string trimmed;
+
+    if (start != std::string::npos && end != std::string::npos && start < end) {
+        trimmed = binaryData.substr(start + 2, end - start - 2);
+    }
+    else {
+        // b' ' 형식이 아니면 원본 데이터를 사용합니다.
+        trimmed = binaryData;
+    }
+
+    // UTF-8 문자열을 UTF-16으로 변환합니다.
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, trimmed.c_str(), -1, NULL, 0);
+    std::wstring wstr(wlen, 0);
+    MultiByteToWideChar(CP_UTF8, 0, trimmed.c_str(), -1, &wstr[0], wlen);
+
+    return wstr;
 }

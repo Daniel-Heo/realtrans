@@ -109,6 +109,9 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ComCtl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EmbedManagedResourceFile>
+      </EmbedManagedResourceFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,6 +128,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ComCtl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <EmbedManagedResourceFile>
+      </EmbedManagedResourceFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -133,7 +139,9 @@
     <ClInclude Include="CSettings.h" />
     <ClInclude Include="deepl_api.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="CDlgInfo.h" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="language.h" />
     <ClInclude Include="RealTrans.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SoundDev.h" />
@@ -146,6 +154,8 @@
     <ClCompile Include="CMenusDlg.cpp" />
     <ClCompile Include="CSettings.cpp" />
     <ClCompile Include="deepl_api.cpp" />
+    <ClCompile Include="CDlgInfo.cpp" />
+    <ClCompile Include="language.cpp" />
     <ClCompile Include="RealTrans.cpp" />
     <ClCompile Include="SoundDev.cpp" />
     <ClCompile Include="openai_api.cpp" />
@@ -158,6 +168,7 @@
     <Image Include="icon1.ico" />
     <Image Include="icon\lmenu_normal.bmp" />
     <Image Include="RealTrans.ico" />
+    <Image Include="realtrans_icon4.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -52,10 +52,6 @@ std::string GetCurrentTimeFormatted() {
 
 // OpenAI API를 사용
 void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::string& lang, const std::string& hint, const WCHAR* api_key) {
-    // 입력 문자 필터
-    // ’
-    //std::string question = WStringToString(text);
-
     // WinHTTP 세션 초기화
     HINTERNET hSession = WinHttpOpen(L"A WinHTTP Example Program/1.0",
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -66,26 +62,6 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
         //wprintf(L"WinHttpOpen failed with error %u\n", GetLastError());
         return;
     }
-
-    /* Proxy 설정 : Charles Proxy Trace용
-    *  Charles를 설치하고 Help>SSL Proxying>Install Charles Root Certificate를 클릭하여 인증서를 설치한다. 저장위치는 신뢰할수 있는 루트 인증기관에 저장한다.
-    * Charles에서 Proxy>SSL Proxying Settings...>Enable SSL Proxying 체크한다.
-    * Include에 api.openai.com을 443포트로 추가한다.
-    * 후에 Charles에서 api.openai.com으로 요청을 보내면 Charles에서 요청을 가로채서 HTTPS도 확인할 수 있다.
-    */
-    //WINHTTP_PROXY_INFO proxyInfo;
-    //proxyInfo.dwAccessType = WINHTTP_ACCESS_TYPE_NAMED_PROXY;
-    //proxyInfo.lpszProxy = (LPWSTR)L"http://localhost:8888";
-    //proxyInfo.lpszProxyBypass = (LPWSTR)L"<local>"; // 로컬 주소 우회
-    //WinHttpSetOption(hSession, WINHTTP_OPTION_PROXY, &proxyInfo, sizeof(proxyInfo));
-
-    /* MS Temp network Trace용
-         Network trace : HTTPS 통신은 추적 불가 ( C:\Temp 디렉토리에 dpws* 파일로그가 쌓인다. HTTPS가 안된다고 해서 실제로 안해봄 )
-         >> netsh winhttp set tracing trace-file-prefix="C:\Temp\dpws" level=verbose format=ansi state=enabled max-trace-file-size=1073741824
-         trace 종료
-         >> netsh winhttp set tracing state=disabled */
-         //BOOL enable = TRUE;
-         //WinHttpSetOption(NULL, WINHTTP_OPTION_ENABLETRACING, &enable, sizeof(enable));
 
          // 연결 정보
          // https://api.openai.com/v1/chat/completions
@@ -124,9 +100,10 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
     std::string body = "{\"model\": \"gpt-3.5-turbo\",\"messages\": [{\"role\": \"system\",\"content\": \"";
         //The following text is a conversation related to securities and economics. Please summarize the main topics, key data points, and conclusions in around 300 words. The summary should be arrange them in number list form to keep them short and concise.
     body += FilterJSONString(hint);
-    body += " This is very important. Show only the content translated into " + lang + ".";
+    body += " Make the whole thing perfectly 500 words.. Show only the content translated into " + lang + ".";
     body += "If it is not in "+lang+", please translate it again.\\n";
     body += "###sample###\\n";
+    body += "* Subject : Increasing the proportion of AI in content creation and delivery\\n";
     body += "1. AI content creation\\n";
     body += "  - The role of artificial intelligence in content recommendation and production is increasing.\\n";
     body += "2. Continuous evolution of content delivery\\n";
@@ -147,7 +124,7 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
     if (0)
     {
         //StringToWChar(body, strOut);
-        strOut = StringToWString(body);
+        strOut = StringToWStringInSummary(body);
         return;
     }
 
@@ -236,9 +213,12 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
         //StringToWChar(j.dump(), strOut);
 
         std::string res_text = "";
+        //strOut = StringToWStringInSummary(j.dump());
+
         if (j.contains("error")) {
-            j["error"][0]["message"].get_to(res_text);
+            // j["error"][0]["message"].get_to(res_text);
             //StringToWChar(res_text, strOut);
+            res_text = j.dump()+ body;
         }
         else {
             j["choices"][0]["message"]["content"].get_to(res_text);
@@ -247,7 +227,7 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
 
         res_text = GetCurrentTimeFormatted() + "\r\n" + res_text;
 
-        strOut = StringToWString(res_text);
+        strOut = StringToWStringInSummary(res_text);
 
         //j["choices"][0]["message"]["content"].get_to(res_text);
         //std::cout << Utf8ToCodePage949(res_text.c_str()) << std::endl;
