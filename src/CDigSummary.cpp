@@ -397,8 +397,9 @@ void CDlgSummary::Alert(const WCHAR* msg) {
 // 요약창의 보여지는 위치를 제일 마지막줄이 보이게 이동
 void CDlgSummary::GoBottom() {
 	// 커서를 문서의 끝으로 이동시킵니다.
-	SetFocus(hSumRichEdit);
-	SendMessage(hSumRichEdit, EM_SETSEL, -1, 0);
+	//SetFocus(hSumRichEdit);
+	//SendMessage(hSumRichEdit, EM_SETSEL, -1, 0);
+	SendMessage(hSumRichEdit, EM_SCROLL, SB_BOTTOM, 0);
 }
 
 // #c8c8c8 색상을 COLORREF로 변환

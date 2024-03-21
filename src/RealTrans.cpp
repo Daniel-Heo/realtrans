@@ -162,6 +162,8 @@ void SetRichEditSelColor(HWND hRichEdit) {
 
 // RichEdit 컨트롤에 텍스트를 추가하는 함수
 void AppendTextToRichEdit(HWND hRichEdit, WCHAR* textToAdd) {
+	std::wstring wstrAdd = L"\r\n";
+	wstrAdd += textToAdd;
 	// 현재 선택을 문서의 끝으로 설정하여 텍스트 추가 위치를 문서 끝으로 합니다.
 	// 이는 텍스트 선택이 없을 경우 커서 위치를 문서 끝으로 이동시키는 효과가 있습니다.
 	SetRichEditTextColor(hRichEdit);
@@ -171,21 +173,13 @@ void AppendTextToRichEdit(HWND hRichEdit, WCHAR* textToAdd) {
 	DWORD start = 0, end = 0;
 	SendMessage(hRichEdit, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
 
+	SetRichEditSelColor(hRichEdit);
 	SETTEXTEX st;
 	st.flags = ST_DEFAULT; // 기본 설정 사용
 	st.codepage = 1200;    // UTF-16LE 코드 페이지
-	SendMessage(hRichEdit, EM_REPLACESEL, (WPARAM)&st, (LPARAM)textToAdd);
+	SendMessage(hRichEdit, EM_REPLACESEL, (WPARAM)&st, (LPARAM)wstrAdd.c_str());
 
-	// 선택해서 색 변경
-	int textLength = GetWindowTextLength(hRichEdit);
-	// 커서를 문서의 끝으로 이동해서 선택.
-	SetFocus(hRichEdit);
-	SendMessage(hRichEdit, EM_SETSEL, end, -1);
-	SetRichEditSelColor(hRichEdit);
-
-	// 선택을 취소하고 싶다면 다음과 같이 합니다.
-	// 이는 커서를 문서의 끝으로 이동시킨 후 선택 영역이 없도록 합니다.
-	SendMessage(hRichEdit, EM_SETSEL, -1, 0);
+	SendMessage(hRichEdit, EM_SCROLL, SB_BOTTOM, 0);
 }
 
 void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime);
@@ -224,7 +218,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 			if (settings["ck_orgin_subtext"] == true) {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
-					AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
+					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
 					AppendTextToRichEdit(hwndTextBox, (WCHAR *)convertBuf.c_str());
 				}
 			}
@@ -241,7 +235,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 
 					RequestDeepL(strIn, strOut, lang, settings["ed_trans_api_key"]);
 					CharToWChar(strT, strOut.c_str());
-					AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
+					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
 					AppendTextToRichEdit(hwndTextBox, strT);
 				}
 			}
@@ -250,7 +244,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 			if (settings["ck_pctrans"] == true) {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
-					AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n ");
+					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n ");
 					AppendTextToRichEdit(hwndTextBox, (WCHAR*)convertBuf.c_str());
 				}
 			}
