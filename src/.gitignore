@@ -30,7 +30,10 @@ bld/
 *.idea/
 *.vsconfig
 *.bak
+*.back
 *.backup
+_*
+*_
 
 # 패키지 및 로컬 설치 파일
 packages/
@@ -49,9 +52,6 @@ venv/
 
 # 'config*'로 시작하는 모든 파일 제외
 config*
-
-# '_'로 시작하는 모든 파일 제외
-_*
 
 # 'docs', '메모' 폴더와 그 하위 내용 전체 제외
 docs/
