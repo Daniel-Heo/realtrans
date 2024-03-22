@@ -1,0 +1,62 @@
+# Visual Studio 2022용 .gitignore
+
+# 빌드 결과
+[Bb]in/
+[Oo]bj/
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]uild/
+[Bb]uilds/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio MFC 프로젝트 파일
+*.aps
+
+# 기타 Visual Studio 관련 파일/폴더 제외
+.vs/
+.vscode/
+*.user
+*.aps
+*.userosscache
+*.suo
+*.userprefs
+*.ds_store
+*.idea/
+*.vsconfig
+*.bak
+*.backup
+
+# 패키지 및 로컬 설치 파일
+packages/
+*.nupkg
+*.nuproj
+*.nuget.props
+*.nuget.targets
+
+# 특정 프로젝트 유형 및 언어에 특정한 추가 제외 사항
+# 예를 들어, Node.js, Python, Ruby 등
+node_modules/
+*.pyc
+
+# venv
+venv/
+
+# 'config*'로 시작하는 모든 파일 제외
+config*
+
+# '_'로 시작하는 모든 파일 제외
+_*
+
+# 'docs', '메모' 폴더와 그 하위 내용 전체 제외
+docs/
+메모/
+다운/
+
+# '.txt' 확장자를 가진 모든 파일 제외
+*.txt
