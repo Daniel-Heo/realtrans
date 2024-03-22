@@ -30,6 +30,7 @@ bld/
 *.ds_store
 *.idea/
 *.vsconfig
+*.log
 *.bak
 *.back
 *.backup
@@ -58,6 +59,4 @@ config*
 docs/
 메모/
 다운/
-
-# '.txt' 확장자를 가진 모든 파일 제외
 *.txt
