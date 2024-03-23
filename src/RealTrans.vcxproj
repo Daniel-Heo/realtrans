@@ -23,7 +23,7 @@
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{36f67ea7-e0bd-4f0f-b2ba-50aae1495c87}</ProjectGuid>
     <RootNamespace>RealTrans</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,6 +71,10 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -138,9 +142,7 @@
     <ClInclude Include="CMenusDlg.h" />
     <ClInclude Include="CSettings.h" />
     <ClInclude Include="deepl_api.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="CDlgInfo.h" />
-    <ClInclude Include="json.hpp" />
     <ClInclude Include="language.h" />
     <ClInclude Include="RealTrans.h" />
     <ClInclude Include="Resource.h" />
@@ -165,8 +167,8 @@
     <ResourceCompile Include="RealTrans.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="icon1.ico" />
     <Image Include="icon\lmenu_normal.bmp" />
+    <Image Include="lmenu_over.png" />
     <Image Include="RealTrans.ico" />
     <Image Include="realtrans_icon4.ico" />
   </ItemGroup>

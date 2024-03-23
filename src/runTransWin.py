@@ -399,6 +399,13 @@ def main(ARGS):
                     use_trans = False
                 else: 
                     use_trans = True
+
+                #음성인식 설정
+                if ARGS.source_lang=="xx": 
+                    ARGS.source_lang = None
+                    use_recognize= False
+                else: 
+                    use_recognize = True
                 
                 if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
                     use_en2ko = True

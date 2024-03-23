@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="targetver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -36,12 +33,6 @@
     <ClInclude Include="CSettings.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="json.hpp">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="CDlgSummary.h">
-      <Filter>소스 파일</Filter>
-    </ClInclude>
     <ClInclude Include="StrConvert.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -55,6 +46,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CDlgInfo.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CDlgSummary.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -99,13 +93,13 @@
     <Image Include="RealTrans.ico">
       <Filter>리소스 파일</Filter>
     </Image>
-    <Image Include="icon1.ico">
-      <Filter>리소스 파일</Filter>
-    </Image>
     <Image Include="icon\lmenu_normal.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="realtrans_icon4.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="lmenu_over.png">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>

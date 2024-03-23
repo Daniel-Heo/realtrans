@@ -3,6 +3,7 @@
 #include <Richedit.h>
 #include <string>
 #include "resource.h"
+//#include "json.hpp" // 또는 경로를 지정해야 할 경우: #include "External/json.hpp"
 
 class CDlgSummary {
 public:
@@ -10,7 +11,7 @@ public:
     HWND hSumRichEdit; // RichEdit 컨트롤의 핸들
     HINSTANCE hInstance; // 애플리케이션 인스턴스 핸들
     HWND hWndParent; // 부모 윈도우의 핸들
-    int nParentRichPos; // 부모 윈도우의 RichEdit 컨트롤의 현재 위치 ( 사용하지 않는다 -> strEng에서 가져옴 )
+    size_t nParentRichPos; // 부모 윈도우의 RichEdit 컨트롤의 현재 위치 ( 사용하지 않는다 -> strEng에서 가져옴 )
     BOOL bVisible; // 요약창이 보이는지 여부
     BOOL bExistDlg; // 요약창이 존재하는지 여부
     

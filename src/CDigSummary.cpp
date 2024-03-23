@@ -6,7 +6,7 @@
 
 #define MAX_RICHEDIT_TEXT 10240
 
-// nlohmann 라이브러리의 네임스페이스 사용
+// nlohmann 라이브러리의 네임스페이스 사용  
 using json = nlohmann::json;
 
 // 환경 설정을 위한 JSON 객체 생성
@@ -14,11 +14,11 @@ extern json settings;
 extern CDlgSummary* DlgSum;
 extern HWND hwndTextBox;
 extern std::string strEng;
-extern BOOL runSummary;
+extern bool runSummary;
 
 //WCHAR rich_buf[MAX_RICHEDIT_TEXT];
 std::wstring rich_buf;
-BOOL addSummaryFlag =false;
+bool addSummaryFlag =false;
 
 // int 값을 요약창에 보이게
 void DebugInt(HWND hEdit, int value)

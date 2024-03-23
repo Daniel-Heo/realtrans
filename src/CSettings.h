@@ -9,6 +9,7 @@ struct LanguageData {
 };
 
 void ReadSettings(const std::string& filePath);
+void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang); // Python에게 명령 전달
 INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 class CSettings

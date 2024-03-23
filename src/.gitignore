@@ -57,6 +57,7 @@ config*
 
 # 'docs', '메모' 폴더와 그 하위 내용 전체 제외
 docs/
+images/
 메모/
 다운/
 *.txt

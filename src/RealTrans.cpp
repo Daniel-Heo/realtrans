@@ -1,19 +1,20 @@
 ﻿// RealTrans.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 
-#include "framework.h"
+//#include "framework.h"
 #include "RealTrans.h"
-#include <CommCtrl.h>
+//#include <CommCtrl.h>
 #include <windows.h>
 #include <iostream>
 #include <string>
 #include <atlstr.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <Richedit.h>
 #include <shellapi.h>
 #include <WinUser.h>
 #include <tlhelp32.h>
 #include <mutex>
+#include <windef.h>
 #include "SoundDev.h"
 #include "CMenusDlg.h"
 #include "CSettings.h"
@@ -61,6 +62,7 @@ CString strResult; // Contains result of cmdArg.
 
 // Left Menu
 CMenusDlg* lmenu;
+BOOL bStopMenu = FALSE;
 
 // Thread
 HANDLE hThread;
@@ -76,14 +78,14 @@ bool addFlag = false;
 std::string strEng = "";
 
 // 환경설정
-BOOL isRefreshEnv = false;
+bool isRefreshEnv = false;
 json settings;
 
 // 요약창
 CDlgSummary* DlgSum;
 time_t nSummaryTime = 0;
-BOOL runSummary = false;
-extern BOOL addSummaryFlag;
+bool runSummary = false;
+extern bool addSummaryFlag;
 
 // 정보창
 CDlgInfo* DlgInfo;
@@ -328,7 +330,8 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	// 외부 프로그램 실행 : python 번역 프로그램 ( runTransWin.py)
 	TCHAR cmd[300]; // 실행 명령
 #ifndef NDEBUG // 디버그 모드
-	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); 
+	//swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); # 언어 체크
+	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" %s", strActSound, wstrLang.c_str()); 
 	//swprintf(cmd, 300, L"python.exe D:\\git\\realtrans\\release\\2.0\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); // git test
 #else
 	swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s", strActSound, wstrLang.c_str());
@@ -736,8 +739,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
 		Graphics graphics(hdc);
-		Image image(L"lmenu_normal.png");
-		graphics.DrawImage(&image, 0, 10, image.GetWidth(), image.GetHeight());
+		if (bStopMenu == FALSE) {
+			Image image(L"lmenu_normal.png");
+			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
+		}
+		else {
+			Image image(L"lmenu_over.png");
+			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
+		}
 
 		EndPaint(hWnd, &ps);
 	}
@@ -748,24 +757,45 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		POINTS pt = MAKEPOINTS(lParam);
 
 		// 특정 영역 예: (100, 100) ~ (200, 200)
-		if (pt.x > 0 && pt.x < 34 && pt.y > 10 && pt.y < 44) {
+		if (pt.x > 0 && pt.x < 34 && pt.y > 0 && pt.y < 44) {
 			// 환경설정
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG_SETUP), hWnd, DialogProc);
 		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 44 && pt.y < 78) {
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 44 && pt.y < 81) {
 			// 요약
 			DlgSum->Create(hWnd);
 		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 106 && pt.y < 138) {
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 81 && pt.y < 113) {
+			// 실행/중지
+			bStopMenu = !bStopMenu;
+			RECT rect;
+			rect.left = 0;   // 시작 X 좌표
+			rect.top = 0;    // 시작 Y 좌표
+			rect.right = 34; // 끝 X 좌표
+			rect.bottom = 226; // 끝 Y 좌표
+			InvalidateRect(hWnd, &rect, FALSE); // 지정된 영역만 무효화합니다. 배경은 지우지 않습니다.
+
+			// json 파일로 저장
+			if (bStopMenu == TRUE) {
+				MakeChildCmd("xx", "xx");
+			}
+			else {
+				std::string tgt_lang;
+				if (settings["ck_pctrans"] == true) tgt_lang = settings["cb_pctrans_lang"];
+				else tgt_lang = "xx";
+				MakeChildCmd(settings["cb_voice_lang"], tgt_lang);
+			}
+		}
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 113 && pt.y < 140) {
 			ShellExecuteA(0, "open", "chrome.exe", "https://www.youtube.com/@markets/streams", NULL, SW_SHOWNORMAL);
 		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 138 && pt.y < 170) {
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 140 && pt.y < 168) {
 			ShellExecuteA(0, "open", "chrome.exe", "https://www.financialjuice.com/home", NULL, SW_SHOWNORMAL);
 		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 170 && pt.y < 202) {
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 168 && pt.y < 197) {
 			ShellExecuteA(0, "open", "chrome.exe", "https://edition.cnn.com/markets/fear-and-greed", NULL, SW_SHOWNORMAL);
 		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 202 && pt.y < 234) {
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 197 && pt.y < 226) {
 			// 정보
 			DlgInfo = new CDlgInfo(hInst);
 			DlgInfo->Create(hWnd);

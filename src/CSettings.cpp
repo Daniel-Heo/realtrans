@@ -13,7 +13,7 @@ using json = nlohmann::json;
 
 // 환경 설정을 위한 JSON 객체 생성
 extern json settings;
-extern BOOL isRefreshEnv;
+extern bool isRefreshEnv;
 extern time_t nSummaryTime;
 extern CDlgSummary* DlgSum;
 
@@ -68,7 +68,7 @@ void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang )
 // 현재 설정을 파일로 저장
 void SaveSettings(HWND hwnd, const std::string& filePath) {
 	BOOL old_pctrans = settings["ck_pctrans"];
-	int nSel = 0;
+	LRESULT nSel = 0;
 	LPARAM itemData;
 	HWND hCbBox;
 	WCHAR comboBoxItem[256];
@@ -295,7 +295,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
 			//if (settings["cb_voice_lang"] == itemData ) {
-			if (CompareStringAndWString(settings.value("cb_voice_lang", ""),(WCHAR*)itemData)==true) {
+			if (CompareStringWString(settings.value("cb_voice_lang", ""),(WCHAR*)itemData)==true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
 				break;
@@ -512,7 +512,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
 			//if (settings["cb_pctrans_lang"] == itemData) {
-			if (CompareStringAndWString(settings.value("cb_pctrans_lang", ""), (WCHAR*)itemData) == true) {
+			if (CompareStringWString(settings.value("cb_pctrans_lang", ""), (WCHAR*)itemData) == true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
 				break;
@@ -533,7 +533,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
-			if (CompareStringAndWString(settings.value("cb_apitrans_lang", ""), (WCHAR*)itemData) == true) {
+			if (CompareStringWString(settings.value("cb_apitrans_lang", ""), (WCHAR*)itemData) == true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
 				//DlgSum->Alert((WCHAR*)itemData);
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
