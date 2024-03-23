@@ -301,12 +301,11 @@ def transSound(ARGS):
                     continue
                 
                 if use_en2ko == True:
-                    outPut = translate_text_with_en2ko(en2ko_model, en2ko_token, tmpText)
+                    outPut = ' '+translate_text_with_en2ko(en2ko_model, en2ko_token, tmpText)
                 else:
-                    outPut = translate_pipe_text(tmpText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
+                    outPut = ' '+translate_pipe_text(tmpText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
 
                 try:
-                    output = ' '+outPut
                     if isDecoding==True:
                         print(output.encode('utf-8', errors='ignore').decode('utf-8'))
                     else :
@@ -465,6 +464,18 @@ def main(ARGS):
                             transcript += " "+tmp
                         
                         lock.release()
+
+                    # use_trans가 False이면 이곳에서 출력
+                    if use_trans==False and len(transcript) > 1:
+                        try:
+                            tmp = '-'+transcript
+                            if isDecoding==True:
+                                print(tmp.encode('utf-8', errors='ignore').decode('utf-8'))
+                            else :
+                                print(tmp.encode('utf-8', errors='ignore'))
+                            transcript = ""
+                        except Exception as e:
+                            pass  # 에러가 발생해도 아무런 행동을 취하지 않음
 
                 frame = bytearray()
                 wav_data = bytearray()
