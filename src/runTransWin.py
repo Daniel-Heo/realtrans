@@ -402,7 +402,6 @@ def main(ARGS):
 
                 #음성인식 설정
                 if ARGS.source_lang=="xx": 
-                    ARGS.source_lang = None
                     use_recognize= False
                 else: 
                     use_recognize = True
