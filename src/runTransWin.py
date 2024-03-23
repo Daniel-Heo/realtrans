@@ -205,14 +205,11 @@ def translate_text_with_en2ko(model, token, text: str):
     outputs = model.generate(inputs["input_ids"], attention_mask=inputs["attention_mask"], do_sample=False, num_beams=2, no_repeat_ngram_size=2, max_length=512)
     
     # 출력 텍스트 디코딩
-    translated_text = token.decode(outputs[0], skip_special_tokens=True)
-    return translated_text
+    return token.decode(outputs[0], skip_special_tokens=True)
 
 def translate_pipe_text(text: str, src_lang, tgt_lang):
     translator = pipeline('translation', model='facebook/nllb-200-distilled-600M', tokenizer='facebook/nllb-200-distilled-600M', device=cuda_dev, src_lang=src_lang, tgt_lang=tgt_lang, max_length=512, do_sample=False, num_beams=2, no_repeat_ngram_size=2)
-    output = translator(text, max_length=512)[0]['translation_text']
-
-    return output
+    return translator(text, max_length=512)[0]['translation_text']
 
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -241,8 +238,9 @@ def transSound(ARGS):
     isLoadModel = False
     en2ko_model = None
     en2ko_token = None
-    
-    decText = ""
+
+    src_lang = None
+    transText = ""
     while True:
         # 종료 체크
         if exit_flag:
@@ -280,17 +278,17 @@ def transSound(ARGS):
 
         if len(transcript) > 1:
             lock.acquire()
-            tmpText = transcript
+            transText = transcript
             transcript=""
             lock.release()
 
-            if len(tmpText) > 1:
+            if len(transText) > 1:
+                outPut = '-' + transText
                 try:
-                    output = '-'+tmpText
                     if isDecoding==True:
-                        print(output.encode('utf-8', errors='ignore').decode('utf-8'))
+                        print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
                     else :
-                        print(output.encode('utf-8', errors='ignore'))
+                        print(outPut.encode('utf-8', errors='ignore'))
                 except Exception as e:
                     pass  # 에러가 발생해도 아무런 행동을 취하지 않음
 
@@ -300,14 +298,15 @@ def transSound(ARGS):
                 if src_lang == ARGS.target_lang:
                     continue
                 
+                outPut = ' '
                 if use_en2ko == True:
-                    outPut = ' '+translate_text_with_en2ko(en2ko_model, en2ko_token, tmpText)
+                    outPut += translate_text_with_en2ko(en2ko_model, en2ko_token, transText)
                 else:
-                    outPut = ' '+translate_pipe_text(tmpText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
+                    outPut += translate_pipe_text(transText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
 
                 try:
                     if isDecoding==True:
-                        print(output.encode('utf-8', errors='ignore').decode('utf-8'))
+                        print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
                     else :
                         print(outPut.encode('utf-8', errors='ignore'))
                 except Exception as e:

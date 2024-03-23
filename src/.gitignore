@@ -20,6 +20,7 @@ bld/
 *.aps
 
 # 기타 Visual Studio 관련 파일/폴더 제외
+WASDK/
 .vs/
 .vscode/
 *.user
