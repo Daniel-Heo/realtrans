@@ -2,6 +2,10 @@
 
 ![](thumbnail.png?raw=true)
 
+![](setting.png?raw=true)
+
+![](summary.png?raw=true)
+
 This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Whisper model, and translate the sentences using the NHNDQ/nllb-finetuned-en2ko model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API.
 
 - Support API : OpenAI API ( Summary ), DeepL ( real time translation )
