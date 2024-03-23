@@ -21,7 +21,6 @@ cuda_dev = None
 use_en2ko = False
 cmdCheckTime = time.time()
 use_trans = True # 번역 사용 여부
-use_recognize = True # 음성인식 사용 여부
 trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
 isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
 
@@ -363,8 +362,9 @@ def main(ARGS):
     global use_en2ko
     global whisper_lang_map
     global use_trans
-    global use_recognize
     global trans_lang
+
+    use_recognize = True  # 음성인식 사용 여부
 
     # Whisper 모델 환상 제거용 필터 
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hallucination_filter.json")

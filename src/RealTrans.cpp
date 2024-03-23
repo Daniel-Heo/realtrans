@@ -229,16 +229,17 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 				if (settings["cb_trans_api"] == 0) // DeepL
 				{
 					std::string strOut;
-					std::string strIn;
-					std::string lang;
-					strIn = readBuf.substr(1);
-					if (settings["cb_apitrans_lang"] == 0) lang = "KO";
-					else lang = "EN";
 
-					RequestDeepL(strIn, strOut, lang, settings["ed_trans_api_key"]);
-					CharToWChar(strT, strOut.c_str());
-					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
-					AppendTextToRichEdit(hwndTextBox, strT);
+					// 디버깅용 - start
+					/*std::string strDebug;
+					strDebug = "lang: " + settings.value("cb_apitrans_lang", "");
+					strDebug +=", strIn: " + strIn + "\n";
+					CharToWChar(strDebug.c_str(), strT);
+					AppendTextToRichEdit(hwndTextBox, strT);*/
+					// 디버깅용 - end
+					RequestDeepL(&readBuf[1], strOut, settings["cb_apitrans_lang"], settings["ed_trans_api_key"]);
+					std::wstring strChg = StringToWCHAR(strOut);
+					AppendTextToRichEdit(hwndTextBox, (WCHAR *)strChg.c_str());
 				}
 			}
 		}
@@ -284,7 +285,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 {
 	// sjheo 동기 읽기 시작
 	DWORD dwRead;
-	CHAR chBuf[4096];
+	CHAR chBuf[4097];
 	std::string strReadBuf;
 
 	SECURITY_ATTRIBUTES saAttr;
