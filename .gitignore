@@ -1,0 +1,4 @@
+# main dir .gitignore
+
+# batch file
+*.bat

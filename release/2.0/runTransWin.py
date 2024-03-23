@@ -20,7 +20,8 @@ transcript = ""
 cuda_dev = None
 use_en2ko = False
 cmdCheckTime = time.time()
-use_trans = True
+use_trans = True # 번역 사용 여부
+use_recognize = True # 음성인식 사용 여부
 trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
 isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
 
@@ -362,6 +363,7 @@ def main(ARGS):
     global use_en2ko
     global whisper_lang_map
     global use_trans
+    global use_recognize
     global trans_lang
 
     # Whisper 모델 환상 제거용 필터 
@@ -392,18 +394,20 @@ def main(ARGS):
             cmdCheckTime = time.time()
             work=load_json_file(os.getcwd()+"/pymsg.json")
             if work != None:
-                ARGS.source_lang = work["src_lang"]
-                ARGS.target_lang = work["tgt_lang"]
-                if ARGS.target_lang=="xx": 
+                # 번역 설정
+                if work["tgt_lang"]=="xx": 
                     ARGS.target_lang = None
                     use_trans = False
                 else: 
+                    ARGS.target_lang = work["tgt_lang"]
                     use_trans = True
 
                 #음성인식 설정
-                if ARGS.source_lang=="xx": 
+                if work["src_lang"]=="xx": 
+                    # 기존 유지
                     use_recognize= False
                 else: 
+                    ARGS.source_lang = work["src_lang"]
                     use_recognize = True
                 
                 if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
@@ -411,7 +415,11 @@ def main(ARGS):
                 else:
                     use_en2ko = False
                 os.remove(os.getcwd()+"/pymsg.json")
-            
+
+        if use_recognize == False:
+            sleep(1)
+            continue
+
         if frame is not None:
             wav_data.extend(frame)
         else:
