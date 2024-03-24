@@ -11,6 +11,7 @@ import whisper
 import os
 import numpy as np
 import torch
+import numba
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import pipeline
 
@@ -67,6 +68,11 @@ class Audio(object):
 
     frame_duration_ms = property( lambda self: 1000 // self.BLOCKS_PER_SECOND ) # 프레임 지속 시간 : 20ms
 
+@numba.jit(nopython=True)
+def ProcMono16bit(fdata):
+    # 2 channel float data를 mono int16 data로 변환
+    return (fdata[:, 0]*32768).astype(np.int16) # 2 channel float data를 mono int16 data로 변환
+
 voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
 silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 
@@ -83,7 +89,7 @@ class VADAudio(Audio):
                 yield self.read()
         else:
             raise Exception("Resampling required")
-    
+
     def vad_collector(self, padding_ms=200, ratio=0.80, frames=None):
         global voiced_duration
         global silence_duration
@@ -99,19 +105,18 @@ class VADAudio(Audio):
             # 640개 14.5ms
             if len(frame) < 640:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
                 return
-            
+
             # frame 예시: np.array([[0.1, -0.1], [0.2, -0.2], ...]) 형태로, shape가 (640, 2)
-            # 첫 번째 채널(왼쪽 채널)만 선택
-            mono_frame = frame[:, 0]
+            # #mono_frame = np.mean(frame, axis=1) # 2 channel을 평균을 내서 1 channel로 만든다. ( 사용 X )
+            #mono_frame = frame[:, 0] # 2 channel 중 왼쪽 채널만 선택
+            #frame = np.int16(mono_frame * 32768) # frame수는 640개
+
             # 2 channel float data를 mono int16 data로 변환
-            #print( frame.shape)
-            #mono_frame = np.mean(frame, axis=1) # 2 channel을 평균을 내서 1 channel로 만든다.
-
-
-            frame = np.int16(mono_frame * 32768) # frame수는 640개
+            frame = ProcMono16bit(frame) 
 
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
-            is_speech = self.vad.is_speech(frame, self.sample_rate)
+            #is_speech = self.vad.is_speech(frame, self.sample_rate)
+            is_speech = self.vad.is_speech(frame, 32000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
 
             # 기존 프레임이 음성이 아닌 상태에서 음성이 감지되면, 링 버퍼를 초기화하고 음성 감지를 시작합니다. f:frame, s:is_speech
             if not triggered:
