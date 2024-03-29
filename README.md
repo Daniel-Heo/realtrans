@@ -13,7 +13,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Python ( Require 3.10.x ) : https://www.python.org/downloads/
+Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( - Be sure to select run Admin and add PATH. )
 
 Install Microsoft C++ Build Tools : https://visualstudio.microsoft.com/visual-cpp-build-tools/  ( C++ Developer )
 
@@ -267,7 +267,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-파이선 설치 
+파이선 설치 ( https://wikidocs.net/8 - run Admin과 PATH 추가를 꼭 선택하세요. )
 
 Install Microsoft C++ Build Tools : https://visualstudio.microsoft.com/visual-cpp-build-tools/  ( C++ 개발만 선택해서 설치하시면 됩니다. )
 
