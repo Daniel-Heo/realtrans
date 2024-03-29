@@ -34,7 +34,6 @@ bld/
 *.bak
 *.back
 *.backup
-_*
 *_
 *.zip
 
