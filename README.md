@@ -228,8 +228,9 @@ Translation language :
 
 Not tested in environments without Nvidia GPUs.
 
-Nvidia GPU tested using 1660 Super, 3080.
-It has been confirmed that it operates normally on the 1660 Super. It has not been tested below that.
+Nvidia GPU tested 3080.
+
+Recommended graphics card: Nvidia 2080 or higher
 
 총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
 
@@ -480,8 +481,9 @@ UI : 한국어, 영어, 독일어, 스페인어, 프랑스어, 이탈리아어, 
 
 Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
 
-Nvidia GPU는 1660 Super, 3080을 사용하여 테스트 되었습니다. 
-1660 Super에서 정상적으로 작동하는 것을 확인하였습니다. 그 이하에서는 테스트되지 않았습니다.
+Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
+
+권장 그래픽카드 : Nvidia 2080 이상 
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
 
