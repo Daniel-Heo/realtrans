@@ -1,5 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cu121
-soundcard
+soundcard==0.4.2
 Halo
 pyaudio
 setuptools

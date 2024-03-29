@@ -4,12 +4,11 @@ import sys
 import os
 
 # 현재 디렉토리의 절대 경로를 구합니다.
-current_directory = os.path.abspath(os.path.dirname(__file__))
-
-# lib 폴더의 경로를 구합니다.
+current_directory = os.path.dirname(os.path.abspath(__file__))
+## lib 폴더의 경로를 구합니다.
 lib_path = os.path.join(current_directory, 'lib')
 
-# lib 폴더의 경로를 sys.path에 추가합니다.
+# # lib 폴더의 경로를 sys.path에 추가합니다.
 if lib_path not in sys.path:
     sys.path.append(lib_path)
 
