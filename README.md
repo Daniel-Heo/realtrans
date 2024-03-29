@@ -291,7 +291,6 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - window에서 cmd를 실행하여 console창을 만듬
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
- - install.bat 실행
 
 파이선 패키지 설치
 >install.bat
