@@ -13,7 +13,9 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Python ( Require 3.10.x ) : https://www.python.org/downloads/
+Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( - Be sure to select run Admin and add PATH. )
+
+Install Microsoft C++ Build Tools : https://visualstudio.microsoft.com/visual-cpp-build-tools/  ( C++ Developer )
 
 run batch file
 > install.bat
@@ -226,8 +228,9 @@ Translation language :
 
 Not tested in environments without Nvidia GPUs.
 
-Nvidia GPU tested using 1660 Super, 3080.
-It has been confirmed that it operates normally on the 1660 Super. It has not been tested below that.
+Nvidia GPU tested 3080.
+
+Recommended graphics card: Nvidia 2080 or higher
 
 총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
 
@@ -265,7 +268,9 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-파이선 설치 
+파이선 설치 ( https://wikidocs.net/8 - run Admin과 PATH 추가를 꼭 선택하세요. )
+
+Install Microsoft C++ Build Tools : https://visualstudio.microsoft.com/visual-cpp-build-tools/  ( C++ 개발만 선택해서 설치하시면 됩니다. )
 
 install.bat 실행
 
@@ -476,8 +481,9 @@ UI : 한국어, 영어, 독일어, 스페인어, 프랑스어, 이탈리아어, 
 
 Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
 
-Nvidia GPU는 1660 Super, 3080을 사용하여 테스트 되었습니다. 
-1660 Super에서 정상적으로 작동하는 것을 확인하였습니다. 그 이하에서는 테스트되지 않았습니다.
+Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
+
+권장 그래픽카드 : Nvidia 2080 이상 
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
 
