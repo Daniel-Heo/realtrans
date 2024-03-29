@@ -13,16 +13,36 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( - Be sure to select run Admin and add PATH. )
+Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
-run batch file
+- Create a console window by running cmd in the window.
+- In the console window, cd C:\installation folder
+- Run python (when executed, exit by entering exit())
+
+run batch file ( install python package )
 > install.bat
+
+- install.bat must be completed without error. When an error occurs, you must respond to the error message.
+- Run python runTransWin.py. If the Translation processing with cuda message appears, it is normal.
+- If you play something like YouTube and make audio come out, the message will be translated into English and Korean in the console window you run.
+- If you have succeeded up to this point, run RealTrans.exe and it will run normally.
+
+Final Windows program execution
+> realtrans.exe
+
+  - If execution is successful, you only need to run realtrans.exe from next time.
 
 ## Usage
 
-run realtrans.exe
+run realtrans.exe ( windows program )
 
-After execution, the sound heard from the current sound output device is received as input and a sentence is created and translated.
+When you run the realtrans.exe file, the program will run.
+After execution, it receives the sound heard from the current sound output device as input, creates an English sentence, and translates it into Korean.
+
+  - Click the settings gear in the top left corner to select the voice language you are inputting and select the language you want to translate to.
+  - When translating, the PC has the function of translating from its own computer to AI, and the API sends voice-recognized text through the API KEY of an external cloud service and receives and displays the translated text.
+  - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them.
+    
 ( cf. At first, downloading the model may take a long time. )
 
 ## Support Language
@@ -266,15 +286,33 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-파이선 설치 ( https://wikidocs.net/8 - run Admin과 PATH 추가를 꼭 선택하세요. )
+파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
-install.bat 실행
+ - window에서 cmd를 실행하여 console창을 만듬
+ - 콘솔창에서 cd C:\설치폴더
+ - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
+ - install.bat 실행
 
-realtrans.exe 실행
+파이선 패키지 설치
+>install.bat
+
+ - install.bat이 오류 없이 완료가 되어야함. 오류 발생시 해당 오류 메시지에 대한 대처를 해야됩니다.
+ - python runTransWin.py를 실행해봄 Translation processing with cuda 메시지가 나오면 정상
+ - 유튜브 같은 것을 플레이해서 음성이 나오게 하면 실행한 콘솔창에서 영한번역이 되어서 메시지가 출력됩니다.
+ - 여기까지 성공하셨으면 RealTrans.exe를 실행하면 정상적으로 수행되게됩니다.
+
+최종 윈도우 프로그램 실행
+>realtrans.exe 실행
+
+ - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다. 
 
 ## 사용법
 realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 실행후에는 현재의 소리 출력 장치에서 들리는 소리를 입력으로 받아, 영어 문장을 만들어 한국어로 번역을 합니다.
+
+ - 왼쪽 제일 위에 톱니바퀴의 설정을 눌러서 입력하는 음성 언어를 선택하시고 번역할 언어를 선택하시면 됩니다.
+ - 번역시에 PC는 자체 컴퓨터에서 AI로 번역하는 기능이고, API는 외부 클라우드 서비스의 API KEY를 통해 음성인식한 텍스트를 보내고 번역된 텍스트를 받아서 표시합니다.
+ - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다.
 
 ## 지원 언어
  
