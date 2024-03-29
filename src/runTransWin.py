@@ -440,12 +440,11 @@ def main(ARGS):
             wav_data.extend(frame)
         else:
             if len(wav_data) > 0:
-                newsound = np.frombuffer(wav_data, np.int16)
+                npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
                 # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
-                audio_length_seconds = len(newsound) / vad_audio.RATE_PROCESS
-                #print( "sec:"+ str(audio_length_seconds))
-
-                audio_float32 = Int2Float(newsound)
+                audio_length_seconds = len(npAudioInt16) / vad_audio.RATE_PROCESS
+                # 오디오 데이터를 부동소수점으로 변환
+                audio_float32 = Int2Float(npAudioInt16)
                 if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
                     srcText = whisper_model.transcribe(audio=audio_float32, language=trans_lang, fp16=False)
                 else:
@@ -513,14 +512,11 @@ def getDevNo(ARGS):
     return -1
 
 # int16 -> float32로 변환
-def Int2Float(sound):
-    _sound = np.copy(sound)  
-    abs_max = np.abs(_sound).max()
-    _sound = _sound.astype('float32')
-    if abs_max > 0:
-        _sound *= 1/abs_max
-    audio_float32 = torch.from_numpy(_sound.squeeze())
-    return audio_float32
+def Int2Float(data, dtype=np.float32):
+    # 최대 정수 값을 구함 (np.iinfo를 사용하여 입력 데이터 타입에 대한 정보를 얻음)
+    max_int_value = np.iinfo(data.dtype).max
+    # 정수형 데이터를 부동소수점으로 변환하고, -1.0과 1.0 사이의 값으로 정규화
+    return data.astype(dtype) / max_int_value
 
 # 초기 작업처리
 if __name__ == '__main__':
