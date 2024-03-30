@@ -13,6 +13,8 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
+Install Cuda Toolkit : https://developer.nvidia.com/cuda-downloads ( Window Version )
+
 Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
 - Create a console window by running cmd in the window.
@@ -249,6 +251,7 @@ Not tested in environments without Nvidia GPUs.
 Nvidia GPU tested 3080.
 
 Recommended graphics card: Nvidia 2080 or higher
+	    Nvidia 1660 super setting ( change Whisper Model from large to small. runTransWin.py 390 line)
 
 총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
 
@@ -285,6 +288,8 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 - 지원 OS : Windows 10, 11 ~
 
 ### 설치
+
+Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. )
 
 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
@@ -516,7 +521,8 @@ Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
 
 Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
 
-권장 그래픽카드 : Nvidia 2080 이상 
+권장 그래픽카드 : Nvidia 2080 이상
+                 Nvidia 1660 super일 경우 설정 ( Whisper Model을 large -> small로 변경해주세요. runTransWin.py 390 line )
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
 
