@@ -20,12 +20,13 @@ from halo import Halo
 import threading
 import collections, queue
 import whisper
-#import os
 import numpy as np
 import torch
 import numba
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import pipeline
+import pyaudio
+import librosa
 
 # 글로벌 변수
 exit_flag = False
@@ -36,6 +37,7 @@ cmdCheckTime = time.time()
 use_trans = True # 번역 사용 여부
 trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
 isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
+audio_info = None
 
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
 def read_file_if_exists(file_path):
@@ -48,26 +50,53 @@ def read_file_if_exists(file_path):
         #print(f"{file_path} 파일이 존재하지 않습니다.")
         return None
 
+# Low Level 사운드 입력을 처리하는 클래스
+class LoopbackAudio(threading.Thread):
+    def __init__(self, callback, device):
+        threading.Thread.__init__(self)
+        global ARGS
+        self.callback = callback
+        self.samplerate = ARGS.sample_rate # 48000 or etc
+        self.block_size = 20 # 20ms
+        self.frame_size = int(self.samplerate * self.block_size / 1000)
+        self.mics = sc.all_microphones(include_loopback=True)
+        self.mic_index = device
+        self.stop_event = threading.Event()
+
+    def run(self):
+        if self.mic_index == None:
+            mic = sc.default_microphone()
+        else:
+            mic = self.mics[self.mic_index]
+        with mic.recorder(samplerate=self.samplerate) as recorder:
+            while not self.stop_event.is_set():
+                data = recorder.record(numframes=self.frame_size)
+                transposed_data = np.transpose(data)
+                y_mono = librosa.to_mono(transposed_data)
+                data = librosa.resample(y_mono, orig_sr=self.samplerate, target_sr=16000)
+                self.callback(data)
+
+    def stop(self):
+        self.stop_event.set()
+        
 # 음성 입력장치 제어 클래스
 class Audio(object):
     RATE_PROCESS = 16000
     CHANNELS = 1
-    BLOCKS_PER_SECOND = 50
+    BLOCKS_PER_SECOND = 20 # 20ms
 
-    def __init__(self, callback=None, device=None, input_rate=RATE_PROCESS):
+    def __init__(self, callback=None, device=None):
         def proxy_callback(in_data):
             callback(in_data)
 
+        global ARGS
         if callback is None:
             def callback(in_data): return self.buffer_queue.put(in_data)
         self.buffer_queue = queue.Queue()
         self.device = device
-        self.input_rate = input_rate # 16000
-        self.sample_rate = self.RATE_PROCESS # 16000
-        self.block_size = int(self.RATE_PROCESS / float(self.BLOCKS_PER_SECOND)) # 320
 
         self.soundcard_reader = LoopbackAudio(
-            callback=proxy_callback, device=self.device, samplerate=self.sample_rate)
+            callback=proxy_callback, device=self.device)
         self.soundcard_reader.daemon = True
         self.soundcard_reader.start()
 
@@ -78,12 +107,12 @@ class Audio(object):
         self.soundcard_reader.stop()
         self.soundcard_reader.join()
 
-    frame_duration_ms = property( lambda self: 1000 // self.BLOCKS_PER_SECOND ) # 프레임 지속 시간 : 20ms
+    frame_duration_ms = BLOCKS_PER_SECOND
 
 @numba.jit(nopython=True)
-def ProcMono16bit(fdata):
+def ToInt16(fdata):
     # 2 channel float data를 mono int16 data로 변환
-    return (fdata[:, 0]*32768).astype(np.int16) # 2 channel float data를 mono int16 data로 변환
+    return (fdata*32768).astype(np.int16) #  int16 data로 변환
 
 voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
 silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
@@ -91,44 +120,33 @@ silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 # 음성 활동 감지 클래스 : 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기, 4초는 그대로 음성 자르기
 class VADAudio(Audio):
 
-    def __init__(self, aggressiveness=3, device=None, input_rate=None):
-        super().__init__(device=device, input_rate=input_rate)
+    def __init__(self, aggressiveness=3, device=None):
+        super().__init__(device=device)
         self.vad = webrtcvad.Vad(aggressiveness)
 
     def frame_generator(self):
-        if self.input_rate == self.RATE_PROCESS:
-            while True:
-                yield self.read()
-        else:
-            raise Exception("Resampling required")
+        while True:
+            yield self.read()
 
-    def vad_collector(self, padding_ms=200, ratio=0.80, frames=None):
+    def vad_collector(self, padding_ms=300, ratio=0.80, frames=None):
         global voiced_duration
         global silence_duration
 
         if frames is None:
             frames = self.frame_generator()
-        num_padding_frames = padding_ms // self.frame_duration_ms # 100ms // 20ms = 5 frames : //(나눗셈의 정수형)
-        ring_buffer = collections.deque(maxlen=num_padding_frames) # 5 frames
+        num_padding_frames = padding_ms // self.frame_duration_ms # 300ms // 20ms = 15 frames : //(나눗셈의 정수형)
+        ring_buffer = collections.deque(maxlen=num_padding_frames) 
         triggered = False # 음성 감지 여부 초기화(감지 안된 상태)
 
-        for frame in frames: # 5개의 프레임이 든 frames에서 한개씩 가져옴.
-            # 882개 20ms : 44100 * 20 / 1000 = 882개를 가져와서 resampling해서 16000으로 만들면 인식이 잘안된다. 속도도 느려진다.
-            # 640개 14.5ms
-            if len(frame) < 640:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
+        for frame in frames: 
+            if len(frame) < 320:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
                 return
 
-            # frame 예시: np.array([[0.1, -0.1], [0.2, -0.2], ...]) 형태로, shape가 (640, 2)
-            # #mono_frame = np.mean(frame, axis=1) # 2 channel을 평균을 내서 1 channel로 만든다. ( 사용 X )
-            #mono_frame = frame[:, 0] # 2 channel 중 왼쪽 채널만 선택
-            #frame = np.int16(mono_frame * 32768) # frame수는 640개
-
-            # 2 channel float data를 mono int16 data로 변환
-            frame = ProcMono16bit(frame) 
+            # 부동소수점 데이터를 16비트 정수로 변환
+            frame = ToInt16(frame) 
 
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
-            #is_speech = self.vad.is_speech(frame, self.sample_rate)
-            is_speech = self.vad.is_speech(frame, 32000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
+            is_speech = self.vad.is_speech(frame, 16000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
 
             # 기존 프레임이 음성이 아닌 상태에서 음성이 감지되면, 링 버퍼를 초기화하고 음성 감지를 시작합니다. f:frame, s:is_speech
             if not triggered:
@@ -147,19 +165,18 @@ class VADAudio(Audio):
                 if is_speech:
                     voiced_duration += self.frame_duration_ms
                     silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
-                    if voiced_duration > 3000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                    if voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
                         voiced_duration = 0  # 정적 지속 시간을 리셋
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
                 else:
                     voiced_duration += self.frame_duration_ms
                     silence_duration += self.frame_duration_ms
-                    if voiced_duration > 2000 and silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
-                        #print("voiced_duration: ", voiced_duration)
+                    if voiced_duration > 3000 and silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
                         voiced_duration = 0  # 정적 지속 시간을 리셋
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
-                    elif voiced_duration > 3000: # 6초 이상 음성 감지시 그대로 음성 자르기
+                    elif voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
                         voiced_duration = 0  # 정적 지속 시간을 리셋
                         silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
@@ -175,31 +192,6 @@ class VADAudio(Audio):
                     triggered = False
                     yield None
                     ring_buffer.clear()
-
-SAMPLE_RATE = 16000
-
-# Low Level 사운드 입력을 처리하는 클래스
-class LoopbackAudio(threading.Thread):
-    def __init__(self, callback, device, samplerate=SAMPLE_RATE):
-        threading.Thread.__init__(self)
-        self.callback = callback
-        self.samplerate = samplerate
-        self.mics = sc.all_microphones(include_loopback=True)
-        self.mic_index = device
-        self.stop_event = threading.Event()
-
-    def run(self):
-        if self.mic_index == None:
-            mic = sc.default_microphone()
-        else:
-            mic = self.mics[self.mic_index]
-        with mic.recorder(samplerate=self.samplerate) as recorder:
-            while not self.stop_event.is_set():
-                data = recorder.record(numframes=640)
-                self.callback(data)
-
-    def stop(self):
-        self.stop_event.set()
 
 # text to text 번역 모델 로드
 def load_en2ko_model():
@@ -385,18 +377,17 @@ def main(ARGS):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hallucination_filter.json")
     json_filter = load_json_file(file_path)
 
-    devNo=getDevNo(ARGS)
+    devNo=GetDevNo(ARGS)
     if devNo<0:
         exit_flag = True
         return 0
 
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
-                         device=devNo,
-                         input_rate=ARGS.rate)
+                         device=devNo)
 
     frames = vad_audio.vad_collector()
 
-    whisper_model = whisper.load_model("large") # base, large, medium.en
+    whisper_model = whisper.load_model("large") # large, medium, small, base
     whisper_model.to(cuda_dev)
 
     wav_data = bytearray()
@@ -498,7 +489,7 @@ def main(ARGS):
     exit_flag = True
 
 # 음성 입력장치의 번호를 반환
-def getDevNo(ARGS):
+def GetDevNo(ARGS):
     if ARGS.device is None:
         return -1
 
@@ -519,12 +510,13 @@ def Int2Float(data, dtype=np.float32):
 
 # 초기 작업처리
 if __name__ == '__main__':
-    DEFAULT_SAMPLE_RATE = 16000
 
     import argparse
     parser = argparse.ArgumentParser(description="Stream from speacker to whisper and translate")
     parser.add_argument('-d', '--device', type=str, default=None,
                         help="Device active sound input name")
+    parser.add_argument('-r', '--sample_rate', type=int, default=48000,
+                        help="Sampling rate : Default 16000")
     parser.add_argument('-s', '--source_lang', type=str, default=None, # eng_Latn, ALL
                         help="Voice input Language : eng_Latn, kor_Hang")
     parser.add_argument('-t', '--target_lang', type=str, default=None, # kor_Hang
@@ -535,15 +527,13 @@ if __name__ == '__main__':
                         help="Set aggressiveness of webRTC: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive. Default: 3")      
 
     ARGS = parser.parse_args()
-    ARGS.rate=DEFAULT_SAMPLE_RATE
 
     # Check Input parameter
     if ARGS.device is None:
-        import pyaudio
-
         p = pyaudio.PyAudio()
-        default_output = p.get_default_output_device_info()
-        ARGS.device = default_output['name']
+        audio_info = p.get_default_output_device_info()
+        ARGS.device = audio_info['name']
+        p.terminate()
 
     if( ARGS.source_lang == None):
         ARGS.source_lang = "eng_Latn"

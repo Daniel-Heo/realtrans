@@ -316,8 +316,25 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 
 	// 기본 사운드 장치 검색해서 Python 실행인자로 넘겨줌
 	WCHAR strActSound[200];
-	if (GetActiveSound(strActSound) == TRUE) {
-		SendMessage(hwndTextBox, WM_SETTEXT, 0, (LPARAM)strActSound);
+	WCHAR strSoundInfo[200]=L"";
+	WAVEFORMATEX waveFormat;
+	if (GetActiveSound(strActSound, &waveFormat) == TRUE) {
+		// waveFormat.nChannels; // 채널 수를 나타냅니다. 여기서는 2채널
+		// waveFormat.wBitsPerSample; // bps : 샘플 당 비트 수를 나타냅니다. 여기서는 32비트
+		// waveFormat.nSamplesPerSec; // 초당 샘플링 횟수를 나타냅니다. 여기서는 48000Hz
+		
+		// waveFormat.wFormatTag; // 오디오 데이터 포맷을 나타냅니다. 65534 (또는 WAVE_FORMAT_EXTENSIBLE)는 확장 가능한 포맷을 의미하며, 
+							// 오디오 스트림이 여러 채널을 가지고 있거나, 높은 비트 해상도를 사용하는 경우에 주로 사용
+		// waveFormat.nBlockAlign; // 8 : 블록 정렬을 나타냅니다. 즉, 샘플 하나를 저장하는 데 필요한 바이트 수입니다. 
+							// 여기서는 8바이트, 즉 64비트를 의미합니다. 스테레오(2채널)에서 샘플 당 32비트를 사용한다면, 샘플 하나를 위해 8바이트가 필요
+		// waveFormat.cbSize; // 추가 정보의 크기를 나타냅니다. 여기서는 22바이트
+							// WAVEFORMATEX 구조체가 WAVE_FORMAT_EXTENSIBLE 포맷을 사용하는 경우, 이는 WAVEFORMATEXTENSIBLE 구조체를 통해 추가적인 정보를 제공합니다.
+							// 이 구조체는 WAVEFORMATEX를 확장하여, 오디오 샘플의 정확한 포맷, 채널 구성, 채널 마스크 등을 더 상세하게 명시할 수 있습니다.
+							// bps가 32비트인 오디오 포맷은 높은 해상도의 오디오 처리에 적합하며, 전문적인 오디오 작업과 고품질 오디오 스트리밍에 주로 사용
+		/*char  strTmp[500];  
+		sprintf_s(strTmp, "Name:%s channel:%d bps:%d sample rate:%d format:%d block size:%d cbSize:%d", strActSound, waveFormat.nChannels, waveFormat.wBitsPerSample, waveFormat.nSamplesPerSec, waveFormat.wFormatTag, waveFormat.nBlockAlign, waveFormat.cbSize);
+		addText += strTmp;*/
+		swprintf_s(strSoundInfo, L"-r %d", waveFormat.nSamplesPerSec);
 	}
 
 	std::string strLang;
@@ -332,10 +349,10 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	TCHAR cmd[300]; // 실행 명령
 #ifndef NDEBUG // 디버그 모드
 	//swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); # 언어 체크
-	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" %s", strActSound, wstrLang.c_str()); 
+	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo); 
 	//swprintf(cmd, 300, L"python.exe D:\\git\\realtrans\\release\\2.0\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); // git test
 #else
-	swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s", strActSound, wstrLang.c_str());
+	swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
 #endif
 	if (!CreateProcess(
 
