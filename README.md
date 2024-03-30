@@ -251,6 +251,7 @@ Not tested in environments without Nvidia GPUs.
 Nvidia GPU tested 3080.
 
 Recommended graphics card: Nvidia 2080 or higher
+
 	    Nvidia 1660 super setting ( change Whisper Model from large to small. runTransWin.py 390 line)
 
 총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
@@ -522,6 +523,7 @@ Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
 Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
 
 권장 그래픽카드 : Nvidia 2080 이상
+
                  Nvidia 1660 super일 경우 설정 ( Whisper Model을 large -> small로 변경해주세요. runTransWin.py 390 line )
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
