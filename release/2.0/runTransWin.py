@@ -332,7 +332,7 @@ def load_json_file(file_path):
 import re
 def halu_filter(src_txt, filter_list):    
     for filter_txt in filter_list:
-        if filter_txt.startswith('(') and filter_txt.endswith(')'):
+        if filter_txt.startswith('('):
             pattern = filter_txt[1:-1]
             # [text] 형식의 필터 포함
             if pattern in src_txt and (len(src_txt)-len(pattern)) <= 5: return True
@@ -342,10 +342,14 @@ def halu_filter(src_txt, filter_list):
             except:
                 matches = []
             if len(matches) >= 2 and (len(pattern)*len(matches)*2)>=len(src_txt): return True
-        if filter_txt.startswith('[') and filter_txt.endswith(']'):
+        elif filter_txt.startswith('['):
             # [text] 형식의 필터: 포함이 되고 나머지 문자의 길이가 2 이하인 경우
             pattern = filter_txt[1:-1]
             if pattern in src_txt and (len(src_txt)-len(pattern)) <= 2: return True
+        elif filter_txt.startswith('*'):
+            # *text* 형식의 필터: text가 포함되는 경우
+            pattern = filter_txt[1:-1]
+            if pattern in src_txt: return True
         else:
             # 일치여부 검사
             if src_txt == filter_txt: return True
