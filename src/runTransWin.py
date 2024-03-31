@@ -27,6 +27,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import pipeline
 import pyaudio
 import librosa
+import resampy
 
 # 글로벌 변수
 exit_flag = False
@@ -73,8 +74,7 @@ class LoopbackAudio(threading.Thread):
                 data = recorder.record(numframes=self.frame_size)
                 transposed_data = np.transpose(data)
                 y_mono = librosa.to_mono(transposed_data)
-                data = librosa.resample(y_mono, orig_sr=self.samplerate, target_sr=16000)
-                self.callback(data)
+                self.callback((resampy.resample(y_mono, 48000, 16000,filter='kaiser_best')*32768).astype(np.int16))
 
     def stop(self):
         self.stop_event.set()
@@ -109,11 +109,6 @@ class Audio(object):
 
     frame_duration_ms = BLOCKS_PER_SECOND
 
-@numba.jit(nopython=True)
-def ToInt16(fdata):
-    # 2 channel float data를 mono int16 data로 변환
-    return (fdata*32768).astype(np.int16) #  int16 data로 변환
-
 voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
 silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 
@@ -141,9 +136,6 @@ class VADAudio(Audio):
         for frame in frames: 
             if len(frame) < 320:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
                 return
-
-            # 부동소수점 데이터를 16비트 정수로 변환
-            frame = ToInt16(frame) 
 
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
             is_speech = self.vad.is_speech(frame, 16000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
