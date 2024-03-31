@@ -54,7 +54,7 @@ File ) hallucination_filter.json
 ex) en : English base https://www.andiamo.co.uk/resources/iso-language-codes/
 
     "en": [
-	 "you", -> Filter sentences that match exactly.
+         "you", -> Filter sentences that match exactly.
          "*Thank*", -> Filters sentences containing Thank.
          "(Oh)", -> Filtered when Oh appears repeatedly and takes up more than 50% of the sentence.
          "[www.rrr.org]", -> If there is a difference of about 2 characters between www.rrr.org, it will be filtered.
