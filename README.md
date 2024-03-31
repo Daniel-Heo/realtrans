@@ -52,6 +52,7 @@ After execution, it receives the sound heard from the current sound output devic
 File ) hallucination_filter.json
 
 ex) en : English base https://www.andiamo.co.uk/resources/iso-language-codes/
+
     "en": [
 	 "you", -> Filter sentences that match exactly.
          "*Thank*", -> Filters sentences containing Thank.
@@ -336,6 +337,7 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 파일 : hallucination_filter.json
 
 예제) en : 영어 ( 참고 : https://www.andiamo.co.uk/resources/iso-language-codes/ )
+
     "en": [
         "you",   -> 정확하게 맞는 문장을 필터합니다.
         "*Thank*", -> Thank가 들어간 문장을 필터합니다.
