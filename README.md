@@ -47,6 +47,18 @@ After execution, it receives the sound heard from the current sound output devic
     
 ( cf. At first, downloading the model may take a long time. )
 
+## Hallucination Filter (Filters out results that are unrelated to the voice.)
+
+File ) hallucination_filter.json
+
+ex) en : English base https://www.andiamo.co.uk/resources/iso-language-codes/
+    "en": [
+	 "you", -> Filter sentences that match exactly.
+         "*Thank*", -> Filters sentences containing Thank.
+         "(Oh)", -> Filtered when Oh appears repeatedly and takes up more than 50% of the sentence.
+         "[www.rrr.org]", -> If there is a difference of about 2 characters between www.rrr.org, it will be filtered.
+	]
+
 ## Support Language
  
 UI : Korean, English, German, Spanish, French, Italian, Japanese, Portuguese, Russian, Chinese, Arabic, Hindi
@@ -318,6 +330,18 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
  - 왼쪽 제일 위에 톱니바퀴의 설정을 눌러서 입력하는 음성 언어를 선택하시고 번역할 언어를 선택하시면 됩니다.
  - 번역시에 PC는 자체 컴퓨터에서 AI로 번역하는 기능이고, API는 외부 클라우드 서비스의 API KEY를 통해 음성인식한 텍스트를 보내고 번역된 텍스트를 받아서 표시합니다.
  - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다.
+
+## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
+
+파일 : hallucination_filter.json
+
+예제) en : 영어 ( 참고 : https://www.andiamo.co.uk/resources/iso-language-codes/ )
+    "en": [
+        "you",   -> 정확하게 맞는 문장을 필터합니다.
+        "*Thank*", -> Thank가 들어간 문장을 필터합니다.
+        "(Oh)",  -> Oh가 반복적으로 나와 문장의 50%이상을 차지할 때 필터됩니다.
+        "[www.rrr.org]",  -> www.rrr.org가 들어가면서 2문자 정도 차이가 날 경우에 필터가 됩니다.
+	]
 
 ## 지원 언어
  
