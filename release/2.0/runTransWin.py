@@ -430,16 +430,16 @@ def main(ARGS):
                 # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
                 audio_length_seconds = len(npAudioInt16) / vad_audio.RATE_PROCESS
                 # 오디오 데이터를 부동소수점으로 변환
-                audio_float32 = Int2Float(npAudioInt16)
+                audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
                 if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                    srcText = whisper_model.transcribe(audio=audio_float32, language=trans_lang, fp16=False)
+                    srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
                 else:
                     if( ARGS.source_lang == "ALL"):
-                        srcText = whisper_model.transcribe(audio=audio_float32, fp16=False)
+                        srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
                         trans_lang = srcText['language']
                     else:
                         trans_lang = whisper_lang_map[ARGS.source_lang]
-                        srcText = whisper_model.transcribe(audio=audio_float32, language=trans_lang, fp16=False)
+                        srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
                         #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=False)
                 
                 if len(srcText['text'])>1:
@@ -483,6 +483,12 @@ def main(ARGS):
                 wav_data = bytearray()
 
     exit_flag = True
+    # GPU 메모리 해제
+    if whisper_model is not None: del whisper_model
+    if vad_audio is not None: del vad_audio
+    if en2ko_model is not None: del en2ko_model
+    torch.cuda.empty_cache()
+    
 
 # 음성 입력장치의 번호를 반환
 def GetDevNo(ARGS):
@@ -497,12 +503,13 @@ def GetDevNo(ARGS):
 
     return -1
 
-# int16 -> float32로 변환
+# int16 -> float로 변환
 def Int2Float(data, dtype=np.float32):
     # 최대 정수 값을 구함 (np.iinfo를 사용하여 입력 데이터 타입에 대한 정보를 얻음)
     max_int_value = np.iinfo(data.dtype).max
     # 정수형 데이터를 부동소수점으로 변환하고, -1.0과 1.0 사이의 값으로 정규화
     return data.astype(dtype) / max_int_value
+
 
 # 초기 작업처리
 if __name__ == '__main__':
