@@ -428,7 +428,7 @@ def main(ARGS):
             if len(wav_data) > 0:
                 npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
                 # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
-                audio_length_seconds = len(npAudioInt16) / vad_audio.RATE_PROCESS
+                audio_length_seconds = len(npAudioInt16) >> 14 # 2^4*1024
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
                 if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
