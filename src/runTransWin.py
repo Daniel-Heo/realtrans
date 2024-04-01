@@ -316,6 +316,7 @@ def transSound(ARGS):
         sleep(0.1)
 
     exit_flag = True
+    torch.cuda.empty_cache()
 
 import json
 
@@ -383,6 +384,7 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
+    # 음성인식 모델 로드
     whisper_model = whisper.load_model("large") # large, medium, small, base
     whisper_model.to(cuda_dev)
 
@@ -440,7 +442,7 @@ def main(ARGS):
                     else:
                         trans_lang = whisper_lang_map[ARGS.source_lang]
                         srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                        #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=False)
+                         #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
                 
                 if len(srcText['text'])>1:
                     tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
@@ -484,9 +486,6 @@ def main(ARGS):
 
     exit_flag = True
     # GPU 메모리 해제
-    if whisper_model is not None: del whisper_model
-    if vad_audio is not None: del vad_audio
-    if en2ko_model is not None: del en2ko_model
     torch.cuda.empty_cache()
     
 
@@ -509,7 +508,6 @@ def Int2Float(data, dtype=np.float32):
     max_int_value = np.iinfo(data.dtype).max
     # 정수형 데이터를 부동소수점으로 변환하고, -1.0과 1.0 사이의 값으로 정규화
     return data.astype(dtype) / max_int_value
-
 
 # 초기 작업처리
 if __name__ == '__main__':
