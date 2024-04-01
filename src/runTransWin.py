@@ -74,7 +74,7 @@ class LoopbackAudio(threading.Thread):
                 data = recorder.record(numframes=self.frame_size)
                 transposed_data = np.transpose(data)
                 y_mono = librosa.to_mono(transposed_data)
-                self.callback((resampy.resample(y_mono, 48000, 16000,filter='kaiser_best')*32768).astype(np.int16))
+                self.callback((resampy.resample(y_mono, self.samplerate, 16000,filter='kaiser_best')*32768).astype(np.int16))
 
     def stop(self):
         self.stop_event.set()
