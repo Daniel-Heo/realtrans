@@ -13,7 +13,9 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Cuda Toolkit : https://developer.nvidia.com/cuda-downloads ( Window Version )
+Install Cuda Toolkit : https://developer.nvidia.com/cuda-downloads ( You can install the Windows version. Performance improvements in floating point calculations and PyTorch )
+
+Install CuDNN : https://developer.nvidia.com/rdp/cudnn-archive ( Performance improvement of about 20% )
 
 Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
@@ -122,7 +124,9 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. )
+Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
+
+CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능 개선 가능 )
 
 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
