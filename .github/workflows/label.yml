@@ -7,7 +7,11 @@
 
 name: Labeler
 on: [pull_request_target]
-
+  push:
+    branches: [master]
+    # IMPORTANT: Avoids endless loop
+    paths-ignore:
+      - "README.md"
 jobs:
   label:
 
@@ -18,5 +22,9 @@ jobs:
 
     steps:
     - uses: actions/labeler@v4
+      name: Update README.md file
       with:
+        dst-file-path: "README.md"
+        start-value: "<!-- replacer_start -->"
+        end-value: "<!-- replacer_end -->"
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
