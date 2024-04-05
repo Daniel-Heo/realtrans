@@ -21,12 +21,10 @@ import threading
 import collections, queue
 import numpy as np
 import torch
-import numba
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import pipeline
 import pyaudio
 import librosa
-import resampy
 
 # 글로벌 변수
 exit_flag = False
@@ -54,9 +52,8 @@ def read_file_if_exists(file_path):
 class LoopbackAudio(threading.Thread):
     def __init__(self, callback, device):
         threading.Thread.__init__(self)
-        global ARGS
         self.callback = callback
-        self.samplerate = ARGS.sample_rate # 48000 or etc
+        self.samplerate = 16000
         self.block_size = 20 # 20ms
         self.frame_size = int(self.samplerate * self.block_size / 1000)
         self.mics = sc.all_microphones(include_loopback=True)
@@ -70,10 +67,8 @@ class LoopbackAudio(threading.Thread):
             mic = self.mics[self.mic_index]
         with mic.recorder(samplerate=self.samplerate) as recorder:
             while not self.stop_event.is_set():
-                data = recorder.record(numframes=self.frame_size)
-                transposed_data = np.transpose(data)
-                y_mono = librosa.to_mono(transposed_data)
-                self.callback((resampy.resample(y_mono, self.samplerate, 16000,filter='kaiser_best')*32768).astype(np.int16))
+                transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
+                self.callback((librosa.to_mono(transposed_data)*32768).astype(np.int16))
 
     def stop(self):
         self.stop_event.set()
@@ -85,12 +80,13 @@ class Audio(object):
     BLOCKS_PER_SECOND = 20 # 20ms
 
     def __init__(self, callback=None, device=None):
+        global ARGS
         def proxy_callback(in_data):
             callback(in_data)
-
-        global ARGS
         if callback is None:
-            def callback(in_data): return self.buffer_queue.put(in_data)
+            def callback(in_data): 
+                return self.buffer_queue.put(in_data)
+            
         self.buffer_queue = queue.Queue()
         self.device = device
 
