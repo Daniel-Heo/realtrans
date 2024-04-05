@@ -42,8 +42,8 @@ When you run the realtrans.exe file, the program will run.
 After execution, it receives the sound heard from the current sound output device as input, creates an English sentence, and translates it into Korean.
 
 Currently, there are RealTrans2 and ctranslate2 versions.
-  - RealTrans2: Voice recognition using OpenAI Whisper. (It is stable.)
-  - ctranslate2: Voice recognition is performed using Faster-whisper, which uses ctranslate2. (About twice as fast.)
+  - Release RealTrans2: Voice recognition using OpenAI Whisper. (It is stable.)
+  - Release RealTrans2 ctranslate2: Voice recognition is performed using Faster-whisper, which uses ctranslate2. (About twice as fast.)
 
 How to use the program
   - Click the settings gear in the top left corner to select the voice language you are inputting and select the language you want to translate to.
@@ -157,8 +157,8 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 실행후에는 현재의 소리 출력 장치에서 들리는 소리를 입력으로 받아, 영어 문장을 만들어 한국어로 번역을 합니다.
 
 현재 RealTrans2 버젼과 ctranslate2 버젼이 있습니다.
- - RealTrans2 : OpenAI Whisper를 사용하여 음성인식을합니다. ( 안정적입니다. )
- - ctranslate2 : ctranslate2를 사용하는 Faster-whisper를 사용하여 음성인식을합니다. ( 2배 정도 빠릅니다. )
+ - Release RealTrans2 : OpenAI Whisper를 사용하여 음성인식을합니다. ( 안정적입니다. )
+ - Release RealTrans2 ctranslate2 : ctranslate2를 사용하는 Faster-whisper를 사용하여 음성인식을합니다. ( 2배 정도 빠릅니다. )
 
 프로그램 사용법
  - 왼쪽 제일 위에 톱니바퀴의 설정을 눌러서 입력하는 음성 언어를 선택하시고 번역할 언어를 선택하시면 됩니다.
