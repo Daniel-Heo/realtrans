@@ -38,16 +38,21 @@ Final Windows program execution
 
 ## Usage
 
-run realtrans.exe ( windows program )
-
 When you run the realtrans.exe file, the program will run.
 After execution, it receives the sound heard from the current sound output device as input, creates an English sentence, and translates it into Korean.
 
+Currently, there are RealTrans2 and ctranslate2 versions.
+  - RealTrans2: Voice recognition using OpenAI Whisper. (It is stable.)
+  - ctranslate2: Voice recognition is performed using Faster-whisper, which uses ctranslate2. (About twice as fast.)
+
+How to use the program
   - Click the settings gear in the top left corner to select the voice language you are inputting and select the language you want to translate to.
   - When translating, the PC has the function of translating from its own computer to AI, and the API sends voice-recognized text through the API KEY of an external cloud service and receives and displays the translated text.
-  - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them.
+  - If your computer's performance is slow, activate only voice recognition and use an external API for translation to reduce the load on your computer.
+  - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
     
-( cf. At first, downloading the model may take a long time. )
+* It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
+* At first, downloading the model may take a long time. 
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -84,9 +89,9 @@ Not tested in environments without Nvidia GPUs.
 
 Nvidia GPU tested 3080.
 
-Recommended graphics card: Nvidia 2080 or higher
+Recommended graphics card: Nvidia 2080 or higher (use ctranslate2, normal version)
 
-	    Nvidia 1660 super setting ( change Whisper Model from large to small. runTransWin.py 390 line)
+                  Settings for Nvidia 1660 super (use ctranslate2 version)
 
 총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
 
@@ -151,9 +156,18 @@ CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능
 realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 실행후에는 현재의 소리 출력 장치에서 들리는 소리를 입력으로 받아, 영어 문장을 만들어 한국어로 번역을 합니다.
 
+현재 RealTrans2 버젼과 ctranslate2 버젼이 있습니다.
+ - RealTrans2 : OpenAI Whisper를 사용하여 음성인식을합니다. ( 안정적입니다. )
+ - ctranslate2 : ctranslate2를 사용하는 Faster-whisper를 사용하여 음성인식을합니다. ( 2배 정도 빠릅니다. )
+
+프로그램 사용법
  - 왼쪽 제일 위에 톱니바퀴의 설정을 눌러서 입력하는 음성 언어를 선택하시고 번역할 언어를 선택하시면 됩니다.
  - 번역시에 PC는 자체 컴퓨터에서 AI로 번역하는 기능이고, API는 외부 클라우드 서비스의 API KEY를 통해 음성인식한 텍스트를 보내고 번역된 텍스트를 받아서 표시합니다.
- - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다.
+ - 컴퓨터의 성능이 느릴 경우에는 음성인식만 활성화시킨후에 번역은 외부 API를 사용하시면 컴퓨터에 부하가 적어집니다.
+ - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다. OpenAI 응답이 느리기 때문에 많은 양을 처리할 경우에 대기시간이 많이 걸릴 수 있습니다.
+
+* 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
+* 모델 다운로드 시간이 많이 걸릴 수 있습니다. 
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
@@ -189,9 +203,9 @@ Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
 
 Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
 
-권장 그래픽카드 : Nvidia 2080 이상
+권장 그래픽카드 : Nvidia 2080 이상 ( ctranslate2, normal version 사용  )
 
-                 Nvidia 1660 super일 경우 설정 ( Whisper Model을 large -> small로 변경해주세요. runTransWin.py 390 line )
+                 Nvidia 1660 super일 경우 설정 ( ctranslate2 버젼을 사용하세요 )
 
 총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
 
