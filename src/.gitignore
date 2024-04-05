@@ -35,7 +35,6 @@ WASDK/
 *.bak
 *.back
 *.backup
-_*
 *_
 
 # 패키지 및 로컬 설치 파일
