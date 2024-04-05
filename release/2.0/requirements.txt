@@ -7,6 +7,8 @@ librosa==0.10.1
 setuptools
 openai-whisper
 transformers
+ctranslate2
+faster_whisper
 torch==2.2.0
 torchvision==0.17.0
 torchaudio==2.2.0

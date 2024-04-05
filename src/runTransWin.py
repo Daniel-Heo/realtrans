@@ -19,7 +19,6 @@ import webrtcvad
 from halo import Halo
 import threading
 import collections, queue
-import whisper
 import numpy as np
 import torch
 import numba
@@ -384,9 +383,15 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
-    # 음성인식 모델 로드
-    whisper_model = whisper.load_model("large") # large, medium, small, base
-    whisper_model.to(cuda_dev)
+    # Whisper 모델 로드
+    #import whisper
+    #whisper_model = whisper.load_model("large-v3") # large, medium, small, base
+    #whisper_model.to(cuda_dev)
+
+    # Faster Whisper 모델 로드
+    import realtransc 
+    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="float16") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
+
 
     wav_data = bytearray()
     for frame in frames:
@@ -427,22 +432,41 @@ def main(ARGS):
         if frame is not None:
             wav_data.extend(frame)
         else:
-            if len(wav_data) > 0:
+            # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
+            audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
+
+            if len(wav_data) > 0 and audio_length_seconds > 0.5:
                 npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
-                # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
-                audio_length_seconds = len(npAudioInt16) >> 14 # 2^4*1024
+                
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
+
+                # Whisper 모델 사용
+                # if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
+                #     srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
+                # else:
+                #     if( ARGS.source_lang == "ALL"):
+                #         srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
+                #         trans_lang = srcText['language']
+                #     else:
+                #         trans_lang = whisper_lang_map[ARGS.source_lang]
+                #         srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
+                         #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
+                
+                # Faster Whisper 모델 사용
                 if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                    srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
+                    result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
                 else:
                     if( ARGS.source_lang == "ALL"):
-                        srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
-                        trans_lang = srcText['language']
+                        result = whisper_model.transcribe(audio=audio_float16 )
+                        trans_lang = result['language']
                     else:
                         trans_lang = whisper_lang_map[ARGS.source_lang]
-                        srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                         #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
+                        result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
+
+                srcText = {'text': ''}
+                for segment in result["segments"]:
+                    srcText['text'] += segment['text']
                 
                 if len(srcText['text'])>1:
                     tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
@@ -509,6 +533,17 @@ def Int2Float(data, dtype=np.float32):
     # 정수형 데이터를 부동소수점으로 변환하고, -1.0과 1.0 사이의 값으로 정규화
     return data.astype(dtype) / max_int_value
 
+# 오디오 데이터를 저장하는 함수
+def save_wav(file_name, audio_data, sample_rate=16000):
+    import wave
+    print(f"Saving audio to {os.getcwd()}{file_name}")
+    with wave.open(file_name, 'wb') as wf:
+        wf.setnchannels(1)  # 모노 채널
+        wf.setsampwidth(2)  # 16비트 샘플
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio_data.tobytes())
+    return file_path
+
 # 초기 작업처리
 if __name__ == '__main__':
 
@@ -558,7 +593,7 @@ if __name__ == '__main__':
     cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.device(cuda_dev)
     print('Translation processing with ' + cuda_dev)
-
+    
     #thread
     # t1 : voice -> text
     # t2 : english text -> korean text

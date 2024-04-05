@@ -352,7 +352,8 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo); 
 	//swprintf(cmd, 300, L"python.exe D:\\git\\realtrans\\release\\2.0\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); // git test
 #else
-	swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
+	//swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
+	swprintf(cmd, 300, L"python.exe runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
 #endif
 	if (!CreateProcess(
 
