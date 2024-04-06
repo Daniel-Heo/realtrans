@@ -61,6 +61,8 @@ docs/
 images/
 메모/
 다운/
+model/
+models/
 *.txt
 
 # 단기적으로 제외할 파일

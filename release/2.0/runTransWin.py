@@ -21,10 +21,9 @@ import threading
 import collections, queue
 import numpy as np
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-from transformers import pipeline
 import pyaudio
 import librosa
+import ctrans_manager
 
 # 글로벌 변수
 exit_flag = False
@@ -118,7 +117,7 @@ class VADAudio(Audio):
         while True:
             yield self.read()
 
-    def vad_collector(self, padding_ms=300, ratio=0.80, frames=None):
+    def vad_collector(self, padding_ms=500, ratio=0.80, frames=None):
         global voiced_duration
         global silence_duration
 
@@ -180,32 +179,11 @@ class VADAudio(Audio):
                     yield None
                     ring_buffer.clear()
 
-# text to text 번역 모델 로드
-def load_en2ko_model():
-    #global cuda_dev
+# ctranslate2 모델 로드
+def load_ct_model():
+    translator, sp_model = ctrans_manager.load_model("nllb_1.3B", device=cuda_dev) # nllb_1.3B m2m_1.2B
 
-    tokenizer = AutoTokenizer.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
-    model = AutoModelForSeq2SeqLM.from_pretrained("NHNDQ/nllb-finetuned-en2ko")
-    #model.to(cuda_dev) # torch에서 사용하고 있기 때문에 사용할 수 없다. 
-
-    # 양자화된 상태 딕셔너리 로드 및 모델에 적용
-    #quantized_model_path = "D:/git/QuantizationModel/qtModel/qt.pth"
-    #quantized_state_dict = torch.load(quantized_model_path)
-    #model.load_state_dict(quantized_state_dict, strict=False)
-
-    return model, tokenizer
-
-# text to text 번역
-def translate_text_with_en2ko(model, token, text: str):
-    inputs = token(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
-    outputs = model.generate(inputs["input_ids"], attention_mask=inputs["attention_mask"], do_sample=False, num_beams=2, no_repeat_ngram_size=2, max_length=512)
-    
-    # 출력 텍스트 디코딩
-    return token.decode(outputs[0], skip_special_tokens=True)
-
-def translate_pipe_text(text: str, src_lang, tgt_lang):
-    translator = pipeline('translation', model='facebook/nllb-200-distilled-600M', tokenizer='facebook/nllb-200-distilled-600M', device=cuda_dev, src_lang=src_lang, tgt_lang=tgt_lang, max_length=512, do_sample=False, num_beams=2, no_repeat_ngram_size=2)
-    return translator(text, max_length=512)[0]['translation_text']
+    return translator, sp_model
 
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -232,8 +210,8 @@ def transSound(ARGS):
     global whisper_lang_map
 
     isLoadModel = False
-    en2ko_model = None
-    en2ko_token = None
+    translator = None
+    sp_model = None
 
     src_lang = None
     transText = ""
@@ -246,23 +224,10 @@ def transSound(ARGS):
         if use_trans == False:
             sleep(0.3)
             continue
-        
-        if ( ARGS.source_lang == "eng_Latn" or trans_lang == "en" ) and ARGS.target_lang == "kor_Hang":
-            use_en2ko = True
-        else :
-            use_en2ko = False
 
-        if use_en2ko != True :
-            if isLoadModel == True:
-                if en2ko_model is not None:
-                    del en2ko_model
-                if en2ko_token is not None:
-                    del en2ko_token
-                isLoadModel = False
-        else:
-            if isLoadModel == False:
-                en2ko_model, en2ko_token = load_en2ko_model()
-                isLoadModel = True
+        if isLoadModel == False:
+            translator, sp_model = load_ct_model()
+            isLoadModel = True
         
         try:
             # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
@@ -295,10 +260,7 @@ def transSound(ARGS):
                     continue
                 
                 outPut = ' '
-                if use_en2ko == True:
-                    outPut += translate_text_with_en2ko(en2ko_model, en2ko_token, transText)
-                else:
-                    outPut += translate_pipe_text(transText, src_lang=src_lang, tgt_lang=ARGS.target_lang)
+                outPut += ctrans_manager.translate(transText, translator=translator, sp_model=sp_model, source_lang=src_lang, target_lang=ARGS.target_lang, lang_map=whisper_lang_map)
 
                 try:
                     if isDecoding==True:
@@ -385,8 +347,8 @@ def main(ARGS):
     #whisper_model.to(cuda_dev)
 
     # Faster Whisper 모델 로드
-    import realtransc 
-    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="float16") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
+    import realtransc
+    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="int8") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
 
 
     wav_data = bytearray()
