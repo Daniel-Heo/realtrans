@@ -13,10 +13,6 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Cuda Toolkit : https://developer.nvidia.com/cuda-downloads ( You can install the Windows version. Performance improvements in floating point calculations and PyTorch )
-
-Install CuDNN : https://developer.nvidia.com/rdp/cudnn-archive ( Performance improvement of about 20% )
-
 Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
 - Create a console window by running cmd in the window.
@@ -35,6 +31,12 @@ Final Windows program execution
 > realtrans.exe
 
   - If execution is successful, you only need to run realtrans.exe from next time.
+
+* Optional (If you want more performance: You don’t have to install it.)
+  
+   Install Cuda Toolkit: https://developer.nvidia.com/cuda-downloads (You can install the Windows version. Improves floating point calculation and PyTorch performance)
+
+   Install CuDNN: https://developer.nvidia.com/rdp/cudnn-archive (performance can be improved by about 20%)
 
 ## Usage
 
@@ -85,27 +87,21 @@ Translation language :
 
 ## Warning
 
-Not tested in environments without Nvidia GPUs.
+If you do not have an Nvidia GPU, you can use an appropriately small model depending on your computer specifications.
 
-Nvidia GPU tested 3080.
+Recommended graphics card: Most NVidia graphics cards
 
-Recommended graphics card: Nvidia 2080 or higher (use ctranslate2, normal version)
+Total VRAM usage: 4.35GB
 
-                  Settings for Nvidia 1660 super (use ctranslate2 version)
+Faster Whisper Large-V3 Model: 3GB VRAM
 
-총 VRAM Usage : 5.4GB ( Require VRAM : minumum 6GB  )
-
-Fast Whisper Large Model : 3GB VRAM
-
-NHNDQ/nllb-finetuned-en2ko Model : 2.4GB VRAM
+Nllb distill 1.3B int8 Model: 1.35GB VRAM
 
 - If your VRAM is small, you can reduce usage by using Whisper small, base, and tiny models. (In this case, source modification is required)
   
    Small models may have lower recognition quality.
 
-* When the program is executed, the running Python program is terminated. (To terminate remaining processes in case of abnormal termination)
-* When used with games, the program may terminate due to insufficient VRAM or duplicate use of Cuda devices, or the system may become paralyzed, making control difficult.
-   Please never use it with games.
+* When the program is run, the running Python program is terminated. (To terminate remaining processes in case of abnormal termination)
 
 ## Terms of Use
 
@@ -129,10 +125,6 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
-
-CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능 개선 가능 )
-
 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
  - window에서 cmd를 실행하여 console창을 만듬
@@ -150,15 +142,18 @@ CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능
 최종 윈도우 프로그램 실행
 >realtrans.exe 실행
 
- - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다. 
+ - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다.
+
+* 선택사항 ( 더 많은 성능을 원하실 경우 : 설치안하셔도 무관합니다. )
+  
+  Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
+
+  CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능 개선 가능 )
+  
 
 ## 사용법
 realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 실행후에는 현재의 소리 출력 장치에서 들리는 소리를 입력으로 받아, 영어 문장을 만들어 한국어로 번역을 합니다.
-
-현재 RealTrans2 버젼과 ctranslate2 버젼이 있습니다.
- - Release RealTrans2 : OpenAI Whisper를 사용하여 음성인식을합니다. ( 안정적입니다. )
- - Release RealTrans2 ctranslate2 : ctranslate2를 사용하는 Faster-whisper를 사용하여 음성인식을합니다. ( 2배 정도 빠릅니다. )
 
 프로그램 사용법
  - 왼쪽 제일 위에 톱니바퀴의 설정을 눌러서 입력하는 음성 언어를 선택하시고 번역할 언어를 선택하시면 됩니다.
@@ -199,27 +194,21 @@ UI : 한국어, 영어, 독일어, 스페인어, 프랑스어, 이탈리아어, 
 
 ## 주의
 
-Nvidia GPU가 없는 경우 환경에서 테스트 되지 않았습니다.
+Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모델을 사용하시면 됩니다.
 
-Nvidia GPU는 3080을 사용하여 테스트 되었습니다. 
+권장 그래픽카드 : 대부분의 NVidia 그래픽카드
 
-권장 그래픽카드 : Nvidia 2080 이상 ( ctranslate2, normal version 사용  )
+총 VRAM 사용량 : 4.35GB
 
-                 Nvidia 1660 super일 경우 설정 ( ctranslate2 버젼을 사용하세요 )
+Faster Whisper Large-V3 Model : 3GB VRAM
 
-총 VRAM 사용량 : 5.4GB ( 최소 6GB 이상의 VRAM이 필요합니다. )
-
-openai Whisper Large Model : 3GB VRAM
-
-NHNDQ/nllb-finetuned-en2ko Model : 2.4GB VRAM
+Nllb distill 1.3B int8 Model : 1.35GB VRAM
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
   
   small 모델은 인식 품질이 떨어질 수 있습니다.
 
 * 프로그램 실행시에 실행중인 Python 프로그램이 종료됩니다. ( 비정상 종료시에 남아있는 프로세스를 종료시키기 위하여 )
-* 게임등과 같이 사용할 경우에 VRAM이 부족하거나 Cuda 장치 중복 사용으로 프로그램이 종료되거나 시스템이 마비상태가 되어 제어가 어려운 상황에 놓일 수 있습니다. 
-  절대 게임과 같이 사용하지 말아주세요.
 
 ## 이용 약관
 
