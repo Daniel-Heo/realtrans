@@ -348,7 +348,7 @@ def main(ARGS):
 
     # Faster Whisper 모델 로드
     import realtransc
-    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="int8") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
+    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="float16") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
 
 
     wav_data = bytearray()
