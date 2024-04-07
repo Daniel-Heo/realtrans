@@ -181,7 +181,7 @@ class VADAudio(Audio):
 
 # ctranslate2 모델 로드
 def load_ct_model():
-    translator, sp_model = ctrans_manager.load_model("nllb_1.3B", device=cuda_dev) # nllb_1.3B m2m_1.2B
+    translator, sp_model = ctrans_manager.load_model("huge", device=cuda_dev) # huge, large, medium, small
 
     return translator, sp_model
 

@@ -4,11 +4,16 @@ from huggingface_hub import snapshot_download
 import os
 
 model_list = {
-    "nllb_3.3B": ["JustFrederik/nllb-200-3.3B-ct2-float16","sentencepiece.bpe.model"], # 6.69GB
-    "nllb_1.3B": ["JustFrederik/nllb-200-distilled-1.3B-ct2-int8","sentencepiece.bpe.model"], # 1.38GB
-    "nllb_600M": ["JustFrederik/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.63GB
-    "m2m_418M": ["JustFrederik/m2m_100_418m_ct2_int8","spm.128k.model"], # 0.49GB
-    "m2m_1.2B": ["JustFrederik/m2m_100_1.2b_ct2_int8","spm.128k.model"], # 1.25GB
+    # "nllb_3.3B": ["JustFrederik/nllb-200-3.3B-ct2-float16","sentencepiece.bpe.model"], # 6.69GB
+    # "nllb_1.3B": ["JustFrederik/nllb-200-distilled-1.3B-ct2-int8","sentencepiece.bpe.model"], # 1.38GB
+    # "nllb_1.3B_fp16": ["JustFrederik/nllb-200-1.3B-ct2-float16","sentencepiece.bpe.model"], # 2.74GB
+    # "nllb_600M": ["JustFrederik/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.63GB
+    # "m2m_418M": ["JustFrederik/m2m_100_418m_ct2_int8","spm.128k.model"], # 0.49GB
+    # "m2m_1.2B": ["JustFrederik/m2m_100_1.2b_ct2_int8","spm.128k.model"], # 1.25GB
+    "huge": ["JustFrederik/nllb-200-3.3B-ct2-float16","sentencepiece.bpe.model"], # 6.69GB
+    "large": ["JustFrederik/nllb-200-1.3B-ct2-float16","sentencepiece.bpe.model"], # 2.74GB
+    "medium": ["JustFrederik/nllb-200-distilled-1.3B-ct2-int8","sentencepiece.bpe.model"], # 1.38GB
+    "small": ["JustFrederik/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.63GB
 }
 
 def download_model(model_name, save_directory):
