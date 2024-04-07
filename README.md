@@ -43,18 +43,14 @@ Final Windows program execution
 When you run the realtrans.exe file, the program will run.
 After execution, it receives the sound heard from the current sound output device as input, creates an English sentence, and translates it into Korean.
 
-Currently, there are RealTrans2 and ctranslate2 versions.
-  - Release RealTrans2: Voice recognition using OpenAI Whisper. (It is stable.)
-  - Release RealTrans2 ctranslate2: Voice recognition is performed using Faster-whisper, which uses ctranslate2. (About twice as fast.)
-
 How to use the program
   - Click the settings gear in the top left corner to select the voice language you are inputting and select the language you want to translate to.
   - When translating, the PC has the function of translating from its own computer to AI, and the API sends voice-recognized text through the API KEY of an external cloud service and receives and displays the translated text.
   - If your computer's performance is slow, activate only voice recognition and use an external API for translation to reduce the load on your computer.
   - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
-    
+
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
-* At first, downloading the model may take a long time. 
+*Model downloading may take a long time.
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
