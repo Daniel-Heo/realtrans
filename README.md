@@ -6,7 +6,7 @@
 
 ![](summary.png?raw=true)
 
-This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Whisper model, and translate the sentences using the NHNDQ/nllb-finetuned-en2ko model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API.
+This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Faster Whisper model, and translate the sentences using the nllb model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API.
 
 - Support API : OpenAI API ( Summary ), DeepL ( real time translation )
 - Support OS : Windows 10, 11 ~
@@ -118,7 +118,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # RealTrans ( 한국어 )
 
-실시간 음성 번역을 위한 프로그램입니다. 현재의 소리 출력 장치에서 들리는 음성을 인식하고 번역을 합니다. Whisper 모델을 사용하여 음성에서 문장을 만들고, NHNDQ/nllb-finetuned-en2ko 모델을 사용하여 문장을 번역합니다. 음성 문장을 기반으로 API를 통해 요약하는 기능도 가지고 있습니다. 번역하는 부분은 DeepL API를 사용하여 번역을 할 수 있는 기능도 제공합니다.
+실시간 음성 번역을 위한 프로그램입니다. 현재의 소리 출력 장치에서 들리는 음성을 인식하고 번역을 합니다. Faster Whisper 모델을 사용하여 음성에서 문장을 만들고, nllb 모델을 사용하여 문장을 번역합니다. 음성 문장을 기반으로 API를 통해 요약하는 기능도 가지고 있습니다. 번역하는 부분은 DeepL API를 사용하여 번역을 할 수 있는 기능도 제공합니다.
 
 - 지원 API : OpenAI API ( 요약 ), DeepL ( 실시간 번역 )
 - 지원 OS : Windows 10, 11 ~
