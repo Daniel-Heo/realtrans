@@ -398,6 +398,8 @@ def main(ARGS):
                 
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
+                #print("audio_float16 : ", audio_float16.shape)
+                audio_float16 = np.append(audio_float16, np.zeros(320, dtype=np.float16))
 
                 # Whisper 모델 사용
                 # if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
