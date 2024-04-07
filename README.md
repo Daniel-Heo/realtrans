@@ -87,11 +87,11 @@ If you do not have an Nvidia GPU, you can use an appropriately small model depen
 
 Recommended graphics card: Most NVidia graphics cards
 
-Total VRAM usage: 4.35GB
+Total VRAM usage: 5.74GB
 
 Faster Whisper Large-V3 Model: 3GB VRAM
 
-Nllb distill 1.3B int8 Model: 1.35GB VRAM
+Nllb 1.3B float16 Model: 2.74GB VRAM
 
 - If your VRAM is small, you can reduce usage by using Whisper small, base, and tiny models. (In this case, source modification is required)
   
@@ -194,11 +194,11 @@ Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모�
 
 권장 그래픽카드 : 대부분의 NVidia 그래픽카드
 
-총 VRAM 사용량 : 4.35GB
+총 VRAM 사용량 : 5.74GB
 
 Faster Whisper Large-V3 Model : 3GB VRAM
 
-Nllb distill 1.3B int8 Model : 1.35GB VRAM
+Nllb 1.3B float16 Model : 2.74GB VRAM
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
   
