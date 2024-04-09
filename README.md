@@ -89,10 +89,11 @@ Recommended graphics card: Most NVidia graphics cards
 
 require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
 
-	faster whisper	ctranslate2	total require
-large 	3	        2.68	        5.68GB
-medium	1.5	        1.35	        2.85GB
-small 	0.47	        0.6	        1.07GB
+|	|faster whisper	|ctranslate2	|total require|
+|-------|---------------|---------------|-------------|
+|large 	|3	        |2.68	        |5.68GB       |
+|medium	|1.5	        |1.35	        |2.85GB       |
+|small 	|0.47	        |0.6	        |1.07GB       |
 
 ctranslate2 usage model
 large : facebook nllb-200-distilled-1.3B ct2 float16
@@ -204,10 +205,11 @@ Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모�
 
 require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
 
-	faster whisper	ctranslate2	total require
-large 	3	        2.68	        5.68GB
-medium	1.5	        1.35	        2.85GB
-small 	0.47	        0.6	        1.07GB
+|	|faster whisper	|ctranslate2	|total require|
+|-------|---------------|---------------|-------------|
+|large 	|3	        |2.68	        |5.68GB       |
+|medium	|1.5	        |1.35	        |2.85GB       |
+|small 	|0.47	        |0.6	        |1.07GB       |
 
 ctranslate2 usage model
 large : facebook nllb-200-distilled-1.3B ct2 float16
