@@ -53,6 +53,10 @@ class CTrans:
 
         # Check if the model is already downloaded
         if not os.path.exists(model_path) or resume is True:
+            import warnings
+            # huggingface_hub 관련 경고를 무시하기 위한 경고 필터 설정 : 심볼릭링크를 사용하려면 관리자 권한이 필요하다. 사용자에게 관리자 권한을 요구할만한 사항은 아니라 경고를 무시한다.
+            warnings.filterwarnings("ignore", message="`huggingface_hub` cache-system uses symlinks")
+
             print(f"{model_name} Model {model_path} Downloading. Please wait Download Success Message... \nUsually 3GB is downloaded. It may take several minutes or more.")
             # Download directly from Huggingface
             snapshot_download(model_name, revision="main", local_dir=model_path, resume_download=resume)
