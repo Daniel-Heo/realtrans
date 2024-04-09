@@ -96,10 +96,15 @@ require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
 |small 	|0.47	        |0.6	        |1.07GB       |
 
 ctranslate2 usage model
+
 large : facebook nllb-200-distilled-1.3B ct2 float16
+
 medium : nllb-200-distilled-1.3B ct2 int8
+
 small : nllb-200-distilled-600M ct2 int8
+
 en2ko : NHNDQ/nllb-finetuned-en2ko ct2 float16
+
 ko2en : NHNDQ/nllb-finetuned-ko2en ct2 float16
 
 - If your VRAM is small, you can reduce usage by using Whisper small, base, and tiny models. (In this case, source modification is required)
@@ -212,10 +217,15 @@ require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
 |small 	|0.47	        |0.6	        |1.07GB       |
 
 ctranslate2 usage model
+
 large : facebook nllb-200-distilled-1.3B ct2 float16
+
 medium : nllb-200-distilled-1.3B ct2 int8
+
 small : nllb-200-distilled-600M ct2 int8
+
 en2ko : NHNDQ/nllb-finetuned-en2ko ct2 float16
+
 ko2en : NHNDQ/nllb-finetuned-ko2en ct2 float16
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
