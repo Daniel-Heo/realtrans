@@ -87,7 +87,7 @@ If you do not have an Nvidia GPU, you can use an appropriately small model depen
 
 Recommended graphics card: Most NVidia graphics cards
 
-require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
+VRAM requirements by model size: large 5.68GB, medium 2.85GB, small 1.07GB
 
 |	|faster whisper	|ctranslate2	|total require|
 |-------|---------------|---------------|-------------|
@@ -208,7 +208,7 @@ Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모�
 
 권장 그래픽카드 : 대부분의 NVidia 그래픽카드
 
-require VRAM : large - 5.68GB, medium - 2.85GB, small - 1.07GB
+모델 크기별 VRAM 요구사항 : large 5.68GB, medium 2.85GB, small 1.07GB
 
 |	|faster whisper	|ctranslate2	|total require|
 |-------|---------------|---------------|-------------|
