@@ -6,7 +6,7 @@
 
 ![](summary.png?raw=true)
 
-This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Whisper model, and translate the sentences using the NHNDQ/nllb-finetuned-en2ko model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API.
+This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Faster Whisper model, and translate the sentences using the nllb model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API.
 
 - Support API : OpenAI API ( Summary ), DeepL ( real time translation )
 - Support OS : Windows 10, 11 ~
@@ -43,18 +43,14 @@ Final Windows program execution
 When you run the realtrans.exe file, the program will run.
 After execution, it receives the sound heard from the current sound output device as input, creates an English sentence, and translates it into Korean.
 
-Currently, there are RealTrans2 and ctranslate2 versions.
-  - Release RealTrans2: Voice recognition using OpenAI Whisper. (It is stable.)
-  - Release RealTrans2 ctranslate2: Voice recognition is performed using Faster-whisper, which uses ctranslate2. (About twice as fast.)
-
 How to use the program
   - Click the settings gear in the top left corner to select the voice language you are inputting and select the language you want to translate to.
   - When translating, the PC has the function of translating from its own computer to AI, and the API sends voice-recognized text through the API KEY of an external cloud service and receives and displays the translated text.
   - If your computer's performance is slow, activate only voice recognition and use an external API for translation to reduce the load on your computer.
   - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
-    
+
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
-* At first, downloading the model may take a long time. 
+*Model downloading may take a long time.
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -91,11 +87,11 @@ If you do not have an Nvidia GPU, you can use an appropriately small model depen
 
 Recommended graphics card: Most NVidia graphics cards
 
-Total VRAM usage: 4.35GB
+Total VRAM usage: 5.74GB
 
 Faster Whisper Large-V3 Model: 3GB VRAM
 
-Nllb distill 1.3B int8 Model: 1.35GB VRAM
+Nllb 1.3B float16 Model: 2.74GB VRAM
 
 - If your VRAM is small, you can reduce usage by using Whisper small, base, and tiny models. (In this case, source modification is required)
   
@@ -118,7 +114,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # RealTrans ( 한국어 )
 
-실시간 음성 번역을 위한 프로그램입니다. 현재의 소리 출력 장치에서 들리는 음성을 인식하고 번역을 합니다. Whisper 모델을 사용하여 음성에서 문장을 만들고, NHNDQ/nllb-finetuned-en2ko 모델을 사용하여 문장을 번역합니다. 음성 문장을 기반으로 API를 통해 요약하는 기능도 가지고 있습니다. 번역하는 부분은 DeepL API를 사용하여 번역을 할 수 있는 기능도 제공합니다.
+실시간 음성 번역을 위한 프로그램입니다. 현재의 소리 출력 장치에서 들리는 음성을 인식하고 번역을 합니다. Faster Whisper 모델을 사용하여 음성에서 문장을 만들고, nllb 모델을 사용하여 문장을 번역합니다. 음성 문장을 기반으로 API를 통해 요약하는 기능도 가지고 있습니다. 번역하는 부분은 DeepL API를 사용하여 번역을 할 수 있는 기능도 제공합니다.
 
 - 지원 API : OpenAI API ( 요약 ), DeepL ( 실시간 번역 )
 - 지원 OS : Windows 10, 11 ~
@@ -198,11 +194,11 @@ Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모�
 
 권장 그래픽카드 : 대부분의 NVidia 그래픽카드
 
-총 VRAM 사용량 : 4.35GB
+총 VRAM 사용량 : 5.74GB
 
 Faster Whisper Large-V3 Model : 3GB VRAM
 
-Nllb distill 1.3B int8 Model : 1.35GB VRAM
+Nllb 1.3B float16 Model : 2.74GB VRAM
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
   
