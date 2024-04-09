@@ -8,6 +8,9 @@
 #include "CDlgSummary.h"
 #include "language.h"
 
+// 기본 모델 크기
+#define DEFULAT_MODEL_SIZE "large"
+
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
 
@@ -76,8 +79,13 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	hCbBox = GetDlgItem(hwnd, IDC_COMBO_UI_LANG);
 	settings["ui_lang"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 
+	// 모델 크기 설정
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_MODEL_SIZE);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	SendMessage(hCbBox, CB_GETLBTEXT, nSel, (LPARAM)comboBoxItem);
+	settings["model_size"] = WCHARToString((WCHAR*)comboBoxItem);
+
 	// 언어 설정
-			
 	switch (settings["ui_lang"].get<int>())
 	{
 	case 0: 	SetUserLocale(L"en-US");
@@ -188,6 +196,9 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 
 // JSON 객체에 기본값 설정 : 초기화 시에도 사용
 void defaultJson() {
+	// 언어 모델 크기 설정
+	settings["model_size"] = DEFULAT_MODEL_SIZE; // 언어
+
 	settings["ui_lang"] = 0; // 언어
 	settings["ck_orgin_subtext"] = false; // 원문 자막 표시
 	settings["ck_pctrans"] = true; // 자동 번역 PC
@@ -205,8 +216,8 @@ void defaultJson() {
 	// 폰트 컬러
 	settings["ed_font_color"] = "#C8C8FF";
 	settings["ed_oldfont_color"] = "#8C8C8C";
-	settings["cb_font_size"] = 20;
-	settings["cb_oldfont_size"] = 20;
+	settings["cb_font_size"] = 18;
+	settings["cb_oldfont_size"] = 18;
 	// 요약창 폰트 컬러
 	settings["ed_sumfont_color"] = "#C8C8FF";
 	settings["cb_sumfont_size"] = 13;
@@ -219,11 +230,31 @@ void defaultJson() {
 // 설정 화면 갱신
 void RefreshSettings(HWND hwnd, BOOL isStart)
 {
-	WCHAR tmp[10];
+	WCHAR tmp[256];
 	int index;
 	int itemCount;
 	HWND hListBox;
 	//json langMap;
+
+	// 모델 사이즈
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_MODEL_SIZE); // ListBox의 핸들을 가져옵니다.
+	if (hListBox != NULL) {
+		if (isStart) {
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"large");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"medium");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"small");
+		}
+
+		if( settings.find("model_size") == settings.end() ) settings["model_size"] = DEFULAT_MODEL_SIZE;
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			SendMessage(hListBox, CB_GETLBTEXT, (WPARAM)i, (LPARAM)tmp);
+			if (CompareStringWString(settings.value("model_size", ""), (WCHAR*)tmp) == true) {
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
+	}
 
 	// 환경 설정 언어
 	hListBox = GetDlgItem(hwnd, IDC_COMBO_UI_LANG); // ListBox의 핸들을 가져옵니다.
@@ -639,6 +670,13 @@ void LoadSettings(HWND hwnd, const std::string& filePath)
 	RefreshSettings(hwnd, true);
 }
 
+void SetFontSize(HWND hEdit) {
+	HFONT hFont = CreateFont(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+		DEFAULT_PITCH | FF_SWISS, TEXT("Arial"));
+	SendMessage(hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+}
+
 // Setting Dialog 메시지 처리
 INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
@@ -649,6 +687,9 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	{
 		// 다이얼로그 초기화 코드 시작
 		LoadSettings(hwndDlg, "config.json");
+		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_HINT));
+		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_TRANS_API_KEY));
+		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_API_KEY));
 
 		return (INT_PTR)TRUE;
 	}
@@ -696,6 +737,29 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 					//	// 첫 번째 체크박스가 체크되어 있으면, 두 번째 체크박스를 체크 해제합니다. : 중복사용을 위해 막음
 					//	//CheckDlgButton(hwndDlg, IDC_CHECK_PCTRANS, BST_UNCHECKED);
 					//}
+				}
+				break;
+			case IDC_COMBO_MODEL_SIZE:
+				if (wmEvent == CBN_SELCHANGE) {
+					// 콤보박스에서 선택한 항목의 인덱스를 가져옵니다.
+					int index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
+					// 해당 인덱스에 해당하는 문자열을 가져옵니다.
+					WCHAR tmp[256];
+					SendMessage((HWND)lParam, CB_GETLBTEXT, (WPARAM)index, (LPARAM)tmp);
+					// settings["model_size"]의 내용과 비교하여 같은지 확인
+					if (CompareStringWString(settings.value("model_size", ""), (WCHAR*)tmp) != true) {
+						TCHAR szLoadedString[256]; // 로드된 문자열을 저장할 버퍼
+						TCHAR szLoadedStringALERT[256]; // 로드된 문자열을 저장할 버퍼
+
+						// 문자열 리소스 로드
+						HINSTANCE hInst = GetModuleHandle(NULL);
+						LoadStringW(hInst, IDS_ALERT, szLoadedStringALERT, 256);
+						if (LoadStringW(hInst, IDS_MODEL_CHANGE_WARNING, szLoadedString, 256) > 0)
+						{
+							// 문자열 사용 (예: 메시지 박스로 표시)
+							MessageBox(hwndDlg, szLoadedString, szLoadedStringALERT, MB_OK| MB_ICONWARNING);
+						}
+					}
 				}
 				break;
 

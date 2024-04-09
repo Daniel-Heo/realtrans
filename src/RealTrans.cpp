@@ -343,6 +343,9 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	if (settings["ck_pctrans"] == true)
 		strLang += "-s " + settings.value("cb_voice_lang", "") + " -t " + settings.value("cb_pctrans_lang", "");
 	else  strLang += "-s " + settings.value("cb_voice_lang", "") + " -t xx";
+
+	// 언어 모델 크기 설정
+	strLang += " -m " + settings.value("model_size", "");
 	wstrLang = StringToWCHAR(strLang);
 
 	// 외부 프로그램 실행 : python 번역 프로그램 ( runTransWin.py)

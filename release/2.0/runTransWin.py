@@ -34,7 +34,7 @@ cmdCheckTime = time.time()
 use_trans = True # 번역 사용 여부
 trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
 isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
-audio_info = None
+audio_info = None # 오디오 정보
 
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
 def read_file_if_exists(file_path):
@@ -179,12 +179,6 @@ class VADAudio(Audio):
                     yield None
                     ring_buffer.clear()
 
-# ctranslate2 모델 로드
-def load_ct_model():
-    translator, sp_model = ctrans_manager.load_model("large", device=cuda_dev) # huge, large, medium, small
-
-    return translator, sp_model
-
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
     # JSON 데이터를 순회하며 키와 값을 확인합니다.
@@ -202,19 +196,17 @@ def find_keys_with_value(json_data, target_value):
 def transSound(ARGS):
     global transcript
     global exit_flag
-    global use_en2ko
     global use_trans
     global trans_lang
     global isDecoding
     global lock
     global whisper_lang_map
-
-    isLoadModel = False
-    translator = None
-    sp_model = None
+    global cuda_dev
 
     src_lang = None
     transText = ""
+    ctrans= ctrans_manager.CTrans(base_model=ARGS.model_size, source_lang=ARGS.source_lang, target_lang=ARGS.target_lang, device=cuda_dev, lang_map=whisper_lang_map) # large, medium, small
+    
     while True:
         # 종료 체크
         if exit_flag:
@@ -225,16 +217,11 @@ def transSound(ARGS):
             sleep(0.3)
             continue
 
-        if isLoadModel == False:
-            translator, sp_model = load_ct_model()
-            isLoadModel = True
+        ctrans.check_model(ARGS.source_lang, ARGS.target_lang) # 모델 체크 : 모델 변경사항이 있는지 확인
         
-        try:
-            # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
-            src_lang = find_keys_with_value(whisper_lang_map, trans_lang)
-            if( src_lang == None ):
-                src_lang = "eng_Latn"
-        except Exception as e:
+        # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
+        src_lang = find_keys_with_value(whisper_lang_map, trans_lang)
+        if src_lang is None :
             src_lang = "eng_Latn"
 
         if len(transcript) > 1:
@@ -260,7 +247,10 @@ def transSound(ARGS):
                     continue
                 
                 outPut = ' '
-                outPut += ctrans_manager.translate(transText, translator=translator, sp_model=sp_model, source_lang=src_lang, target_lang=ARGS.target_lang, lang_map=whisper_lang_map)
+                outPut += ctrans.translate(transText+' ', source_lang=src_lang, target_lang=ARGS.target_lang, lang_map=whisper_lang_map)
+
+                # outPut에서 ⁇ 문자 제거
+                #outPut = outPut.replace("⁇", "")
 
                 try:
                     if isDecoding==True:
@@ -312,7 +302,7 @@ def halu_filter(src_txt, filter_list):
             # 일치여부 검사
             if src_txt == filter_txt: return True
     return False
-    
+
 # 음성 입력을 처리하는 메인 함수
 def main(ARGS):
     global transcript
@@ -348,8 +338,7 @@ def main(ARGS):
 
     # Faster Whisper 모델 로드
     import realtransc
-    whisper_model = realtransc.load_model("large-v3", device=cuda_dev, compute_type="float16") # tiny, base, small, medium, large-v1, large-v2, large-v3, large, distil-large-v2, distil-medium, distil-small
-
+    whisper_model = realtransc.load_model(ARGS.model_size, device=cuda_dev, compute_type="float16") # small, medium, large
 
     wav_data = bytearray()
     for frame in frames:
@@ -377,10 +366,6 @@ def main(ARGS):
                     ARGS.source_lang = work["src_lang"]
                     use_recognize = True
                 
-                if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
-                    use_en2ko = True
-                else:
-                    use_en2ko = False
                 os.remove(os.getcwd()+"/pymsg.json")
 
         if use_recognize == False:
@@ -427,6 +412,9 @@ def main(ARGS):
                 srcText = {'text': ''}
                 for segment in result["segments"]:
                     srcText['text'] += segment['text']
+
+                # srcText['text']에서 ⁇ 문자 제거
+                #srcText['text'] = srcText['text'].replace("⁇", "")
                 
                 if len(srcText['text'])>1:
                     tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
@@ -446,7 +434,7 @@ def main(ARGS):
                             lock.release()
                     else:
                         lock.acquire()
-                        if ARGS.view != None:
+                        if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
                             transcript += " "+trans_lang+"> "+tmp
                         else :
                             transcript += " "+tmp
@@ -511,6 +499,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Stream from speacker to whisper and translate")
     parser.add_argument('-d', '--device', type=str, default=None,
                         help="Device active sound input name")
+    parser.add_argument('-m', '--model_size', type=str, default="large",
+                        help="Model size : large, medium, small")
     parser.add_argument('-r', '--sample_rate', type=int, default=48000,
                         help="Sampling rate : Default 16000")
     parser.add_argument('-s', '--source_lang', type=str, default=None, # eng_Latn, ALL
@@ -542,9 +532,6 @@ if __name__ == '__main__':
         if( ARGS.target_lang == None):
             ARGS.target_lang = "kor_Hang"
         
-    if ARGS.source_lang=="eng_Latn" and ARGS.target_lang=="kor_Hang":
-        use_en2ko = True
-
     # Whisper 지원 언어 목록
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "whisper_lang_map.json")
     whisper_lang_map = load_json_file(file_path)
@@ -553,6 +540,9 @@ if __name__ == '__main__':
     cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.device(cuda_dev)
     print('Translation processing with ' + cuda_dev)
+
+    # UTF-8 출력 설정
+    sys.stdout.reconfigure(encoding='utf-8')
     
     #thread
     # t1 : voice -> text

@@ -338,12 +338,13 @@ def load_model(model_name,
                download_root=None, # model download root
                threads=4): # number of threads
 
-    # model_name에 '.'이 있으면 그 뒤의 문자열을 language로 지정합니다.
-    if "." in model_name:
-        model_name, language = model_name.split(".", 1)
     # model_name이 없으면 language를 model_name으로 지정합니다.
     if model_name is None:
-        model_name = language
+        model_name = "large-v3"
+    else:
+        # model_name이 large-v3, medium, small이 아닌 경우 large-v3으로 변경합니다.
+        if model_name not in ["large-v3", "medium", "small"]:
+            model_name = "large-v3"
 
     model = WhisperModel(model_name,
                          device=device, # cpu or gpu

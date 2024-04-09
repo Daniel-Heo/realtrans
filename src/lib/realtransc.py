@@ -144,10 +144,6 @@ class WhisperModel(faster_whisper.WhisperModel):
 
         encoder_output = self.encode(features)
 
-        max_initial_timestamp_index = int(
-            round(options.max_initial_timestamp / self.time_precision)
-        )
-
         result = self.model.generate(
                 encoder_output,
                 [prompt] * batch_size,
@@ -165,7 +161,7 @@ class WhisperModel(faster_whisper.WhisperModel):
             res = []
             for tk in tokens:
                 res.append([token for token in tk if token < tokenizer.eot])
-            # text_tokens = [token for token in tokens if token < self.eot]
+            #text_tokens = [token for token in tokens if token < self.eot]
             return tokenizer.tokenizer.decode_batch(res)
 
         text = decode_batch(tokens_batch)
@@ -188,7 +184,7 @@ class WhisperModel(faster_whisper.WhisperModel):
     def encode(self, features: np.ndarray) -> ctranslate2.StorageView:
         to_cpu = self.model.device == "cuda" and len(self.model.device_index) > 1
         if hasattr(features, 'shape'):
-            if len(features.shape) == 2:  # 배치 크기가 1인 경우
+            if len(features.shape) == 2:  # 배치 크기
                 features = np.expand_dims(features, 0) # 배치 차원 추가
         else:
             print("Features has no shape attribute.")
@@ -342,12 +338,13 @@ def load_model(model_name,
                download_root=None, # model download root
                threads=4): # number of threads
 
-    # model_name에 '.'이 있으면 그 뒤의 문자열을 language로 지정합니다.
-    if "." in model_name:
-        model_name, language = model_name.split(".", 1)
     # model_name이 없으면 language를 model_name으로 지정합니다.
     if model_name is None:
-        model_name = language
+        model_name = "large-v3"
+    else:
+        # model_name이 large-v3, medium, small이 아닌 경우 large-v3으로 변경합니다.
+        if model_name not in ["large-v3", "medium", "small"]:
+            model_name = "large-v3"
 
     model = WhisperModel(model_name,
                          device=device, # cpu or gpu

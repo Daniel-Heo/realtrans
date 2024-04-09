@@ -6,7 +6,9 @@
 #define IDD_REALTRANS_DIALOG            102
 #define IDS_APP_TITLE                   103
 #define IDM_ABOUT                       104
+#define IDS_MODEL_CHANGE_WARNING        104
 #define IDM_EXIT                        105
+#define IDS_ALERT                       105
 #define IDI_SMALL                       108
 #define IDC_REALTRANS                   109
 #define IDI_REALTRANS                   127
@@ -26,6 +28,7 @@
 #define IDC_COMBO_PCTRANS_LANG          1006
 #define IDC_TEXT_SEL_VLANG2             1007
 #define IDC_COMBO_VOICE_LANG2           1008
+#define IDC_TEXT_MODEL_SIZE             1008
 #define IDC_CHECK_VSUB2                 1009
 #define IDC_CHECK_PCTRANS               1010
 #define IDC_TEXT_SEL_VLANG5             1011
@@ -70,6 +73,7 @@
 #define IDC_CHECK_SUMMARY               1052
 #define IDC_TEXT_SEL_VLANG17            1053
 #define IDC_COMBO_OLDFONT_COLOR         1054
+#define IDC_COMBO_MODEL_SIZE            1054
 #define IDC_EDIT_TRANS_API_KEY          1055
 #define IDC_EDIT_SUMMARY_API_KEY        1056
 #define IDC_STATIC                      -1
@@ -81,7 +85,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_CONTROL_VALUE         1060
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif
