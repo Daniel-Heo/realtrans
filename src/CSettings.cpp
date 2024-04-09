@@ -9,7 +9,7 @@
 #include "language.h"
 
 // 기본 모델 크기
-#define DEFULAT_MODEL_SIZE "large"
+#define DEFULAT_MODEL_SIZE "small"
 
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
