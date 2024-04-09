@@ -87,11 +87,25 @@ If you do not have an Nvidia GPU, you can use an appropriately small model depen
 
 Recommended graphics card: Most NVidia graphics cards
 
-Total VRAM usage: 5.74GB
+VRAM requirements by model size: large 5.68GB, medium 2.85GB, small 1.07GB
 
-Faster Whisper Large-V3 Model: 3GB VRAM
+|	|faster whisper	|ctranslate2	|total require|
+|-------|---------------|---------------|-------------|
+|large 	|3	        |2.68	        |5.68GB       |
+|medium	|1.5	        |1.35	        |2.85GB       |
+|small 	|0.47	        |0.6	        |1.07GB       |
 
-Nllb 1.3B float16 Model: 2.74GB VRAM
+ctranslate2 usage model
+
+large : facebook nllb-200-distilled-1.3B ct2 float16
+
+medium : nllb-200-distilled-1.3B ct2 int8
+
+small : nllb-200-distilled-600M ct2 int8
+
+en2ko : NHNDQ/nllb-finetuned-en2ko ct2 float16
+
+ko2en : NHNDQ/nllb-finetuned-ko2en ct2 float16
 
 - If your VRAM is small, you can reduce usage by using Whisper small, base, and tiny models. (In this case, source modification is required)
   
@@ -194,11 +208,25 @@ Nvidia GPU가 없는 경우 컴퓨터 사양에 따라서 적당히 작은 모�
 
 권장 그래픽카드 : 대부분의 NVidia 그래픽카드
 
-총 VRAM 사용량 : 5.74GB
+모델 크기별 VRAM 요구사항 : large 5.68GB, medium 2.85GB, small 1.07GB
 
-Faster Whisper Large-V3 Model : 3GB VRAM
+|	|faster whisper	|ctranslate2	|total require|
+|-------|---------------|---------------|-------------|
+|large 	|3	        |2.68	        |5.68GB       |
+|medium	|1.5	        |1.35	        |2.85GB       |
+|small 	|0.47	        |0.6	        |1.07GB       |
 
-Nllb 1.3B float16 Model : 2.74GB VRAM
+ctranslate2 usage model
+
+large : facebook nllb-200-distilled-1.3B ct2 float16
+
+medium : nllb-200-distilled-1.3B ct2 int8
+
+small : nllb-200-distilled-600M ct2 int8
+
+en2ko : NHNDQ/nllb-finetuned-en2ko ct2 float16
+
+ko2en : NHNDQ/nllb-finetuned-ko2en ct2 float16
 
 - VRAM이 작은 경우에는  Whisper small, base, tiny 모델을 사용하여 사용량을 줄일 수 있습니다. ( 이 경우는 소스 수정 필요 )
   
