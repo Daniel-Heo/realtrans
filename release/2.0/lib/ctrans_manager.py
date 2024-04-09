@@ -1,7 +1,5 @@
-#import sentencepiece as spm
 import ctranslate2
 from huggingface_hub import snapshot_download
-import os
 from transformers import AutoTokenizer
 
 model_list = {
@@ -11,8 +9,6 @@ model_list = {
     "small": ["skywood/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.6GB
     "en2ko": ["skywood/NHNDQ-nllb-finetuned-en2ko-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
     "ko2en": ["skywood/NHNDQ-nllb-finetuned-ko2en-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
-    #"en2ko": ["skywood/NHNDQ-nllb-finetuned-en2ko-ct2-int8","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
-    #"ko2en": ["skywood/NHNDQ-nllb-finetuned-ko2en-ct2-int8","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
 }
 
 class CTrans:
@@ -34,33 +30,12 @@ class CTrans:
     def is_loaded(self):
         return self.is_loaded
 
-    def _download_model(self, model_name, save_directory="models", resume=False):
-        save_directory = os.path.join(self.current_dir, self.save_directory)
+    def _download_model(self, model_name, resume=False):
+        print(f"Model {model_name} Downloading. Please wait Download Success Message... \nIt may take several minutes or more.")
+        resource_dir = snapshot_download(model_name, revision="main", resume_download=resume)
+        print("Download Success!")
 
-        # Check if the model exists in the model list
-        if model_name in model_list:
-            model_name = model_list[model_name][0]
-
-        # Replace "/" with "_" in the model name
-        model_savename = model_name.replace("/", "_")
-
-        # Check the path for the model and tokenizer
-        model_path = os.path.join(save_directory, model_savename)
-
-        # Create the main model directory if it doesn't exist
-        if not os.path.exists(save_directory) :
-            os.makedirs(save_directory)
-
-        # Check if the model is already downloaded
-        if not os.path.exists(model_path) or resume is True:
-            import warnings
-            # huggingface_hub 관련 경고를 무시하기 위한 경고 필터 설정 : 심볼릭링크를 사용하려면 관리자 권한이 필요하다. 사용자에게 관리자 권한을 요구할만한 사항은 아니라 경고를 무시한다.
-            warnings.filterwarnings("ignore", message="`huggingface_hub` cache-system uses symlinks")
-
-            print(f"{model_name} Model {model_path} Downloading. Please wait Download Success Message... \nUsually 3GB is downloaded. It may take several minutes or more.")
-            # Download directly from Huggingface
-            snapshot_download(model_name, revision="main", local_dir=model_path, resume_download=resume)
-            print("Download Success!")
+        return resource_dir
 
     def load_model(self):
         if self.model_name == self.load_model_name:
@@ -73,29 +48,18 @@ class CTrans:
         print(f"Loading {self.model_name} model...")
         self.load_model_name = self.model_name
 
-        self.current_dir = os.getcwd()
-        save_directory = os.path.join(self.current_dir, self.save_directory)
-
         if model_list.get(self.model_name) is not None:
             hf_name = model_list[self.model_name][0]
-            #sp_model_name = model_list[self.model_name][1]
         else:
             hf_name = model_list[self.base_model][0]
-            #sp_model_name = model_list["large"][1]
-
-        ct_model_path = hf_name
 
         # Check and download the model
-        self._download_model(ct_model_path, save_directory=save_directory)
-
-        # Check the path for the model and tokenizer
-        model_path = os.path.join(save_directory, ct_model_path.replace("/", "_"))
+        resource_dir = self._download_model(hf_name)
 
         resumable = False
         try:
-            self.translator = ctranslate2.Translator(model_path, self.device)
-            #self.sp_model = spm.SentencePieceProcessor(model_path + "/" + sp_model_name)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            self.translator = ctranslate2.Translator(resource_dir, self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(resource_dir)
         except:
             # resume download
             print("Model download failed. Try to resume download.")
@@ -104,14 +68,13 @@ class CTrans:
 
         # 모델 로딩 오류시 resume 다운로드
         if resumable:
-            self._download_model(ct_model_path, save_directory=save_directory, resume=True)
-            self.translator = ctranslate2.Translator(model_path, self.device)
-            #self.sp_model = spm.SentencePieceProcessor(model_path + "/" + sp_model_name)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            resource_dir = self._download_model(hf_name, resume=True)
+            self.translator = ctranslate2.Translator(resource_dir, self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(resource_dir)
 
-        if "nllb" in ct_model_path:
+        if "nllb" in hf_name:
             self.model_type = "nllb"
-        elif "m2m" in ct_model_path:
+        elif "m2m" in hf_name:
             self.model_type = "m2m"
         else:
             self.model_type = None

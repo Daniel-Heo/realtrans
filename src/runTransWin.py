@@ -543,6 +543,9 @@ if __name__ == '__main__':
 
     # UTF-8 출력 설정
     sys.stdout.reconfigure(encoding='utf-8')
+
+    # Hugging Face Cache 사용 안함
+    os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
     
     #thread
     # t1 : voice -> text
