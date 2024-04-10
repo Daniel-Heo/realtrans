@@ -417,7 +417,7 @@ def main(ARGS):
                 #srcText['text'] = srcText['text'].replace("⁇", "")
                 
                 if len(srcText['text'])>1:
-                    tmp = srcText['text'][1:].encode('utf-8', errors='ignore').decode('utf-8')
+                    tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
                     try:
                         hallucination_filter = json_filter[trans_lang]
                     except Exception as e:
