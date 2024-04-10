@@ -1,5 +1,7 @@
+#import sentencepiece as spm
 import ctranslate2
 from huggingface_hub import snapshot_download
+import os
 from transformers import AutoTokenizer
 
 model_list = {
@@ -9,18 +11,20 @@ model_list = {
     "small": ["skywood/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.6GB
     "en2ko": ["skywood/NHNDQ-nllb-finetuned-en2ko-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
     "ko2en": ["skywood/NHNDQ-nllb-finetuned-ko2en-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
+    #"en2ko": ["skywood/NHNDQ-nllb-finetuned-en2ko-ct2-int8","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
+    #"ko2en": ["skywood/NHNDQ-nllb-finetuned-ko2en-ct2-int8","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
 }
 
 class CTrans:
-    def __init__(self, base_model, source_lang, target_lang,device="cpu", save_directory="models", lang_map=None):
+    def __init__(self, base_model, source_lang, target_lang,device="cpu", lang_map=None):
         self.base_model = base_model # 기본 모델 : large, medium, small
         self.model_name = "" # 입력받은 번역 모델 이름 : ALL, en2ko ... 
         self.device = device # cpu, cuda
-        self.save_directory = save_directory # 모델 저장 디렉토리
+        self.current_dir = os.getcwd() # 현재 디렉토리
+        self.models_directory = os.path.join(self.current_dir, "models") # 모델 저장 디렉토리
         self.is_loaded = False # 모델 로드 여부
         self.load_model_name = "" # 현재 로드한 모델 이름 
         self.model_type = "" # 번역 모델 타입 : nllb, m2m
-        self.current_dir = "" # 현재 디렉토리
         self.translator = None # 번역기
         self.sp_model = None # SentencePiece 모델
         self.lang_map = lang_map # 언어 코드 매핑
@@ -30,12 +34,64 @@ class CTrans:
     def is_loaded(self):
         return self.is_loaded
 
-    def _download_model(self, model_name, resume=False):
-        print(f"Model {model_name} Downloading. Please wait Download Success Message... \nIt may take several minutes or more.")
-        resource_dir = snapshot_download(model_name, revision="main", resume_download=resume)
-        print("Download Success!")
+    def _download_model(self, repo_id, resume=False):
+        # 저장할 모델이름으로 변환 : / -> _
+        model_savename = repo_id.replace("/", "_")
 
-        return resource_dir
+        # 다운로드 모델 디렉토리 경로
+        model_path = os.path.join(self.models_directory, model_savename)
+
+        # 다운로드 체크 : 모델 디렉토리가 있고 resume이 False인 경우 다운로드하지 않는다.
+        if os.path.exists(model_path) and resume is False:
+            return None
+
+        # 모델 메인 디렉토리가 없으면 생성
+        if not os.path.exists(self.models_directory) :
+            os.makedirs(self.models_directory)
+
+        # 다운로드 목록
+        allow_patterns = [
+            "config.json",
+            "shared_vocabulary.json",
+            "model.bin",
+            "special_tokens_map.json",
+            "tokenizer.json",
+            "tokenizer_config.json",
+        ]
+
+        # 다운로드 옵션
+        kwargs = {
+            "local_files_only": False,
+            "allow_patterns": allow_patterns,
+            "local_dir": model_path,
+            "local_dir_use_symlinks": False,
+            "cache_dir": None,
+            #"tqdm_class": disabled_tqdm,
+        }
+
+        import warnings
+        # huggingface_hub 관련 경고를 무시하기 위한 경고 필터 설정 : 심볼릭링크를 사용하려면 관리자 권한이 필요하다. 사용자에게 관리자 권한을 요구할만한 사항은 아니라 경고를 무시한다.
+        warnings.filterwarnings("ignore", message="`huggingface_hub` cache-system uses symlinks")
+
+        print(f"Model {model_path} Downloading.\nPlease wait... It may take several minutes or more.")
+        # Download directly from Huggingface
+        try:
+            if( resume == False):
+                snapshot_download(repo_id, **kwargs)
+            else:
+                snapshot_download(repo_id, resume_download=resume,**kwargs)
+            print("Download Success!")
+        except:
+            # resume download
+            print("Model download failed. Try to resume download.")
+            kwargs["local_files_only"] = True
+            if( resume == False):
+                snapshot_download(repo_id, **kwargs)
+            else:
+                snapshot_download(repo_id, resume_download=resume, **kwargs)
+            print("Download Success!")
+
+        return model_path
 
     def load_model(self):
         if self.model_name == self.load_model_name:
@@ -43,38 +99,40 @@ class CTrans:
         
         if self.translator is not None:
             del self.translator
-            #del self.sp_model
 
         print(f"Loading {self.model_name} model...")
         self.load_model_name = self.model_name
 
         if model_list.get(self.model_name) is not None:
-            hf_name = model_list[self.model_name][0]
+            repo_id = model_list[self.model_name][0]
         else:
-            hf_name = model_list[self.base_model][0]
+            repo_id = model_list[self.base_model][0]
 
-        # Check and download the model
-        resource_dir = self._download_model(hf_name)
+        # 모델 다운로드 체크 및 다운로드 
+        self._download_model(repo_id)
+
+        # 모델 저장 경로
+        model_path = os.path.join(self.models_directory, repo_id.replace("/", "_"))
 
         resumable = False
         try:
-            self.translator = ctranslate2.Translator(resource_dir, self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(resource_dir)
+            self.translator = ctranslate2.Translator(model_path, self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         except:
             # resume download
-            print("Model download failed. Try to resume download.")
+            print("Model loading failed. Resume download start.")
             resumable = True
             pass
 
         # 모델 로딩 오류시 resume 다운로드
         if resumable:
-            resource_dir = self._download_model(hf_name, resume=True)
-            self.translator = ctranslate2.Translator(resource_dir, self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(resource_dir)
+            self._download_model(repo_id, resume=True)
+            self.translator = ctranslate2.Translator(model_path, self.device)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-        if "nllb" in hf_name:
+        if "nllb" in repo_id:
             self.model_type = "nllb"
-        elif "m2m" in hf_name:
+        elif "m2m" in repo_id:
             self.model_type = "m2m"
         else:
             self.model_type = None
