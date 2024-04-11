@@ -289,7 +289,7 @@ def halu_filter(src_txt, filter_list):
                 matches = re.findall(pattern, src_txt)
             except:
                 matches = []
-            if len(matches) >= 2 and (len(pattern)*len(matches)*2)>=len(src_txt): return True
+            if len(matches) >= 2 and ((len(pattern)*len(matches))<<1)>=len(src_txt): return True
         elif filter_txt.startswith('['):
             # [text] 형식의 필터: 포함이 되고 나머지 문자의 길이가 2 이하인 경우
             pattern = filter_txt[1:-1]
@@ -499,10 +499,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Stream from speacker to whisper and translate")
     parser.add_argument('-d', '--device', type=str, default=None,
                         help="Device active sound input name")
-    parser.add_argument('-m', '--model_size', type=str, default="large",
+    parser.add_argument('-m', '--model_size', type=str, default="small",
                         help="Model size : large, medium, small")
     parser.add_argument('-r', '--sample_rate', type=int, default=48000,
-                        help="Sampling rate : Default 16000")
+                        help="Sampling rate : Default 48000")
     parser.add_argument('-s', '--source_lang', type=str, default=None, # eng_Latn, ALL
                         help="Voice input Language : eng_Latn, kor_Hang")
     parser.add_argument('-t', '--target_lang', type=str, default=None, # kor_Hang

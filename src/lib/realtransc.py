@@ -12,7 +12,7 @@ import faster_whisper
 # 처리 오디오 설정값
 F_SAMPLE_RATE = 16000 # 샘플링레이트 16000Hz ( 음성인식 학습 데이터 기본 단위 : 고정 )
 F_HOP_LENGTH = 160 # 160 : STFT에서 인접한 윈도우 간의 겹치는 부분의 크기를 나타냅니다. 이는 STFT를 계산할 때 윈도우를 얼마나 이동시킬지 결정합니다. 이 값이 작을수록 STFT의 시간 해상도가 높아지지만 주파수 해상도가 낮아지며, 반대로 이 값이 클수록 주파수 해상도가 높아지지만 시간 해상도가 낮아집니다.
-F_CHUNK_LENGTH = 8 # 10 : 오디오 입력을 10s 길이의 청크로 나누는 데 사용되는 시간 길이입니다. 이는 오디오 입력을 처리할 때 한 번에 처리할 수 있는 최대 길이를 제한하는 데 사용됩니다.
+F_CHUNK_LENGTH = 10 # 10 : 오디오 입력을 10s 길이의 청크로 나누는 데 사용되는 시간 길이입니다. 이는 오디오 입력을 처리할 때 한 번에 처리할 수 있는 최대 길이를 제한하는 데 사용됩니다.
 F_SAMPLES = F_CHUNK_LENGTH * F_SAMPLE_RATE  # 10*16000 = 160000 samples in a 10-second chunk
 F_FRAMES = F_SAMPLES/F_HOP_LENGTH  # 160000/160 = 1000 frames in a mel spectrogram input in a 10-second chunk
 F_SAMPLES_PER_TOKEN = F_HOP_LENGTH * 2  # 160*2 = 320 - 컨볼루션의 스트라이드 초기값 :  2 ( 2pixel씩 이동하면서 컨볼루션 수행 )
@@ -26,7 +26,7 @@ def load_mel_filters(n_mels: int, device) -> torch.Tensor:
     Load or compute Mel filterbank.
     """
     assert n_mels in [80, 128], f"Unsupported n_mels: {n_mels}"
-    path = os.path.join(os.path.dirname(__file__), "assets", f"mel_{n_mels}_filters.npz")
+    path = os.path.join(os.path.dirname(__file__), "assets", f"mel_filters.npz")
     with np.load(path) as f:
         return torch.from_numpy(f[f"mel_{n_mels}"]).to(device)
     
@@ -91,12 +91,10 @@ def find_numeral_symbol_tokens(tokenizer):
     return numeral_symbol_tokens
 
 class WhisperModel(faster_whisper.WhisperModel):
-    '''
-    FasterWhisperModel은 더 빠른 속삭임에 대한 일괄 추론을 제공합니다.
-     현재는 비타임스탬프 모드에서만 작동하며 일괄 처리의 모든 샘플에 대한 고정 프롬프트가 있습니다.
-    '''
-
     """
+    FasterWhisperModel은 더 빠른 속삭임에 대한 일괄 추론을 제공합니다.
+    현재는 비타임스탬프 모드에서만 작동하며 일괄 처리의 모든 샘플에 대한 고정 프롬프트가 있습니다.
+    
     이 함수는 음성 인식 및 변환 작업을 배치 처리하는 데 사용되며, Faster Whisper와 같은 음성 인식 모델의 일부로 사용될 수 있습니다. 기능적으로, 입력된 음성 특성(features)을 텍스트로 변환합니다. 함수의 주요 구성 요소 및 흐름은 다음과 같습니다:
 
     입력 매개변수:
@@ -108,19 +106,12 @@ class WhisperModel(faster_whisper.WhisperModel):
     배치 크기 설정: 입력된 features 배열의 첫 번째 차원을 사용하여 배치 크기를 설정합니다.
 
     초기 프롬프트 처리: 사용자가 지정한 초기 프롬프트가 있는 경우, 이를 토큰화하여 all_tokens 리스트에 추가합니다.
-
     프롬프트 생성: self.get_prompt 메서드를 사용하여 모델에 전달할 프롬프트를 생성합니다. 이때, 초기 프롬프트 또는 이전 토큰, 타임스탬프 처리 방식, 출력 접두사 등 옵션에 따라 프롬프트가 조정됩니다.
-
     인코딩: self.encode 메서드를 사용하여 입력된 features로부터 인코더 출력을 생성합니다. 사용자가 encoder_output을 제공한 경우, 이 단계는 생략됩니다.
-
     모델 생성 호출: self.model.generate를 사용하여 텍스트 생성 작업을 수행합니다. 이때, 인코더 출력과 생성된 프롬프트, 빔 크기(beam size), 인내심(patience), 길이 패널티(length penalty), 최대 길이, 공백 억제 및 토큰 억제 옵션이 사용됩니다.
-
     결과 처리: 생성된 결과에서 토큰 시퀀스를 추출하여 배치 처리합니다.
-
     배치 디코드: decode_batch 함수를 정의하고 사용하여 토큰 배치를 텍스트로 디코드합니다. 이 과정에서 tokenizer.eot보다 작은 토큰만을 유효한 것으로 간주하여 디코드합니다.
-
     텍스트 반환: 최종적으로 디코드된 텍스트를 반환합니다.
-
     이 함수는 복잡한 음성 인식 작업을 처리하며, 다양한 옵션을 통해 결과의 세밀한 조정이 가능합니다. 배치 처리를 통해 효율성을 높이고, 사용자 지정 옵션으로 출력을 최적화할 수 있습니다.
     """
     def generate_segment_batched(self, features: np.ndarray, tokenizer: faster_whisper.tokenizer.Tokenizer, options: faster_whisper.transcribe.TranscriptionOptions, encoder_output = None):
@@ -353,31 +344,48 @@ def load_model(model_name,
                          download_root=download_root, # model download root
                          cpu_threads=threads)
     
+    """
+    model_size_or_path 모델 크기 또는 변환된 모델 디렉토리 경로를 지정합니다. 이 값은 모델이 Hugging Face 모델 허브에서 다운로드될 때 모델 이름으로도 사용됩니다. str -- 예
+    device 모델이 실행될 장치를 지정합니다. 'auto'를 선택하면 사용 가능한 장치(CPU 또는 CUDA 지원 GPU)가 자동으로 선택됩니다. str auto auto cpu cuda 아니요
+    device_index 사용할 장치 ID입니다. 모델을 여러 GPU에 로드할 경우 ID 목록을 전달합니다(예: [0, 1, 2, 3]). Union[int, List[int]] 0 - 아니요
+    compute_type 계산에 사용할 유형을 지정합니다. 참조: https://opennmt.net/CTranslate2/quantization.html str default default auto int8 int8_float16 int16 float16 float32 아니요
+    cpu_threads CPU에서 실행할 때 사용할 스레드 수를 지정합니다. 0이 아닌 값을 지정하면 OMP_NUM_THREADS 환경 변수가 재정의됩니다. int 0 - 아니요
+    num_workers transcribe()가 여러 Python 스레드에서 호출되는 경우, 여러 작업자를 사용하여 병렬 처리가 가능합니다. int 1 - 아니요
+    download_root 모델을 저장할 디렉토리입니다. 설정되지 않은 경우 모델은 표준 Hugging Face 캐시 디렉토리에 저장됩니다. Optional[str] None - 아니요
+    local_files_only True인 경우 파일 다운로드를 회피하고 기존 로컬 캐시 파일 경로를 반환합니다. bool False - 아니요
+
+    transcribe 메서드
+    인수 이름 설명 데이터 타입 기본값 선택지 필수
+    audio 입력 파일 경로, 파일과 유사한 객체 또는 오디오 파형 Union[str, BinaryIO, np.ndarray] 없음 - 예
+    language 오디오에서 사용되는 언어입니다. 언어 코드("en", "fr" 등)를 지정합니다. 지정하지 않으면 처음 30초의 오디오에서 언어를 감지합니다. 
+    task 수행할 작업입니다. translate를 선택하면 영어 번역이 됩니다. str transcribe transcribe, translate 아니요
+    """
     default_asr_options =  {
-        "beam_size": 5, # 생성 중에 사용할 빔의 수.
-        "best_of": 5, # 생성 후 유지할 빔의 수.
-        "patience": 1, # 조기 중단 전에 개선을 위해 기다릴 횟수.
-        "length_penalty": 1, # 더 긴 시퀀스에 대한 패널티 요소.
-        "repetition_penalty": 1, # 반복 토큰에 대한 패널티 요소.
-        "no_repeat_ngram_size": 0, # 반복을 피하기 위한 n-그램의 크기.
-        "temperatures": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0], # 샘플링을 위한 온도 값의 목록.
-        "compression_ratio_threshold": 2.4, # 압축된 토큰을 필터링하기 위한 임계값.
-        "log_prob_threshold": -1.0, # 낮은 확률 토큰을 필터링하기 위한 임계값.
-        "no_speech_threshold": 0.6, # 낮은 신뢰도의 음성 토큰을 필터링하기 위한 임계값.
-        "condition_on_previous_text": False, # 이전 텍스트에 대한 생성 조건 여부.
-        "prompt_reset_on_temperature": 0.5, # 프롬프트를 재설정하기 위한 온도 임계값.
-        "initial_prompt": None, # 텍스트 생성을 위한 초기 프롬프트.
-        "prefix": None, # 텍스트 생성을 위한 접두사.
-        "suppress_blank": True, # 빈 토큰을 억제할지 여부.
-        "suppress_tokens": [-1], # 생성 중에 억제할 토큰의 목록.
-        "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 포함할지 여부.
-        "max_initial_timestamp": 0.0, # 생성된 텍스트에 대한 최대 초기 타임스탬프.
+        "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택
+        "best_of": 2, # 5 : temperature가 0이 아닐 때 샘플링할 후보 수입니다
+        "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+        "length_penalty": 0.8, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+        "repetition_penalty": 1, # 1 : 반복 토큰에 대한 패널티 요소.
+        "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
+        "temperatures":  [0.2, 0.4, 0.6, 0.8], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
+        "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
+        "log_prob_threshold": -1.0, # -1.0 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0
+        "no_speech_threshold": 0.6, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
+        "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
+        # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
+        "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
+        "initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
+        "prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
+        "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
+        "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
+        "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
+        "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
         "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
-        "prepend_punctuations": "",#"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
-        "append_punctuations": "",#"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
-        "max_new_tokens": None, # 생성할 새 토큰의 최대 수.
-        "clip_timestamps": None, # 타임스탬프를 특정 범위로 클립할지 여부.
-        "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값.
+        "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
+        "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
+        "max_new_tokens": 100, # 생성할 새 토큰의 최대 수.
+        "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
+        "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
     }
 
     default_asr_options = faster_whisper.transcribe.TranscriptionOptions(**default_asr_options)
