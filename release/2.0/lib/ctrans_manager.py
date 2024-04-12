@@ -158,12 +158,12 @@ class CTrans:
                 "max_batch_size": 1, # 최대 배치 크기입니다. 입력 수보다 크면 max_batch_size입력은 길이별로 정렬되고 max_batch_size예제 청크로 분할되어 패딩 위치 수가 최소화됩니다.
                 "batch_type":  'tokens',  # max_batch_size"examples" 또는 "tokens"의 개수인지 여부입니다. "tokens"의 경우 입력이 토큰 수로 정렬됩니다.
                 "asynchronous": False, # bool = False, # AsyncTranslator를 사용하여 번역을 비동기식으로 수행합니다.
-                "beam_size": 2, #int = 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택 beam_size>=num_hypotheses>=sampling_topk
+                "beam_size": 3, #int = 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택 beam_size>=num_hypotheses>=sampling_topk
                 "patience": 0.8, #float = 1, # 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
                 "num_hypotheses": 1, #int = 1, # 반환할 가설의 수입니다. beam_size보다 작거나 같아야 합니다.
                 "length_penalty": 0.8, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
                 "coverage_penalty": 0.4, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
-                "repetition_penalty": 1, #float = 1, # 반복 토큰에 대한 패널티 요소.
+                "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
                 "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
                 "disable_unk": False, #bool = False, # 알 수 없는 토큰 생성을 비활성화합니다.
                 "suppress_sequences": None, #Optional[List[List[str]]] = None,  # 일부 토큰 시퀀스 생성을 비활성화합니다.

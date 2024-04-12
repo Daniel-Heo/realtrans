@@ -361,11 +361,11 @@ def load_model(model_name,
     task 수행할 작업입니다. translate를 선택하면 영어 번역이 됩니다. str transcribe transcribe, translate 아니요
     """
     default_asr_options =  {
-        "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택
+        "beam_size": 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택
         "best_of": 2, # 5 : temperature가 0이 아닐 때 샘플링할 후보 수입니다
         "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
         "length_penalty": 0.8, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
-        "repetition_penalty": 1, # 1 : 반복 토큰에 대한 패널티 요소.
+        "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
         "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
         "temperatures":  [0.2, 0.4, 0.6, 0.8], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
         "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
