@@ -66,7 +66,7 @@ class LoopbackAudio(threading.Thread):
                 # #print("max_value : ", max_value)
                 # if max_value < 0.2:
                 #     normalized_data = mono_data *3
-                self.callback((librosa.to_mono(transposed_data)*49152).astype(np.int16)) # 32768
+                self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
 
     def stop(self):
         self.stop_event.set()
@@ -415,14 +415,14 @@ def main(ARGS):
                         if hallucination_filter != None:
                             if halu_filter(tmp, hallucination_filter) == False:
                                 if ARGS.view != None:
-                                    transcript += " "+trans_lang+"> "+tmp
+                                    transcript = " "+trans_lang+"> "+tmp
                                 else :
-                                    transcript += " "+tmp
+                                    transcript = " "+tmp
                         else:
                             if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
-                                transcript += " "+trans_lang+"> "+tmp
+                                transcript = " "+trans_lang+"> "+tmp
                             else :
-                                transcript += " "+tmp
+                                transcript = " "+tmp
 
                         # use_trans가 False이면 이곳에서 출력
                         if len(transcript) > 1:
@@ -437,7 +437,6 @@ def main(ARGS):
 
                             if use_trans: 
                                 translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
-                                transcript = ""
 
                 frame = bytearray()
                 wav_data = bytearray()
