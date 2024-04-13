@@ -248,9 +248,13 @@ class Translator:
         if target_lang is None or source_lang == target_lang:
             return
 
-        #print( f"{source_lang} -> {target_lang} : {text}")
         outPut = ' '
         outPut += self.ctrans.translate(text+' ', source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
+        # 처음에 -나 ' '가 있으면 제거
+        outPut = outPut.strip()
+        if outPut[0] == '-':
+            outPut = outPut[1:]
+            outPut = outPut.strip()
 
         try:
             if self.isDecoding:
@@ -405,6 +409,7 @@ def main(ARGS):
                     # srcText['text']에서 ⁇ 문자 제거
                     srcText['text'] = srcText['text'].replace("⁇", "")
                     
+                    tmp = ""
                     if len(srcText['text'])>1:
                         tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
                         try:
@@ -429,11 +434,11 @@ def main(ARGS):
                         # use_trans가 False이면 이곳에서 출력
                         if len(transcript) > 1:
                             try:
-                                tmp = '-'+transcript
+                                outText = '-'+transcript
                                 if ARGS.isDecoding==True:
-                                    print(tmp.encode('utf-8', errors='ignore').decode('utf-8'))
+                                    print(outText.encode('utf-8', errors='ignore').decode('utf-8'))
                                 else :
-                                    print(tmp.encode('utf-8', errors='ignore'))
+                                    print(outText.encode('utf-8', errors='ignore'))
                             except Exception as e:
                                 pass  # 에러가 발생해도 아무런 행동을 취하지 않음
 
