@@ -22,19 +22,10 @@ import collections, queue
 import numpy as np
 import torch
 import pyaudio
+import json
 import librosa
 import ctrans_manager
-
-# 글로벌 변수
-exit_flag = False
-transcript = ""
-cuda_dev = None
-use_en2ko = False
-cmdCheckTime = time.time()
-use_trans = True # 번역 사용 여부
-trans_lang = None # 번역 언어 : ALL일 경우에 사용한다.
-isDecoding = False # print에서 decoding을 사용할 경우에 사용한다.
-audio_info = None # 오디오 정보
+import realtransc
 
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
 def read_file_if_exists(file_path):
@@ -67,7 +58,15 @@ class LoopbackAudio(threading.Thread):
         with mic.recorder(samplerate=self.samplerate) as recorder:
             while not self.stop_event.is_set():
                 transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
-                self.callback((librosa.to_mono(transposed_data)*32768).astype(np.int16))
+                # mono_data = librosa.to_mono(transposed_data)
+                # # mono_data의 최대 절대값을 구합니다.
+                # max_value = np.max(np.abs(mono_data))
+
+                # # 소리가 크지 않으면 3배 증폭
+                # #print("max_value : ", max_value)
+                # if max_value < 0.2:
+                #     normalized_data = mono_data *3
+                self.callback((librosa.to_mono(transposed_data)*49152).astype(np.int16)) # 32768
 
     def stop(self):
         self.stop_event.set()
@@ -103,6 +102,40 @@ class Audio(object):
 
     frame_duration_ms = BLOCKS_PER_SECOND
 
+class AudioCollect:
+    def __init__(self):
+        self.get_speech_timestamps = None
+        self.read_audio = None
+        self.sampling_rate = 16000 # also accepts 8000
+        self.model = None
+        self.utils = None
+        self.load_model()
+
+    def load_model(self):
+        self.model, self.utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
+                                    model='silero_vad',
+                                    force_reload=True)
+        
+        (self.get_speech_timestamps,
+        _, self.read_audio, *_) = self.utils
+
+    def get_timestamp(self, audio):
+        speech_timestamps = self.get_speech_timestamps(audio, self.model, sampling_rate=self.sampling_rate)
+        return speech_timestamps
+    
+    def collect_speech(self, audio, speech_timestamps):
+        segments = []
+        if speech_timestamps : 
+            for speech_timestamp in speech_timestamps:
+                start = speech_timestamp['start']
+                end = speech_timestamp['end']
+                segments.append( audio[start:end] )
+
+            collected_audio = np.concatenate(segments)
+
+        return collected_audio
+
+
 voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
 silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 
@@ -117,7 +150,7 @@ class VADAudio(Audio):
         while True:
             yield self.read()
 
-    def vad_collector(self, padding_ms=500, ratio=0.80, frames=None):
+    def vad_collector(self, padding_ms=600, ratio=0.60, frames=None):
         global voiced_duration
         global silence_duration
 
@@ -192,80 +225,40 @@ def find_keys_with_value(json_data, target_value):
     
     return None
 
-# 음성에서 추출된 텍스트로 번역 작업과 관련된 것들을 처리
-def transSound(ARGS):
-    global transcript
-    global exit_flag
-    global use_trans
-    global trans_lang
-    global isDecoding
-    global lock
-    global whisper_lang_map
-    global cuda_dev
+# 번역 처리 클래스
+class Translator:
+    def __init__(self, ARGS):
+        self.isDecoding = ARGS.isDecoding
+        self.lock = threading.Lock()
+        self.lang_map = ARGS.lang_map
+        self.cuda_dev = ARGS.cuda_dev
+        self.ctrans = None
 
-    src_lang = None
-    transText = ""
-    ctrans= ctrans_manager.CTrans(base_model=ARGS.model_size, source_lang=ARGS.source_lang, target_lang=ARGS.target_lang, device=cuda_dev, lang_map=whisper_lang_map) # large, medium, small
-    
-    while True:
-        # 종료 체크
-        if exit_flag:
-            return 0
-        
-        # 번역을 하지 않는다면, 다음 루프로 이동
-        if use_trans == False:
-            sleep(0.3)
-            continue
+        self.initialize(ARGS)
 
-        ctrans.check_model(ARGS.source_lang, ARGS.target_lang) # 모델 체크 : 모델 변경사항이 있는지 확인
-        
-        # whisper_lang_map json에서 번역 언어를 찾아서 src_lang을 설정
-        src_lang = find_keys_with_value(whisper_lang_map, trans_lang)
-        if src_lang is None :
-            src_lang = "eng_Latn"
+    def initialize(self, ARGS):
+        self.ctrans = ctrans_manager.CTrans(base_model=ARGS.model_size, source_lang=ARGS.source_lang, target_lang=ARGS.target_lang, device=self.cuda_dev, lang_map=self.lang_map)
 
-        if len(transcript) > 1:
-            lock.acquire()
-            transText = transcript
-            transcript=""
-            lock.release()
+    def translate(self, text, source_lang, target_lang, ARGS):
+        source_lang = find_keys_with_value(self.lang_map, source_lang)
+        self.ctrans.check_model(ARGS.source_lang, target_lang)
+        if source_lang is None:
+            source_lang = "eng_Latn"
 
-            if len(transText) > 1:
-                outPut = '-' + transText
-                try:
-                    if isDecoding==True:
-                        print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
-                    else :
-                        print(outPut.encode('utf-8', errors='ignore'))
-                except Exception as e:
-                    pass  # 에러가 발생해도 아무런 행동을 취하지 않음
+        if target_lang is None or source_lang == target_lang:
+            return
 
-                if ARGS.target_lang is None:
-                    continue
+        #print( f"{source_lang} -> {target_lang} : {text}")
+        outPut = ' '
+        outPut += self.ctrans.translate(text+' ', source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
 
-                if src_lang == ARGS.target_lang:
-                    continue
-                
-                outPut = ' '
-                outPut += ctrans.translate(transText+' ', source_lang=src_lang, target_lang=ARGS.target_lang, lang_map=whisper_lang_map)
-
-                # outPut에서 ⁇ 문자 제거
-                #outPut = outPut.replace("⁇", "")
-
-                try:
-                    if isDecoding==True:
-                        print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
-                    else :
-                        print(outPut.encode('utf-8', errors='ignore'))
-                except Exception as e:
-                    pass  # 에러가 발생해도 아무런 행동을 취하지 않음
-        
-        sleep(0.1)
-
-    exit_flag = True
-    torch.cuda.empty_cache()
-
-import json
+        try:
+            if self.isDecoding:
+                print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
+            else:
+                print(outPut.encode('utf-8', errors='ignore'))
+        except Exception as e:
+            pass
 
 # JSON 파일을 열고 그 내용을 읽어서 파이썬 객체로 변환하는 함수입니다.
 def load_json_file(file_path):
@@ -305,17 +298,12 @@ def halu_filter(src_txt, filter_list):
 
 # 음성 입력을 처리하는 메인 함수
 def main(ARGS):
-    global transcript
-    global exit_flag
-    global cuda_dev
-    global cmdCheckTime
-    global lock
-    global use_en2ko
-    global whisper_lang_map
-    global use_trans
-    global trans_lang
-
+    cmdCheckTime = time.time()
     use_recognize = True  # 음성인식 사용 여부
+    use_trans = ARGS.use_trans  # 번역 사용 여부
+    trans_lang = None # 번역 언어 : ALL인 경우 사용
+    transcript = ""  # 음성 인식 결과를 저장하는 변수
+    
 
     # Whisper 모델 환상 제거용 필터 
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hallucination_filter.json")
@@ -323,7 +311,6 @@ def main(ARGS):
 
     devNo=GetDevNo(ARGS)
     if devNo<0:
-        exit_flag = True
         return 0
 
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
@@ -331,20 +318,20 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
+    audio_collect = AudioCollect()
+
     # Whisper 모델 로드
     #import whisper
     #whisper_model = whisper.load_model("large-v3") # large, medium, small, base
     #whisper_model.to(cuda_dev)
 
     # Faster Whisper 모델 로드
-    import realtransc
-    whisper_model = realtransc.load_model(ARGS.model_size, device=cuda_dev, compute_type="float16") # small, medium, large
+    whisper_model = realtransc.load_model(ARGS.model_size, device=ARGS.cuda_dev, compute_type="float16") # small, medium, large
+
+    translator = Translator(ARGS)
 
     wav_data = bytearray()
     for frame in frames:
-        if exit_flag:
-            exit
-        
         # 시스템 명령 체크 ( 번역에 관한 변경사항 적용 ) : 3초에 한번
         if time.time() > (cmdCheckTime+3):
             cmdCheckTime = time.time()
@@ -378,85 +365,83 @@ def main(ARGS):
             # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
-            if len(wav_data) > 0 and audio_length_seconds > 0.5:
+            if len(wav_data) > 0 and audio_length_seconds > 0.1:
                 npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
-                
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
-                #print("audio_float16 : ", audio_float16.shape)
-                audio_float16 = np.append(audio_float16, np.zeros(320, dtype=np.float16))
 
-                # Whisper 모델 사용
-                # if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                #     srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                # else:
-                #     if( ARGS.source_lang == "ALL"):
-                #         srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
-                #         trans_lang = srcText['language']
-                #     else:
-                #         trans_lang = whisper_lang_map[ARGS.source_lang]
-                #         srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                         #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
+                time_stamp = audio_collect.get_timestamp(audio_float16)
+                if time_stamp:
+                    audio_float16 = audio_collect.collect_speech(audio_float16, time_stamp)
+
+                    # Whisper 모델 사용
+                    # if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
+                    #     srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
+                    # else:
+                    #     if( ARGS.source_lang == "ALL"):
+                    #         srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
+                    #         trans_lang = srcText['language']
+                    #     else:
+                    #         trans_lang = whisper_lang_map[ARGS.source_lang]
+                    #         srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
+                    #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
                 
-                # Faster Whisper 모델 사용
-                if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                    result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
-                else:
-                    if( ARGS.source_lang == "ALL"):
-                        result = whisper_model.transcribe(audio=audio_float16 )
-                        trans_lang = result['language']
-                    else:
-                        trans_lang = whisper_lang_map[ARGS.source_lang]
+                    # Faster Whisper 모델 사용
+                    if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
                         result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
+                    else:
+                        if( ARGS.source_lang == "ALL"):
+                            result = whisper_model.transcribe(audio=audio_float16 )
+                            trans_lang = result['language']
+                        else:
+                            trans_lang = ARGS.lang_map[ARGS.source_lang]
+                            result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
 
-                srcText = {'text': ''}
-                for segment in result["segments"]:
-                    srcText['text'] += segment['text']
+                    srcText = {'text': ''}
+                    for segment in result["segments"]:
+                        srcText['text'] += segment['text']
 
-                # srcText['text']에서 ⁇ 문자 제거
-                #srcText['text'] = srcText['text'].replace("⁇", "")
-                
-                if len(srcText['text'])>1:
-                    tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
-                    try:
-                        hallucination_filter = json_filter[trans_lang]
-                    except Exception as e:
-                        hallucination_filter = None
-                        trans_lang = "en"
+                    # srcText['text']에서 ⁇ 문자 제거
+                    srcText['text'] = srcText['text'].replace("⁇", "")
+                    
+                    if len(srcText['text'])>1:
+                        tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
+                        try:
+                            hallucination_filter = json_filter[trans_lang]
+                        except Exception as e:
+                            hallucination_filter = None
+                            trans_lang = "en"
 
-                    if hallucination_filter != None:
-                        if halu_filter(tmp, hallucination_filter) == False:
-                            lock.acquire()
-                            if ARGS.view != None:
+                        if hallucination_filter != None:
+                            if halu_filter(tmp, hallucination_filter) == False:
+                                if ARGS.view != None:
+                                    transcript += " "+trans_lang+"> "+tmp
+                                else :
+                                    transcript += " "+tmp
+                        else:
+                            if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
                                 transcript += " "+trans_lang+"> "+tmp
                             else :
                                 transcript += " "+tmp
-                            lock.release()
-                    else:
-                        lock.acquire()
-                        if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
-                            transcript += " "+trans_lang+"> "+tmp
-                        else :
-                            transcript += " "+tmp
-                        
-                        lock.release()
 
-                    # use_trans가 False이면 이곳에서 출력
-                    if use_trans==False and len(transcript) > 1:
-                        try:
-                            tmp = '-'+transcript
-                            if isDecoding==True:
-                                print(tmp.encode('utf-8', errors='ignore').decode('utf-8'))
-                            else :
-                                print(tmp.encode('utf-8', errors='ignore'))
-                            transcript = ""
-                        except Exception as e:
-                            pass  # 에러가 발생해도 아무런 행동을 취하지 않음
+                        # use_trans가 False이면 이곳에서 출력
+                        if len(transcript) > 1:
+                            try:
+                                tmp = '-'+transcript
+                                if ARGS.isDecoding==True:
+                                    print(tmp.encode('utf-8', errors='ignore').decode('utf-8'))
+                                else :
+                                    print(tmp.encode('utf-8', errors='ignore'))
+                            except Exception as e:
+                                pass  # 에러가 발생해도 아무런 행동을 취하지 않음
+
+                            if use_trans: 
+                                translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
+                                transcript = ""
 
                 frame = bytearray()
                 wav_data = bytearray()
 
-    exit_flag = True
     # GPU 메모리 해제
     torch.cuda.empty_cache()
     
@@ -523,38 +508,30 @@ if __name__ == '__main__':
 
     if( ARGS.source_lang == None):
         ARGS.source_lang = "eng_Latn"
-        isDecoding = True
+
+    if ARGS.view != None:
+        ARGS.isDecoding = True
+    else:
+        ARGS.isDecoding = False
 
     if ARGS.target_lang == "xx" :
         ARGS.target_lang = None
-        use_trans = False # 번역을 하지 않는다.
+        ARGS.use_trans = False # 번역을 하지 않는다.
     else:
         if( ARGS.target_lang == None):
             ARGS.target_lang = "kor_Hang"
+        ARGS.use_trans = True # 번역을 한다.
         
     # Whisper 지원 언어 목록
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "whisper_lang_map.json")
-    whisper_lang_map = load_json_file(file_path)
+    ARGS.lang_map = load_json_file(file_path)
 
     #cuda activate : Translation processing with CPU
-    cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-    torch.device(cuda_dev)
-    print('Translation processing with ' + cuda_dev)
+    ARGS.cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
+    torch.device(ARGS.cuda_dev)
+    print('Translation processing with ' + ARGS.cuda_dev)
 
     # UTF-8 출력 설정
     sys.stdout.reconfigure(encoding='utf-8')
 
-    # Hugging Face Cache 사용 안함
-    os.environ['HF_HUB_DISABLE_SYMLINKS_WARNING'] = '1'
-    
-    #thread
-    # t1 : voice -> text
-    # t2 : english text -> korean text
-    lock = threading.Lock()
-    t1 = threading.Thread(target=main, args=(ARGS,))
-    t2 = threading.Thread(target=transSound, args=(ARGS,))
-
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    main(ARGS)

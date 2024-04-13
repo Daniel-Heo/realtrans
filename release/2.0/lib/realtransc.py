@@ -361,16 +361,17 @@ def load_model(model_name,
     task 수행할 작업입니다. translate를 선택하면 영어 번역이 됩니다. str transcribe transcribe, translate 아니요
     """
     default_asr_options =  {
-        "beam_size": 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택
-        "best_of": 2, # 5 : temperature가 0이 아닐 때 샘플링할 후보 수입니다
-        "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
-        "length_penalty": 0.8, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
-        "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
+        "beam_size": 3, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
+        "best_of": 2, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
+        "patience": 1, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+        "repetition_penalty": 4, # 1 : 반복 토큰에 대한 패널티 요소.
+        "log_prob_threshold": -4, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
         "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
-        "temperatures":  [0.2, 0.4, 0.6, 0.8], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
+        
+        "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+        "temperatures":  [0.2, 0.4, 0.6, 0.8, 1.0], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
         "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
-        "log_prob_threshold": -1.0, # -1.0 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0
-        "no_speech_threshold": 0.6, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
+        "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
         "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
         # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
         "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
@@ -383,7 +384,7 @@ def load_model(model_name,
         "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
         "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
         "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
-        "max_new_tokens": 100, # 생성할 새 토큰의 최대 수.
+        "max_new_tokens": 512, # 생성할 새 토큰의 최대 수.
         "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
         "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
     }

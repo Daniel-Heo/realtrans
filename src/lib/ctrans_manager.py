@@ -157,14 +157,18 @@ class CTrans:
             default_trans_options =  {
                 "max_batch_size": 1, # 최대 배치 크기입니다. 입력 수보다 크면 max_batch_size입력은 길이별로 정렬되고 max_batch_size예제 청크로 분할되어 패딩 위치 수가 최소화됩니다.
                 "batch_type":  'tokens',  # max_batch_size"examples" 또는 "tokens"의 개수인지 여부입니다. "tokens"의 경우 입력이 토큰 수로 정렬됩니다.
-                "asynchronous": False, # bool = False, # AsyncTranslator를 사용하여 번역을 비동기식으로 수행합니다.
-                "beam_size": 3, #int = 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택 beam_size>=num_hypotheses>=sampling_topk
-                "patience": 0.8, #float = 1, # 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
-                "num_hypotheses": 1, #int = 1, # 반환할 가설의 수입니다. beam_size보다 작거나 같아야 합니다.
-                "length_penalty": 0.8, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
-                "coverage_penalty": 0.4, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
-                "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
+
+                "beam_size": 4, #int = 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택 beam_size>=num_hypotheses>=sampling_topk
+                "patience": 1, #float = 1, # 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+                "sampling_topk": 2, #int = 1, # 빔 한개당 각 단계별로 상위 후보로부터 가져오는 결과합니다. sampling_topk>=num_hypotheses
+                "sampling_topp": 0.6, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
+                "num_hypotheses": 2, #int = 1, # 빔 한개당 각 단계별 최종 결과 수입니다. beam_size보다 작거나 같아야 합니다. beam_size보다 작으면 확률이 높은 것만 반환됩니다.
+                "sampling_temperature": 0.3, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
+                "repetition_penalty": 4, #float = 1, # 반복 토큰에 대한 패널티 요소.
                 "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
+                "length_penalty": 1, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+                
+                "coverage_penalty": 0, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
                 "disable_unk": False, #bool = False, # 알 수 없는 토큰 생성을 비활성화합니다.
                 "suppress_sequences": None, #Optional[List[List[str]]] = None,  # 일부 토큰 시퀀스 생성을 비활성화합니다.
                 "end_token": None, #Optional[Union[str, List[str], List[int]]] = None, # 이러한 토큰 중 하나에 대한 디코딩을 중지합니다(기본값은 모델 EOS 토큰입니다).
@@ -176,13 +180,11 @@ class CTrans:
                 "use_vmap": False, #bool = False, # 이 모델에 저장된 어휘 매핑 파일을 사용합니다.
                 "return_scores": True, #bool = False, # 출력에 점수를 포함합니다.
                 "return_attention": False, #bool = False, # 출력에 주의 벡터를 포함합니다.
-                "return_alternatives": False, #bool = False, # 단일 결과 대신 여러 개의 가능한 결과를 반환할 수 있습니다. 이 옵션을 사용하려면 num_hypotheses를 설정해야 합니다. 사용자에게 선택권을 주기위해 사용할 수 있다.
+                "return_alternatives": False, #bool = False, # 단일 결과 대신 여러 개의 가능한 결과를 반환할 수 있습니다. 이 옵션을 사용하려면 num_hypotheses를 설정해야 합니다. 사용자에게 선택권을 주기위해 사용할 수 있다. 
                 "min_alternative_expansion_prob": 0, #float = 0, # 대안을 확장할 최소 초기 확률입니다.
-                "sampling_topk": 1, #int = 1, # 상위 K개 후보로부터 무작위로 예측을 샘플링합니다. num_hypotheses보다 작거나 같아야하는듯.
-                "sampling_topp": 1, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
-                "sampling_temperature": 0.8, #float = 1, # 더 많은 무작위 샘플을 생성하기 위한 샘플링 온도입니다.
                 "replace_unknowns": False, #bool = False, # 알 수 없는 대상 토큰을 관심도가 가장 높은 소스 토큰으로 교체합니다.
                 "callback": None, # Callable[[GenerationStepResult], bool] = None # 1일 때 생성된 각 토큰에 대해 호출되는 선택적 함수입니다 beam_size. 콜백 함수가 를 반환하면 True이 배치에 대한 디코딩이 중지됩니다. beam_size. 콜백 함수가 True를 반환하면 배치에 대한 디코딩이 중지됩니다.
+                "asynchronous": False, # bool = False, # AsyncTranslator를 사용하여 번역을 비동기식으로 수행합니다.
             }
 
             self.tokenizer.src_lang = source_lang
