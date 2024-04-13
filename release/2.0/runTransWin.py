@@ -413,6 +413,7 @@ def main(ARGS):
                             hallucination_filter = None
                             trans_lang = "en"
 
+                        transcript = ""
                         if hallucination_filter != None:
                             if halu_filter(tmp, hallucination_filter) == False:
                                 if ARGS.view != None:
