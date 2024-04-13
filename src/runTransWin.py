@@ -253,14 +253,18 @@ class Translator:
         # 처음에 -나 ' '가 있으면 제거
         outPut = outPut.strip()
         if outPut[0] == '-':
-            outPut = outPut[1:]
-            outPut = outPut.strip()
+            if len(outPut) > 1:
+                outPut = outPut[1:]
+                outPut = outPut.strip()
+            else :
+                outPut = ""
 
         try:
-            if self.isDecoding:
-                print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
-            else:
-                print(outPut.encode('utf-8', errors='ignore'))
+            if len(outPut) > 0:
+                if self.isDecoding:
+                    print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
+                else:
+                    print(outPut.encode('utf-8', errors='ignore'))
         except Exception as e:
             pass
 
