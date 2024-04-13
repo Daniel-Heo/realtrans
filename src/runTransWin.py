@@ -387,6 +387,7 @@ def main(ARGS):
                     #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
                 
                     # Faster Whisper 모델 사용
+                    result = None
                     if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
                         result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
                     else:
