@@ -258,12 +258,15 @@ class CTrans:
     # 로딩할 모델 이름 만들기
     def get_model_name(self, src_lang, tgt_lang):
         if src_lang == 'ALL':
-            load_trans_model_name = self.base_model
-        else:
-            load_trans_model_name = self.lang_map[src_lang]+"2"+self.lang_map[tgt_lang]
+            return self.base_model
+
+        # src_lang, tgt_lang가 lang_map에 있는지 확인
+        if src_lang not in self.lang_map or tgt_lang not in self.lang_map:
+            return self.base_model
+
+        load_trans_model_name = self.lang_map[src_lang]+"2"+self.lang_map[tgt_lang]
 
         return load_trans_model_name
-
 
 
 def print_list(data):
