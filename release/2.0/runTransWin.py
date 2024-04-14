@@ -27,6 +27,7 @@ import librosa
 import ctrans_manager
 import realtransc
 
+
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
 def read_file_if_exists(file_path):
     # 파일이 존재하는지 체크
@@ -126,36 +127,34 @@ class AudioCollect:
         return speech_timestamps
     
     def collect_speech(self, audio, speech_timestamps):
+        # 결과를 저장할 리스트 선언
         segments = []
-        if speech_timestamps : 
-            for speech_timestamp in speech_timestamps:
-                start = speech_timestamp['start']
-                end = speech_timestamp['end']
-                segments.append( audio[start:end] )
-
-            collected_audio = np.concatenate(segments)
-
+        # 입력된 speech_timestamps가 비어 있지 않은 경우에만 처리
+        if speech_timestamps:
+            # 리스트 컴프리헨션을 사용하여 segments 리스트를 생성
+            segments = [audio[timestamp['start']:timestamp['end']] for timestamp in speech_timestamps]
+            # np.concatenate로 모든 세그먼트를 하나의 배열로 결합
+            collected_audio = np.concatenate(segments) if segments else np.array([])
+        else:
+            # speech_timestamps가 비어있는 경우 빈 배열 반환
+            collected_audio = np.array([])
+            
         return collected_audio
-
-
-voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
-silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
 
 # 음성 활동 감지 클래스 : 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기, 4초는 그대로 음성 자르기
 class VADAudio(Audio):
-
     def __init__(self, aggressiveness=3, device=None):
         super().__init__(device=device)
         self.vad = webrtcvad.Vad(aggressiveness)
+        self.voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
+        self.silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
+        self.check_speech = ""
 
     def frame_generator(self):
         while True:
             yield self.read()
 
     def vad_collector(self, padding_ms=600, ratio=0.60, frames=None):
-        global voiced_duration
-        global silence_duration
-
         if frames is None:
             frames = self.frame_generator()
         num_padding_frames = padding_ms // self.frame_duration_ms # 300ms // 20ms = 15 frames : //(나눗셈의 정수형)
@@ -169,14 +168,24 @@ class VADAudio(Audio):
             # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
             is_speech = self.vad.is_speech(frame, 16000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
 
+            # TRACE : 음성 감지 여부를 확인합니다.
+            # if is_speech:
+            #     self.check_speech += '1'
+            # else:
+            #     self.check_speech += '0'
+
+            # if len(self.check_speech) > 49:
+            #     print(self.check_speech)
+            #     self.check_speech = ""
+
             # 기존 프레임이 음성이 아닌 상태에서 음성이 감지되면, 링 버퍼를 초기화하고 음성 감지를 시작합니다. f:frame, s:is_speech
             if not triggered:
                 ring_buffer.append((frame, is_speech)) # 링버퍼에 샘플과 음성 여부를 추가
                 num_voiced = len([f for f, speech in ring_buffer if speech]) # 링버퍼에 있는 음성 프레임의 개수를 계산
 
                 if num_voiced > ratio * ring_buffer.maxlen: # 링버퍼에 있는 음성 프레임의 비율이 설정된 ratio를 초과하면 음성 감지를 시작
-                    voiced_duration = num_voiced * self.frame_duration_ms
-                    silence_duration = 0
+                    self.voiced_duration = num_voiced * self.frame_duration_ms
+                    self.silence_duration = 0
                     triggered = True # 음성 감지 상태로 변경
                     for f, s in ring_buffer:
                         if s:
@@ -184,22 +193,22 @@ class VADAudio(Audio):
                     ring_buffer.clear()
             else:
                 if is_speech:
-                    voiced_duration += self.frame_duration_ms
-                    silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
-                    if voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                        voiced_duration = 0  # 정적 지속 시간을 리셋
-                        silence_duration = 0  # 정적 지속 시간을 리셋
+                    self.voiced_duration += self.frame_duration_ms
+                    self.silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
+                    if self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                        self.silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
                 else:
-                    voiced_duration += self.frame_duration_ms
-                    silence_duration += self.frame_duration_ms
-                    if voiced_duration > 3000 and silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
-                        voiced_duration = 0  # 정적 지속 시간을 리셋
-                        silence_duration = 0  # 정적 지속 시간을 리셋
+                    self.voiced_duration += self.frame_duration_ms
+                    self.silence_duration += self.frame_duration_ms
+                    if self.voiced_duration > 3000 and self.silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
+                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                        self.silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
-                    elif voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                        voiced_duration = 0  # 정적 지속 시간을 리셋
-                        silence_duration = 0  # 정적 지속 시간을 리셋
+                    elif self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                        self.silence_duration = 0  # 정적 지속 시간을 리셋
                         yield None 
 
                 if is_speech:
@@ -208,8 +217,8 @@ class VADAudio(Audio):
                 num_unvoiced = len(
                     [f for f, speech in ring_buffer if not speech])
                 if num_unvoiced > ratio * ring_buffer.maxlen:
-                    voiced_duration = 0  # 정적 지속 시간을 리셋
-                    silence_duration = 0  # 정적 지속 시간을 리셋
+                    self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                    self.silence_duration = 0  # 정적 지속 시간을 리셋
                     triggered = False
                     yield None
                     ring_buffer.clear()
@@ -224,7 +233,6 @@ def find_keys_with_value(json_data, target_value):
         # 값이 딕셔너리인 경우, 재귀적으로 함수를 호출해 내부에서도 검색합니다.
         #elif isinstance(value, dict):
         #    keys_found.extend(find_keys_with_value(value, target_value))
-    
     return None
 
 # 번역 처리 클래스
@@ -250,25 +258,27 @@ class Translator:
         if target_lang is None or source_lang == target_lang:
             return
 
-        outPut = ' '
+        outPut = ''
         outPut += self.ctrans.translate(text+' ', source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
         # 처음에 -나 ' '가 있으면 제거
         outPut = outPut.strip()
-        if outPut[0] == '-':
-            if len(outPut) > 1:
-                outPut = outPut[1:]
-                outPut = outPut.strip()
-            else :
-                outPut = ""
+        if len(outPut)>0:
+            if outPut[0] == '-':
+                if len(outPut) > 1:
+                    outPut = outPut[1:]
+                    outPut = outPut.strip()
+                else :
+                    outPut = ""
 
-        try:
-            if len(outPut) > 0:
+            #outPut = '>'+outPut
+
+            try:
                 if self.isDecoding:
                     print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
                 else:
                     print(outPut.encode('utf-8', errors='ignore'))
-        except Exception as e:
-            pass
+            except Exception as e:
+                pass
 
 # JSON 파일을 열고 그 내용을 읽어서 파이썬 객체로 변환하는 함수입니다.
 def load_json_file(file_path):
@@ -332,7 +342,7 @@ def main(ARGS):
 
     # Whisper 모델 로드
     #import whisper
-    #whisper_model = whisper.load_model("large-v3") # large, medium, small, base
+    #whisper_model = whisper.load_model("large-v2") # large, medium, small, base
     #whisper_model.to(cuda_dev)
 
     # Faster Whisper 모델 로드
@@ -375,7 +385,8 @@ def main(ARGS):
             # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
-            if len(wav_data) > 0 and audio_length_seconds > 0.1:
+            #if len(wav_data) > 0 and audio_length_seconds > 0.1:
+            if len(wav_data) > 0:
                 npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
@@ -478,17 +489,6 @@ def Int2Float(data, dtype=np.float32):
     # 정수형 데이터를 부동소수점으로 변환하고, -1.0과 1.0 사이의 값으로 정규화
     return data.astype(dtype) / max_int_value
 
-# 오디오 데이터를 저장하는 함수
-def save_wav(file_name, audio_data, sample_rate=16000):
-    import wave
-    print(f"Saving audio to {os.getcwd()}{file_name}")
-    with wave.open(file_name, 'wb') as wf:
-        wf.setnchannels(1)  # 모노 채널
-        wf.setsampwidth(2)  # 16비트 샘플
-        wf.setframerate(sample_rate)
-        wf.writeframes(audio_data.tobytes())
-    return file_path
-
 # 초기 작업처리
 if __name__ == '__main__':
 
@@ -520,8 +520,6 @@ if __name__ == '__main__':
 
     if( ARGS.source_lang == None):
         ARGS.source_lang = "eng_Latn"
-
-    if ARGS.view != None:
         ARGS.isDecoding = True
     else:
         ARGS.isDecoding = False
@@ -541,9 +539,12 @@ if __name__ == '__main__':
     #cuda activate : Translation processing with CPU
     ARGS.cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
     torch.device(ARGS.cuda_dev)
-    print('Translation processing with ' + ARGS.cuda_dev)
+    print('#Translation processing with ' + ARGS.cuda_dev)
 
     # UTF-8 출력 설정
     sys.stdout.reconfigure(encoding='utf-8')
 
-    main(ARGS)
+    # 메인 함수 호출
+    t1 = threading.Thread(target=main, args=(ARGS,))
+    t1.start()
+    t1.join()

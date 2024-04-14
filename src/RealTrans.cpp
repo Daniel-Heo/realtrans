@@ -244,7 +244,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 			}
 		}
 		else {
-			if (settings["ck_pctrans"] == true) {
+			if (settings["ck_pctrans"] == true || readBuf[0] == '#') {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
 					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n ");
@@ -713,9 +713,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		hwndTextBox = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
 									WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY,
 									33, 0, 300, 200, hWnd, (HMENU)1, GetModuleHandle(NULL), NULL);
-		
-		// 창을 항상 맨 위에 위치하게 설정
-		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
 		// 폰트 생성
 		hFont = CreateFont(30, // -MulDiv(20, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72), // 높이
@@ -740,6 +737,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// 메뉴 생성 : GDI만 사용 ( Image 관련 기능 안됨 )
 		lmenu = new CMenusDlg();
+
+		// 창을 항상 맨 위에 위치하게 설정
+		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	}
+	break;
+	case WM_WINDOWPOSCHANGED:
+		// 윈도우 위치나 크기가 변경될 때 실행됩니다.
+	{
+		// 창이 최상위가 아닐 경우 다시 최상위로 설정
+		WINDOWPOS* pPos = (WINDOWPOS*)lParam;
+		if (!(pPos->flags & SWP_NOZORDER)) {
+			SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		}
 	}
 	break;
 	case WM_COMMAND:
