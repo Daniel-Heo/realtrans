@@ -50,6 +50,7 @@ class LoopbackAudio(threading.Thread):
         self.mics = sc.all_microphones(include_loopback=True)
         self.mic_index = device
         self.stop_event = threading.Event()
+        self.is_paused = False
 
     def run(self):
         if self.mic_index == None:
@@ -58,26 +59,26 @@ class LoopbackAudio(threading.Thread):
             mic = self.mics[self.mic_index]
         with mic.recorder(samplerate=self.samplerate) as recorder:
             while not self.stop_event.is_set():
-                transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
-                # mono_data = librosa.to_mono(transposed_data)
-                # # mono_data의 최대 절대값을 구합니다.
-                # max_value = np.max(np.abs(mono_data))
-
-                # # 소리가 크지 않으면 3배 증폭
-                # #print("max_value : ", max_value)
-                # if max_value < 0.2:
-                #     normalized_data = mono_data *3
-                self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
+                if self.is_paused == False:
+                    transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
+                    self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
 
     def stop(self):
         self.stop_event.set()
+
+    def pause(self):
+        self.is_paused = True
+    
+    def resume(self):
+        self.is_paused = False
         
 # 음성 입력장치 제어 클래스
 class Audio(object):
     RATE_PROCESS = 16000
     CHANNELS = 1
     BLOCKS_PER_SECOND = 20 # 20ms
-
+    frame_duration_ms = BLOCKS_PER_SECOND
+    
     def __init__(self, callback=None, device=None):
         global ARGS
         def proxy_callback(in_data):
@@ -101,7 +102,11 @@ class Audio(object):
         self.soundcard_reader.stop()
         self.soundcard_reader.join()
 
-    frame_duration_ms = BLOCKS_PER_SECOND
+    def pause(self):
+        self.soundcard_reader.pause()
+    
+    def resume(self):
+        self.soundcard_reader.resume()
 
 class AudioCollect:
     def __init__(self):
@@ -369,9 +374,11 @@ def main(ARGS):
                 if work["src_lang"]=="xx": 
                     # 기존 유지
                     use_recognize= False
+                    vad_audio.pause()
                 else: 
                     ARGS.source_lang = work["src_lang"]
                     use_recognize = True
+                    vad_audio.resume()
                 
                 os.remove(os.getcwd()+"/pymsg.json")
 

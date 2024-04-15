@@ -216,6 +216,13 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 		addText.clear();
 		addFlag = false;
 		mtx.unlock(); // 뮤텍스 해제
+		if (0) {
+			convertBuf = Utf8ToWideString(readBuf);
+			if (convertBuf.size() > 0) {
+				//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
+				AppendTextToRichEdit(hwndTextBox, (WCHAR*)convertBuf.c_str());
+			}
+		}
 		if (readBuf[0] == '-') {
 			if (settings["ck_orgin_subtext"] == true) {
 				convertBuf = Utf8ToWideString(readBuf);
