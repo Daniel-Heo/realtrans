@@ -108,44 +108,6 @@ class Audio(object):
     def resume(self):
         self.soundcard_reader.resume()
 
-class AudioCollect:
-    def __init__(self):
-        self.get_speech_timestamps = None
-        self.read_audio = None
-        self.sampling_rate = 16000 # also accepts 8000
-        self.model = None
-        self.utils = None
-        self.load_model()
-
-    def load_model(self):
-        os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), "models")
-        self.model, self.utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
-                                    model='silero_vad',
-                                    force_reload=False,
-                                    trust_repo=True)
-        
-        (self.get_speech_timestamps,
-        _, self.read_audio, *_) = self.utils
-
-    def get_timestamp(self, audio):
-        speech_timestamps = self.get_speech_timestamps(audio, self.model, sampling_rate=self.sampling_rate)
-        return speech_timestamps
-    
-    def collect_speech(self, audio, speech_timestamps):
-        # 결과를 저장할 리스트 선언
-        segments = []
-        # 입력된 speech_timestamps가 비어 있지 않은 경우에만 처리
-        if speech_timestamps:
-            # 리스트 컴프리헨션을 사용하여 segments 리스트를 생성
-            segments = [audio[timestamp['start']:timestamp['end']] for timestamp in speech_timestamps]
-            # np.concatenate로 모든 세그먼트를 하나의 배열로 결합
-            collected_audio = np.concatenate(segments) if segments else np.array([])
-        else:
-            # speech_timestamps가 비어있는 경우 빈 배열 반환
-            collected_audio = np.array([])
-            
-        return collected_audio
-
 # 음성 활동 감지 클래스 : 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기, 4초는 그대로 음성 자르기
 class VADAudio(Audio):
     def __init__(self, aggressiveness=3, device=None):
@@ -228,6 +190,45 @@ class VADAudio(Audio):
                     yield None
                     ring_buffer.clear()
 
+
+class AudioCollect:
+    def __init__(self):
+        self.get_speech_timestamps = None
+        self.read_audio = None
+        self.sampling_rate = 16000 # also accepts 8000
+        self.model = None
+        self.utils = None
+        self.load_model()
+
+    def load_model(self):
+        os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), "models")
+        self.model, self.utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
+                                    model='silero_vad',
+                                    force_reload=False,
+                                    trust_repo=True)
+        
+        (self.get_speech_timestamps,
+        _, self.read_audio, *_) = self.utils
+
+    def get_timestamp(self, audio):
+        speech_timestamps = self.get_speech_timestamps(audio, self.model, sampling_rate=self.sampling_rate)
+        return speech_timestamps
+    
+    def collect_speech(self, audio, speech_timestamps):
+        # 결과를 저장할 리스트 선언
+        segments = []
+        # 입력된 speech_timestamps가 비어 있지 않은 경우에만 처리
+        if speech_timestamps:
+            # 리스트 컴프리헨션을 사용하여 segments 리스트를 생성
+            segments = [audio[timestamp['start']:timestamp['end']] for timestamp in speech_timestamps]
+            # np.concatenate로 모든 세그먼트를 하나의 배열로 결합
+            collected_audio = np.concatenate(segments) if segments else np.array([])
+        else:
+            # speech_timestamps가 비어있는 경우 빈 배열 반환
+            collected_audio = np.array([])
+            
+        return collected_audio
+    
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
     # JSON 데이터를 순회하며 키와 값을 확인합니다.

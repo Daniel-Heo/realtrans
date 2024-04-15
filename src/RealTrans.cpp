@@ -757,6 +757,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (!(pPos->flags & SWP_NOZORDER)) {
 			SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 		}
+		else return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	break;
 	case WM_COMMAND:
