@@ -223,7 +223,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 				AppendTextToRichEdit(hwndTextBox, (WCHAR*)convertBuf.c_str());
 			}
 		}
-		if (readBuf[0] == '-') {
+		if (readBuf[1] == '-') {
 			if (settings["ck_orgin_subtext"] == true) {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
@@ -251,7 +251,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 			}
 		}
 		else {
-			if (settings["ck_pctrans"] == true || readBuf[0] == '#') {
+			if (settings["ck_pctrans"] == true || readBuf[1] == '#') {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
 					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n ");
