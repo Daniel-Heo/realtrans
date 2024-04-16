@@ -16,7 +16,7 @@ model_list = {
 
 class disabled_tqdm(tqdm):
     def __init__(self, *args, **kwargs):
-        kwargs["disable"] = True
+        kwargs["disable"] = True # True: disable, False: enable
         super().__init__(*args, **kwargs)
 
 class CTrans:
@@ -73,11 +73,11 @@ class CTrans:
             "batch_type":  'tokens',  # max_batch_size"examples" 또는 "tokens"의 개수인지 여부입니다. "tokens"의 경우 입력이 토큰 수로 정렬됩니다.
 
             "beam_size": 2, #int = 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택 beam_size>=num_hypotheses>=sampling_topk
-            "patience": 1, #float = 1, # 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+            "patience": 0.8, #float = 1, # 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
             "sampling_topk": 1, #int = 1, # 빔 한개당 각 단계별로 상위 후보로부터 가져오는 결과합니다. sampling_topk>=num_hypotheses
-            "sampling_topp": 0.6, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
+            "sampling_topp": 0.8, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
             "num_hypotheses": 1, #int = 1, # 빔 한개당 각 단계별 최종 결과 수입니다. beam_size보다 작거나 같아야 합니다. beam_size보다 작으면 확률이 높은 것만 반환됩니다.
-            "sampling_temperature": 0.3, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
+            "sampling_temperature": 0.6, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
             "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
             "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
             "length_penalty": 1, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
@@ -206,7 +206,7 @@ class CTrans:
         start_pos = 0
         for i in range(len(source)):
             if source[i] == '.' or source[i] == '!' or source[i] == '?':
-                if i+1 < len(source) and not source[i+1].isdigit():
+                if i+1 < len(source) and source[i+1]==' ' and (i-start_pos)>3 and source[i-1]!='.': # not source[i+1].isdigit() and
                     if (i-start_pos) > 0:
                         input_list.append(source[start_pos:i+1])
                     start_pos = i+1
@@ -224,6 +224,8 @@ class CTrans:
 
         # transformer tokenizer
         if True:
+            # if source_lang in ["jpn_Jpan"]: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.low_trans_options)
+            # else: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
             results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
             translation = ""
             for result in results:

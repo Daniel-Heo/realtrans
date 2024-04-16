@@ -164,7 +164,7 @@ void SetRichEditSelColor(HWND hRichEdit) {
 
 // RichEdit 컨트롤에 텍스트를 추가하는 함수
 void AppendTextToRichEdit(HWND hRichEdit, WCHAR* textToAdd) {
-	std::wstring wstrAdd = L"\r\n";
+	std::wstring wstrAdd = L""; //  L"\r\n";
 	wstrAdd += textToAdd;
 	// 현재 선택을 문서의 끝으로 설정하여 텍스트 추가 위치를 문서 끝으로 합니다.
 	// 이는 텍스트 선택이 없을 경우 커서 위치를 문서 끝으로 이동시키는 효과가 있습니다.
@@ -188,7 +188,7 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime);
 
 void RunTimer() {
 	UINT_PTR timerId = 1; // 타이머 ID
-	UINT elapse = 40; // ms
+	UINT elapse = 20; // ms
 
 	// 타이머 설정
 	if (SetTimer(NULL, timerId, elapse, (TIMERPROC)TimerProc) == 0) {
@@ -407,6 +407,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 			strReadBuf.erase(end_pos, strReadBuf.end());
 			if (strReadBuf.size() > 1) {
 				mtx.lock(); // 뮤텍스 잠금
+				addText += '\n';
 				addText += strReadBuf;
 				addFlag = true;
 				mtx.unlock(); // 뮤텍스 해제
@@ -419,9 +420,9 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 			strEng += strReadBuf;
 			strEng += "\n";
 		}
-
+		
 		strReadBuf.clear();
-		Sleep(30);
+		Sleep(1);
 	}
 	// sjheo 동기 읽기 종료
 

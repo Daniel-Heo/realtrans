@@ -269,6 +269,11 @@ class FasterWhisperPipeline(Pipeline):
     def transcribe(
         self, audio: Union[str, np.ndarray], batch_size=None, num_workers=0, language=None, task=None
     ) -> TranscribeResult:
+        # global default_asr_options
+        # global low_asr_options
+        # faster_whisper.transcribe.TranscriptionOptions(**default_asr_options)
+        #if language in ["ja"]: faster_whisper.transcribe.TranscriptionOptions(**low_asr_options)
+        #else: faster_whisper.transcribe.TranscriptionOptions(**default_asr_options)
 
         def data(audio):
             yield {'inputs': audio[:]}
@@ -287,6 +292,7 @@ class FasterWhisperPipeline(Pipeline):
                 self.tokenizer = faster_whisper.tokenizer.Tokenizer(self.model.hf_tokenizer,
                                                                     self.model.model.is_multilingual, task=task,
                                                                     language=language)
+
 
         segments: List[SingleSeg] = []
         batch_size = batch_size or 1
@@ -320,6 +326,80 @@ class FasterWhisperPipeline(Pipeline):
         language = language_token[2:-2]
         return language
 
+"""
+model_size_or_path 모델 크기 또는 변환된 모델 디렉토리 경로를 지정합니다. 이 값은 모델이 Hugging Face 모델 허브에서 다운로드될 때 모델 이름으로도 사용됩니다. str -- 예
+device 모델이 실행될 장치를 지정합니다. 'auto'를 선택하면 사용 가능한 장치(CPU 또는 CUDA 지원 GPU)가 자동으로 선택됩니다. str auto auto cpu cuda 아니요
+device_index 사용할 장치 ID입니다. 모델을 여러 GPU에 로드할 경우 ID 목록을 전달합니다(예: [0, 1, 2, 3]). Union[int, List[int]] 0 - 아니요
+compute_type 계산에 사용할 유형을 지정합니다. 참조: https://opennmt.net/CTranslate2/quantization.html str default default auto int8 int8_float16 int16 float16 float32 아니요
+cpu_threads CPU에서 실행할 때 사용할 스레드 수를 지정합니다. 0이 아닌 값을 지정하면 OMP_NUM_THREADS 환경 변수가 재정의됩니다. int 0 - 아니요
+num_workers transcribe()가 여러 Python 스레드에서 호출되는 경우, 여러 작업자를 사용하여 병렬 처리가 가능합니다. int 1 - 아니요
+download_root 모델을 저장할 디렉토리입니다. 설정되지 않은 경우 모델은 표준 Hugging Face 캐시 디렉토리에 저장됩니다. Optional[str] None - 아니요
+local_files_only True인 경우 파일 다운로드를 회피하고 기존 로컬 캐시 파일 경로를 반환합니다. bool False - 아니요
+
+transcribe 메서드
+인수 이름 설명 데이터 타입 기본값 선택지 필수
+audio 입력 파일 경로, 파일과 유사한 객체 또는 오디오 파형 Union[str, BinaryIO, np.ndarray] 없음 - 예
+language 오디오에서 사용되는 언어입니다. 언어 코드("en", "fr" 등)를 지정합니다. 지정하지 않으면 처음 30초의 오디오에서 언어를 감지합니다. 
+task 수행할 작업입니다. translate를 선택하면 영어 번역이 됩니다. str transcribe transcribe, translate 아니요
+"""
+default_asr_options =  {
+    "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
+    "best_of": 2, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
+    "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+    "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
+    "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
+    "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
+    
+    "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+    "temperatures":  [0.2, 0.4, 0.6, 0.8, 1.0], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
+    "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
+    "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
+    "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
+    # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
+    "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
+    "initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
+    "prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
+    "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
+    "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
+    "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
+    "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
+    "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
+    "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
+    "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
+    "max_new_tokens": 512, # 생성할 새 토큰의 최대 수.
+    "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
+    "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
+}
+
+low_asr_options =  {
+    "beam_size": 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
+    "best_of": 1, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
+    "patience": 1, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+    "repetition_penalty": 5, # 1 : 반복 토큰에 대한 패널티 요소.
+    "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
+    "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
+    
+    "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+    "temperatures":  [0.2, 0.4, 0.6, 0.8, 1.0], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
+    "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
+    "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
+    "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
+    # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
+    "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
+    "initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
+    "prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
+    "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
+    "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
+    "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
+    "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
+    "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
+    "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
+    "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
+    "max_new_tokens": 512, # 생성할 새 토큰의 최대 수.
+    "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
+    "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
+}
+
 # 입력된 매개변수를 사용하여 FasterWhisperPipeline 인스턴스를 생성하고 반환합니다.
 def load_model(model_name,
                device, # cuda or cpu 
@@ -329,6 +409,7 @@ def load_model(model_name,
                download_root=None, # model download root
                threads=4): # number of threads
 
+    global default_asr_options
     # model_name이 없으면 language를 model_name으로 지정합니다.
     if model_name is None:
         model_name = "large-v2"
@@ -343,85 +424,9 @@ def load_model(model_name,
                          compute_type=compute_type, # float16
                          download_root=download_root, # model download root
                          cpu_threads=threads)
-    
-    """
-    model_size_or_path 모델 크기 또는 변환된 모델 디렉토리 경로를 지정합니다. 이 값은 모델이 Hugging Face 모델 허브에서 다운로드될 때 모델 이름으로도 사용됩니다. str -- 예
-    device 모델이 실행될 장치를 지정합니다. 'auto'를 선택하면 사용 가능한 장치(CPU 또는 CUDA 지원 GPU)가 자동으로 선택됩니다. str auto auto cpu cuda 아니요
-    device_index 사용할 장치 ID입니다. 모델을 여러 GPU에 로드할 경우 ID 목록을 전달합니다(예: [0, 1, 2, 3]). Union[int, List[int]] 0 - 아니요
-    compute_type 계산에 사용할 유형을 지정합니다. 참조: https://opennmt.net/CTranslate2/quantization.html str default default auto int8 int8_float16 int16 float16 float32 아니요
-    cpu_threads CPU에서 실행할 때 사용할 스레드 수를 지정합니다. 0이 아닌 값을 지정하면 OMP_NUM_THREADS 환경 변수가 재정의됩니다. int 0 - 아니요
-    num_workers transcribe()가 여러 Python 스레드에서 호출되는 경우, 여러 작업자를 사용하여 병렬 처리가 가능합니다. int 1 - 아니요
-    download_root 모델을 저장할 디렉토리입니다. 설정되지 않은 경우 모델은 표준 Hugging Face 캐시 디렉토리에 저장됩니다. Optional[str] None - 아니요
-    local_files_only True인 경우 파일 다운로드를 회피하고 기존 로컬 캐시 파일 경로를 반환합니다. bool False - 아니요
-
-    transcribe 메서드
-    인수 이름 설명 데이터 타입 기본값 선택지 필수
-    audio 입력 파일 경로, 파일과 유사한 객체 또는 오디오 파형 Union[str, BinaryIO, np.ndarray] 없음 - 예
-    language 오디오에서 사용되는 언어입니다. 언어 코드("en", "fr" 등)를 지정합니다. 지정하지 않으면 처음 30초의 오디오에서 언어를 감지합니다. 
-    task 수행할 작업입니다. translate를 선택하면 영어 번역이 됩니다. str transcribe transcribe, translate 아니요
-    """
-    default_asr_options =  {
-        "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
-        "best_of": 2, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
-        "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
-        "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
-        "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
-        "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
-        
-        "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
-        "temperatures":  [0.2, 0.4, 0.6, 0.8, 1.0], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
-        "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
-        "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
-        "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
-        # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
-        "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
-        "initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
-        "prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
-        "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
-        "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
-        "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
-        "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
-        "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
-        "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
-        "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
-        "max_new_tokens": 512, # 생성할 새 토큰의 최대 수.
-        "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
-        "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
-    }
-    
-    low_asr_options =  {
-        "beam_size": 2, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
-        "best_of": 1, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
-        "patience": 1, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
-        "repetition_penalty": 5, # 1 : 반복 토큰에 대한 패널티 요소.
-        "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
-        "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
-        
-        "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
-        "temperatures":  [0.2, 0.4, 0.6, 0.8, 1.0], # 신뢰도입니다. 0에 가까울수록 확실한 선택을 하고, 0에서 멀어질수록 다양한 선택지를 선택합니다. compression_ratio_threshold 또는 log_prob_threshold로 인해 실패했을 때 순차적으로 사용됩니다.
-        "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
-        "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
-        "condition_on_previous_text": False, # False : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다
-        # initial_prompt 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None - 아니요
-        "prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
-        "initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
-        "prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
-        "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
-        "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
-        "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
-        "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
-        "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
-        "prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
-        "append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
-        "max_new_tokens": 512, # 생성할 새 토큰의 최대 수.
-        "clip_timestamps": None, #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
-        "hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
-    }
-
-    default_asr_options = faster_whisper.transcribe.TranscriptionOptions(**default_asr_options)
 
     return FasterWhisperPipeline(
         model=model,
-        options=default_asr_options,
-        language=language,
+        options=faster_whisper.transcribe.TranscriptionOptions(**default_asr_options),
+        language=None,
     )

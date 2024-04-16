@@ -50,7 +50,7 @@ class LoopbackAudio(threading.Thread):
         self.mics = sc.all_microphones(include_loopback=True)
         self.mic_index = device
         self.stop_event = threading.Event()
-        self.is_paused = False
+        self.is_paused = True
 
     def run(self):
         if self.mic_index == None:
@@ -201,7 +201,7 @@ class AudioCollect:
         self.load_model()
 
     def load_model(self):
-        os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), "models")
+        #os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), "models")
         self.model, self.utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                                     model='silero_vad',
                                     force_reload=False,
@@ -351,10 +351,17 @@ def main(ARGS):
     #whisper_model = whisper.load_model("large-v2") # large, medium, small, base
     #whisper_model.to(cuda_dev)
 
+    # ARGS.source_lang이 all이면 en 아니면 ARGS.source_lang를 ARGS.whisper_lang_map에서 찾아서 사용
+    #tmp_lang = ARGS.source_lang if ARGS.source_lang != "ALL" else "en"
+
     # Faster Whisper 모델 로드
     whisper_model = realtransc.load_model(ARGS.model_size, device=ARGS.cuda_dev, compute_type="float16") # small, medium, large
 
+    # 번역 클래스 생성
     translator = Translator(ARGS)
+
+    # 음성 입력 시작
+    vad_audio.resume()
 
     wav_data = bytearray()
     for frame in frames:
