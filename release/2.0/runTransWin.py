@@ -406,7 +406,7 @@ def main(ARGS):
                 os.remove(os.getcwd()+"/pymsg.json")
 
         if use_recognize == False:
-            sleep(1)
+            sleep(0.01)
             continue
 
         if frame is not None:
