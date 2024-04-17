@@ -224,8 +224,8 @@ class CTrans:
 
         # transformer tokenizer
         if True:
-            # if source_lang in ["jpn_Jpan"]: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.low_trans_options)
-            # else: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
+            #if source_lang in ["jpn_Jpan"]: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.#low_trans_options)
+            #else: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
             results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
             translation = ""
             for result in results:

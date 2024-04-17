@@ -25,7 +25,6 @@ import pyaudio
 import json
 import librosa
 import ctrans_manager
-import realtransc
 
 
 # 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
@@ -189,45 +188,6 @@ class VADAudio(Audio):
                     triggered = False
                     yield None
                     ring_buffer.clear()
-
-
-class AudioCollect:
-    def __init__(self):
-        self.get_speech_timestamps = None
-        self.read_audio = None
-        self.sampling_rate = 16000 # also accepts 8000
-        self.model = None
-        self.utils = None
-        self.load_model()
-
-    def load_model(self):
-        #os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), "models")
-        self.model, self.utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
-                                    model='silero_vad',
-                                    force_reload=False,
-                                    trust_repo=True)
-        
-        (self.get_speech_timestamps,
-        _, self.read_audio, *_) = self.utils
-
-    def get_timestamp(self, audio):
-        speech_timestamps = self.get_speech_timestamps(audio, self.model, sampling_rate=self.sampling_rate)
-        return speech_timestamps
-    
-    def collect_speech(self, audio, speech_timestamps):
-        # 결과를 저장할 리스트 선언
-        segments = []
-        # 입력된 speech_timestamps가 비어 있지 않은 경우에만 처리
-        if speech_timestamps:
-            # 리스트 컴프리헨션을 사용하여 segments 리스트를 생성
-            segments = [audio[timestamp['start']:timestamp['end']] for timestamp in speech_timestamps]
-            # np.concatenate로 모든 세그먼트를 하나의 배열로 결합
-            collected_audio = np.concatenate(segments) if segments else np.array([])
-        else:
-            # speech_timestamps가 비어있는 경우 빈 배열 반환
-            collected_audio = np.array([])
-            
-        return collected_audio
     
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -276,8 +236,6 @@ class Translator:
                 else :
                     outPut = ""
 
-            #outPut = '>'+outPut
-
             try:
                 if self.isDecoding:
                     print(outPut.encode('utf-8', errors='ignore').decode('utf-8'))
@@ -322,8 +280,38 @@ def halu_filter(src_txt, filter_list):
             if src_txt == filter_txt: return True
     return False
 
+default_asr_options =  {
+    "vad_filter": True ,
+    "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
+    "best_of": 2, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
+    "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
+    "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
+    "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
+    "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
+    
+    "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
+    "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
+    "no_speech_threshold": 0.4, # 0.6 토큰 확률이 이 값보다 높고 'logprob_threshold'로 인해 디코딩이 실패한 경우, 세그먼트를 무음으로 간주합니다. 
+    "condition_on_previous_text": True, # True : True인 경우 모델의 이전 출력을 다음 윈도우의 프롬프트로 지정하여 일관된 출력이 가능합니다. False로 하면 텍스트의 일관성이 없어질 수 있지만 모델이 비정상 루프에 빠지는 것을 방지할 수 있습니다.  
+    #"prompt_reset_on_temperature": 0.4, # 0.5 프롬프트를 재설정하기 위한 온도 임계값. -- condition_on_previous_text가 True인 경우에만 사용됩니다.
+    #"initial_prompt": None, # 모델의 초기 윈도우 프롬프트로 제공할 선택적 텍스트입니다. 예: 의학 Optional[str] None 
+    
+    #"prefix": None, # 오디오의 초기 윈도우 접두사로 제공할 선택적 텍스트입니다. Optional[str] None
+    "suppress_blank": True, # True : 샘플링 시작 시 빈 출력을 억제합니다. bool True - 아니요
+    "suppress_tokens": [-1], # 억제할 토큰 ID 목록입니다. -1은 model.config.json 파일에 정의된 기본 기호 집합을 억제합니다. Optional[List[int]] [-1] - 아니요
+    "without_timestamps": True, # 생성된 텍스트에 타임스탬프를 제외할지 여부
+    "max_initial_timestamp": 0.0, # 오디오의 초기 타임스탬프가 이 값보다 늦지 않도록 지정합니다. 오디오의 처음 부분이 무음 또는 불필요한 소리인 경우 타임스탬프 지정을 제한할 수 있습니다.
+    "word_timestamps": False, # 단어 수준에서 타임스탬프를 포함할지 여부.
+    #"prepend_punctuations": "", #"prepend_punctuations": "\"'“¿([{-", # 생성된 텍스트 앞에 붙일 구두점.
+    #"append_punctuations": "", #"append_punctuations": "\"'.。,，!！?？:：”)]}、", # 생성된 텍스트 뒤에 붙일 구두점.
+    #"max_new_tokens": None, # 440, # 생성할 새 토큰의 최대 수.
+    #"hallucination_silence_threshold": None, # 생성된 텍스트에서 환각 감지를 위한 임계값. 최소 2초의 침묵이 발생한 후 속삭임이 환각에 대해 경계하게 만드는 것을 사용. 0.5초 미만은 대화를 잠시 쉬는것이라 의미 없음. vad_filter=True로 설정해서 무음을 제거하면 무음 할루시네이션을 쉽게 제거 가능.
+    #"clip_timestamps": "0", #  자체 임계값 매개변수를 사용하여 등록하는 데 필요한 무음 기간을 지정.
+}
+
 # 음성 입력을 처리하는 메인 함수
 def main(ARGS):
+    global default_asr_options
     cmdCheckTime = time.time()
     use_recognize = True  # 음성인식 사용 여부
     use_trans = ARGS.use_trans  # 번역 사용 여부
@@ -344,18 +332,9 @@ def main(ARGS):
 
     frames = vad_audio.vad_collector()
 
-    audio_collect = AudioCollect()
-
-    # Whisper 모델 로드
-    #import whisper
-    #whisper_model = whisper.load_model("large-v2") # large, medium, small, base
-    #whisper_model.to(cuda_dev)
-
-    # ARGS.source_lang이 all이면 en 아니면 ARGS.source_lang를 ARGS.whisper_lang_map에서 찾아서 사용
-    #tmp_lang = ARGS.source_lang if ARGS.source_lang != "ALL" else "en"
-
-    # Faster Whisper 모델 로드
-    whisper_model = realtransc.load_model(ARGS.model_size, device=ARGS.cuda_dev, compute_type="float16") # small, medium, large
+    # Faster Whisper 원본 모델 로드
+    from faster_whisper import WhisperModel
+    whisper_model = WhisperModel("large-v3", device="cuda", compute_type="float16")
 
     # 번역 클래스 생성
     translator = Translator(ARGS)
@@ -406,76 +385,60 @@ def main(ARGS):
                 # 오디오 데이터를 부동소수점으로 변환
                 audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
 
-                time_stamp = audio_collect.get_timestamp(audio_float16)
-                if time_stamp:
-                    audio_float16 = audio_collect.collect_speech(audio_float16, time_stamp)
-
-                    # Whisper 모델 사용
-                    # if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                    #     srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                    # else:
-                    #     if( ARGS.source_lang == "ALL"):
-                    #         srcText = whisper_model.transcribe(audio=audio_float16, fp16=True, condition_on_previous_text=False)
-                    #         trans_lang = srcText['language']
-                    #     else:
-                    #         trans_lang = whisper_lang_map[ARGS.source_lang]
-                    #         srcText = whisper_model.transcribe(audio=audio_float16, language=trans_lang, fp16=True, condition_on_previous_text=False)
-                    #srcText = whisper_model.transcribe(audio=audio_float32, language="en", fp16=True)
-                
-                    # Faster Whisper 모델 사용
-                    result = None
-                    if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
-                        result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
+                # Faster Whisper 원본 모델 사용
+                segments = None
+                if( audio_length_seconds < 3 and trans_lang != None): # 3초 이내의 음성은 기존 language를 사용한다.
+                    segments, info = whisper_model.transcribe(audio=audio_float16, language=trans_lang, **default_asr_options)
+                else:
+                    if( ARGS.source_lang == "ALL"):
+                        segments, info = whisper_model.transcribe(audio=audio_float16, **default_asr_options )
+                        trans_lang = info.language
                     else:
-                        if( ARGS.source_lang == "ALL"):
-                            result = whisper_model.transcribe(audio=audio_float16 )
-                            trans_lang = result['language']
-                        else:
-                            trans_lang = ARGS.lang_map[ARGS.source_lang]
-                            result = whisper_model.transcribe(audio=audio_float16, language=trans_lang )
+                        trans_lang = ARGS.lang_map[ARGS.source_lang]
+                        segments, info = whisper_model.transcribe(audio=audio_float16, language=trans_lang, **default_asr_options )
 
-                    srcText = {'text': ''}
-                    for segment in result["segments"]:
-                        srcText['text'] += segment['text']
+                srcText = {'text': ''}
+                for segment in segments:
+                    srcText['text'] += segment.text
 
-                    # srcText['text']에서 ⁇ 문자 제거
-                    srcText['text'] = srcText['text'].replace("⁇", "")
-                    
-                    tmp = ""
-                    if len(srcText['text'])>1:
-                        tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
-                        try:
-                            hallucination_filter = json_filter[trans_lang]
-                        except Exception as e:
-                            hallucination_filter = None
-                            trans_lang = "en"
+                # srcText['text']에서 ⁇ 문자 제거
+                srcText['text'] = srcText['text'].replace("⁇", "")
+                
+                tmp = ""
+                if len(srcText['text'])>1:
+                    tmp = srcText['text'][0:].encode('utf-8', errors='ignore').decode('utf-8')
+                    try:
+                        hallucination_filter = json_filter[trans_lang]
+                    except Exception as e:
+                        hallucination_filter = None
+                        trans_lang = "en"
 
-                        transcript = ""
-                        if hallucination_filter != None:
-                            if halu_filter(tmp, hallucination_filter) == False:
-                                if ARGS.view != None:
-                                    transcript = " "+trans_lang+"> "+tmp
-                                else :
-                                    transcript = " "+tmp
-                        else:
-                            if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
+                    transcript = ""
+                    if hallucination_filter != None:
+                        if halu_filter(tmp, hallucination_filter) == False:
+                            if ARGS.view != None:
                                 transcript = " "+trans_lang+"> "+tmp
                             else :
                                 transcript = " "+tmp
+                    else:
+                        if ARGS.view != None: # 언어코드 출력 ( 디버깅용 )
+                            transcript = " "+trans_lang+"> "+tmp
+                        else :
+                            transcript = " "+tmp
 
-                        # use_trans가 False이면 이곳에서 출력
-                        if len(transcript) > 1:
-                            try:
-                                outText = '-'+transcript
-                                if ARGS.isDecoding==True:
-                                    print(outText.encode('utf-8', errors='ignore').decode('utf-8'))
-                                else :
-                                    print(outText.encode('utf-8', errors='ignore'))
-                            except Exception as e:
-                                pass  # 에러가 발생해도 아무런 행동을 취하지 않음
+                    # use_trans가 False이면 이곳에서 출력
+                    if len(transcript) > 1:
+                        try:
+                            outText = '-'+transcript
+                            if ARGS.isDecoding==True:
+                                print(outText.encode('utf-8', errors='ignore').decode('utf-8'))
+                            else :
+                                print(outText.encode('utf-8', errors='ignore'))
+                        except Exception as e:
+                            pass  # 에러가 발생해도 아무런 행동을 취하지 않음
 
-                            if use_trans: 
-                                translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
+                        if use_trans: 
+                            translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
 
                 frame = bytearray()
                 wav_data = bytearray()
