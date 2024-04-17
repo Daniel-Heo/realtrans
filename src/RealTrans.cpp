@@ -750,17 +750,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	}
 	break;
-	//case WM_WINDOWPOSCHANGED:
-	//	// 윈도우 위치나 크기가 변경될 때 실행됩니다.
-	//{
-	//	// 창이 최상위가 아닐 경우 다시 최상위로 설정
-	//	WINDOWPOS* pPos = (WINDOWPOS*)lParam;
-	//	if (!(pPos->flags & SWP_NOZORDER)) {
-	//		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-	//	}
-	//	else return DefWindowProc(hWnd, message, wParam, lParam);
-	//}
-	//break;
+	case WM_WINDOWPOSCHANGED:
+	{
+		WINDOWPOS* pPos = (WINDOWPOS*)lParam;
+		// 창이 최상위인지 확인
+		LONG style = GetWindowLong(hWnd, GWL_EXSTYLE);
+		if (!(style & WS_EX_TOPMOST)) {
+			// 최상위가 아니면 최상위로 설정
+			if (!(pPos->flags & SWP_NOZORDER)) {
+				SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+			}
+		}
+		return 0; // 메시지 처리 종료
+	}
+	break;
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
