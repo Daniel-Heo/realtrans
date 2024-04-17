@@ -397,11 +397,11 @@ def main(ARGS):
                 if work["src_lang"]=="xx": 
                     # 기존 유지
                     use_recognize= False
-                    vad_audio.pause()
+                    #vad_audio.pause()
                 else: 
                     ARGS.source_lang = work["src_lang"]
                     use_recognize = True
-                    vad_audio.resume()
+                    #vad_audio.resume()
                 
                 os.remove(os.getcwd()+"/pymsg.json")
 
