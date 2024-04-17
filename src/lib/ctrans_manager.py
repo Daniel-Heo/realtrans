@@ -131,7 +131,7 @@ class CTrans:
                 model_path = snapshot_download(repo_id, **kwargs)
             else:
                 model_path = snapshot_download(repo_id, resume_download=resume,**kwargs)
-            print("#Download Success!")
+            print("#Loading Success!")
         except:
             # resume download
             #print("#Model download failed. Try to resume download.")
@@ -140,7 +140,7 @@ class CTrans:
                 model_path = snapshot_download(repo_id, **kwargs)
             else:
                 model_path = snapshot_download(repo_id, resume_download=resume, **kwargs)
-            print("#Download Success!")
+            print("#Loading Success!")
 
         return model_path
 
