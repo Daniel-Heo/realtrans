@@ -50,6 +50,8 @@ class LoopbackAudio(threading.Thread):
         self.mic_index = device
         self.stop_event = threading.Event()
         self.is_paused = True
+        self.work_idx = 0 # 0~9 : LoopbackAudio의 처리
+        self.audio_data = [None] * 10
 
     def run(self):
         if self.mic_index == None:
@@ -59,8 +61,12 @@ class LoopbackAudio(threading.Thread):
         with mic.recorder(samplerate=self.samplerate) as recorder:
             while not self.stop_event.is_set():
                 if self.is_paused == False:
-                    transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
-                    self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
+                    self.audio_data[self.work_idx] = recorder.record(numframes=self.frame_size)
+                    self.work_idx += 1
+                    if self.work_idx > 9:
+                        self.work_idx = 0
+                    # transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
+                    # self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
 
     def stop(self):
         self.stop_event.set()
@@ -72,7 +78,7 @@ class LoopbackAudio(threading.Thread):
         self.is_paused = False
         
 # 음성 입력장치 제어 클래스
-class Audio(object):
+class Audio(threading.Thread):
     RATE_PROCESS = 16000
     CHANNELS = 1
     BLOCKS_PER_SECOND = 20 # 20ms
@@ -80,19 +86,42 @@ class Audio(object):
     
     def __init__(self, callback=None, device=None):
         global ARGS
-        def proxy_callback(in_data):
-            callback(in_data)
-        if callback is None:
-            def callback(in_data): 
-                return self.buffer_queue.put(in_data)
+        threading.Thread.__init__(self)
+
+        # def proxy_callback(in_data):
+        #     callback(in_data)
+        # if callback is None:
+        #     def callback(in_data): 
+        #         return self.buffer_queue.put(in_data)
             
         self.buffer_queue = queue.Queue()
         self.device = device
+        self.stop_event = threading.Event()
+        self.work_idx = 0 # 0~9 : LoopbackAudio의 처리를 따라간다.
 
+        #self.count = 0
         self.soundcard_reader = LoopbackAudio(
-            callback=proxy_callback, device=self.device)
+            callback=None, device=self.device)
         self.soundcard_reader.daemon = True
         self.soundcard_reader.start()
+        self.daemon = True
+        self.start()
+
+    def run(self):
+        while not self.stop_event.is_set():
+            # self.count += 1
+            # if self.count > 1000:
+            #     print("1")
+            #     self.count = 0
+
+            if self.work_idx != self.soundcard_reader.work_idx and self.soundcard_reader.is_paused == False:
+                transposed_data = np.transpose(self.soundcard_reader.audio_data[self.work_idx])
+                #self.proxy_callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
+                self.buffer_queue.put((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
+                self.work_idx += 1
+                if self.work_idx > 9:
+                    self.work_idx = 0
+            else: sleep(0.01)
 
     def read(self):
         return self.buffer_queue.get()
@@ -100,6 +129,9 @@ class Audio(object):
     def destroy(self):
         self.soundcard_reader.stop()
         self.soundcard_reader.join()
+
+    def stop(self):
+        self.stop_event.set()
 
     def pause(self):
         self.soundcard_reader.pause()
@@ -334,7 +366,11 @@ def main(ARGS):
 
     # Faster Whisper 원본 모델 로드
     from faster_whisper import WhisperModel
-    whisper_model = WhisperModel("large-v3", device="cuda", compute_type="float16")
+    if ARGS.model_size == "large":
+        model_size = "large-v3"
+    else: model_size = ARGS.model_size
+
+    whisper_model = WhisperModel(model_size, device="cuda", compute_type="float16")
 
     # 번역 클래스 생성
     translator = Translator(ARGS)
