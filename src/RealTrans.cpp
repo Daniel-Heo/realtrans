@@ -759,9 +759,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// 최상위가 아니면 최상위로 설정
 			if (!(pPos->flags & SWP_NOZORDER)) {
 				SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+				return 0; // 메시지 처리 종료
 			}
 		}
-		return 0; // 메시지 처리 종료
+		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	break;
 	case WM_COMMAND:
