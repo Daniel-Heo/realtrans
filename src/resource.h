@@ -9,6 +9,7 @@
 #define IDS_MODEL_CHANGE_WARNING        104
 #define IDM_EXIT                        105
 #define IDS_ALERT                       105
+#define IDS_TRANSLATE                   106
 #define IDI_SMALL                       108
 #define IDC_REALTRANS                   109
 #define IDI_REALTRANS                   127
@@ -76,6 +77,11 @@
 #define IDC_COMBO_MODEL_SIZE            1054
 #define IDC_EDIT_TRANS_API_KEY          1055
 #define IDC_EDIT_SUMMARY_API_KEY        1056
+#define IDC_STATIC2                     1060
+#define IDC_CB_SRCLANG                  1061
+#define IDC_CB_TGTLANG                  1062
+#define IDC_BTN_TRANSLATE               1063
+#define IDC_STATIC_ARROW                1064
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -85,7 +91,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1060
+#define _APS_NEXT_CONTROL_VALUE         1065
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

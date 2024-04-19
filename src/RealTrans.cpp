@@ -22,9 +22,11 @@
 #include "json.hpp"
 #include "CDlgSummary.h"
 #include "CDlgInfo.h"
+#include "CDlgTrans.h"
 #include "StrConvert.h"
 #include "deepl_api.h"
 #include "language.h"
+#include "version.h"
 
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
@@ -37,8 +39,6 @@ RECT iconRect;
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
-WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
-WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
 
 HWND hwndTextBox; // 전역 변수로 메인 윈도우 핸들과 텍스트박스 핸들을 선언합니다.
 HFONT hFont; // 전역 변수로 폰트 핸들을 저장
@@ -88,7 +88,10 @@ bool runSummary = false;
 extern bool addSummaryFlag;
 
 // 정보창
-CDlgInfo* DlgInfo;
+CDlgInfo* DlgInfo = NULL;
+
+// 번역창
+CDlgTrans* DlgTrans = NULL;
 
 // 언어
 LPWSTR oldUILang;
@@ -281,10 +284,14 @@ void RunJobs() {
 			runSummary = true;
 		}
 	}
+	// 요약 실행
 	if (runSummary == true) {
 		DlgSum->BgSummary();
 		runSummary = false;
 	}
+	// 번역파일 처리 : translate_out.txt 파일이 있으면 번역창에 표시하고 삭제한다.
+	if ( DlgTrans!=NULL ) DlgTrans->CheckTransFile();
+
 }
 
 // 작업 Thread : Python 프로그램과 pipe로 번역된 결과를 받아서 내부에 적재
@@ -422,7 +429,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 		}
 		
 		strReadBuf.clear();
-		Sleep(1);
+		Sleep(5);
 	}
 	// sjheo 동기 읽기 종료
 
@@ -585,9 +592,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 
 	if (GetCurrentThreadId() == g_MainUIThreadID) {
-		// 전역 문자열을 초기화합니다.
-		LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-		LoadStringW(hInstance, IDC_REALTRANS, szWindowClass, MAX_LOADSTRING);
 		MyRegisterClass(hInstance);
 
 		// 애플리케이션 초기화를 수행합니다:
@@ -639,7 +643,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = 0;
-	wcex.lpszClassName = szWindowClass;
+	wcex.lpszClassName = APP_TITLE;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_REALTRANS));
 	wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH); // 배경을 검은색으로 설정
 
@@ -666,8 +670,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	HWND hWnd = CreateWindowEx(
 		WS_EX_CLIENTEDGE, // 확장 스타일
-		szWindowClass,      // 윈도우 클래스 이름
-		szTitle, // 윈도우 타이틀 (이 경우에는 보이지 않음)
+		APP_TITLE,      // 윈도우 클래스 이름
+		APP_TITLE_VERSION, // 윈도우 타이틀 (이 경우에는 보이지 않음)
 		WS_OVERLAPPEDWINDOW & ~WS_CAPTION, // 기본 스타일에서 WS_CAPTION을 제거
 		CW_USEDEFAULT, CW_USEDEFAULT, 1280, 400, // 위치 및 크기
 		NULL, NULL, hInstance, NULL
@@ -703,6 +707,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	if (GetCurrentThreadId() != g_MainUIThreadID) {
 		return 0;
 	}
+
+	// 번역창
+	if( DlgTrans!=NULL ) DlgTrans->WndProc(hWnd, message, wParam, lParam);
 
 	//long style;
 	switch (message)
@@ -841,12 +848,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ShellExecuteA(0, "open", "chrome.exe", "https://edition.cnn.com/markets/fear-and-greed", NULL, SW_SHOWNORMAL);
 		}
 		else if (pt.x > 0 && pt.x < 34 && pt.y > 197 && pt.y < 226) {
+			// 번역창 전환
+			if (DlgTrans == NULL) {
+				DlgTrans = new CDlgTrans(hInst);
+				DlgTrans->Create(hWnd);
+			}
+
+			if (DlgTrans->bVisible==TRUE) {
+				DlgTrans->Hide();
+				ShowWindow(hwndTextBox, SW_SHOW);
+			}
+			else {
+				ShowWindow(hwndTextBox, SW_HIDE);
+				DlgTrans->Show();
+			}
+		}
+		else if (pt.x > 0 && pt.x < 34 && pt.y > 234 && pt.y < 266) {
+			//ShellExecuteA(0, "open", "chrome.exe", "https://www.cnbc.com/world/?region=world", NULL, SW_SHOWNORMAL);
 			// 정보
 			DlgInfo = new CDlgInfo(hInst);
 			DlgInfo->Create(hWnd);
-		}
-		else if (pt.x > 0 && pt.x < 34 && pt.y > 234 && pt.y < 266) {
-			ShellExecuteA(0, "open", "chrome.exe", "https://www.cnbc.com/world/?region=world", NULL, SW_SHOWNORMAL);
 		}
 	}
 	break;
@@ -882,9 +903,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-
 	case WM_COMMAND:
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
 		{

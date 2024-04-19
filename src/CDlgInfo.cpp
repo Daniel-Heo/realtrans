@@ -2,6 +2,7 @@
 #include "CDlgInfo.h"
 #include <commctrl.h> // Common Controls 헤더
 #include "StrConvert.h"
+#include "version.h"
 #pragma comment(lib, "comctl32.lib") //adds link to control control DLL
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
@@ -10,6 +11,12 @@ extern CDlgInfo* DlgInfo;
 // 요약 버튼 클릭시 백그라운드로 요약
 INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
+	case WM_INITDIALOG:
+	{
+		CreateWindowEx(0, L"STATIC", APP_TITLE_VERSION, WS_CHILD | WS_VISIBLE | SS_CENTER,
+			70, 20, 100, 20, hwndDlg, (HMENU)IDC_STATIC, GetModuleHandle(NULL), NULL);
+		return (INT_PTR)TRUE;
+	}
 	case WM_PAINT:
 		break;
 	case WM_COMMAND:
@@ -81,7 +88,6 @@ void CDlgInfo::Create(HWND hWndP) {
 		hDlgInfo = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_ABOUTBOX), hWndParent, InfoProc);
 		bExistDlg = TRUE;
 	}
-
 
 	if (bVisible == FALSE) {
 		Show();

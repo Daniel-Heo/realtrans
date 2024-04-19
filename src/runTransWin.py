@@ -65,8 +65,6 @@ class LoopbackAudio(threading.Thread):
                     self.work_idx += 1
                     if self.work_idx > 9:
                         self.work_idx = 0
-                    # transposed_data = np.transpose(recorder.record(numframes=self.frame_size))
-                    # self.callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
 
     def stop(self):
         self.stop_event.set()
@@ -76,55 +74,104 @@ class LoopbackAudio(threading.Thread):
     
     def resume(self):
         self.is_paused = False
-        
-# 음성 입력장치 제어 클래스
-class Audio(threading.Thread):
+
+class VADAudio(threading.Thread):
     RATE_PROCESS = 16000
     CHANNELS = 1
-    BLOCKS_PER_SECOND = 20 # 20ms
+    BLOCKS_PER_SECOND = 20
     frame_duration_ms = BLOCKS_PER_SECOND
-    
-    def __init__(self, callback=None, device=None):
-        global ARGS
-        threading.Thread.__init__(self)
 
-        # def proxy_callback(in_data):
-        #     callback(in_data)
-        # if callback is None:
-        #     def callback(in_data): 
-        #         return self.buffer_queue.put(in_data)
-            
-        self.buffer_queue = queue.Queue()
+    def __init__(self, aggressiveness=3, device=None):
+        threading.Thread.__init__(self)
         self.device = device
         self.stop_event = threading.Event()
-        self.work_idx = 0 # 0~9 : LoopbackAudio의 처리를 따라간다.
-
-        #self.count = 0
-        self.soundcard_reader = LoopbackAudio(
-            callback=None, device=self.device)
+        self.work_idx = 0
+        self.soundcard_reader = LoopbackAudio(callback=None, device=self.device)
         self.soundcard_reader.daemon = True
         self.soundcard_reader.start()
+
+        self.voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
+        self.silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
+    
+        self.vad = webrtcvad.Vad(aggressiveness)
+        self.completed_buffers = queue.Queue()
+        self.collect_audio = []
+        self.speech = None
+
         self.daemon = True
         self.start()
 
     def run(self):
-        while not self.stop_event.is_set():
-            # self.count += 1
-            # if self.count > 1000:
-            #     print("1")
-            #     self.count = 0
+        padding_ms=600
+        ratio=0.60
 
-            if self.work_idx != self.soundcard_reader.work_idx and self.soundcard_reader.is_paused == False:
+        num_padding_frames = padding_ms // self.frame_duration_ms # 300ms // 20ms = 15 frames : //(나눗셈의 정수형)
+        ring_buffer = collections.deque(maxlen=num_padding_frames) 
+        triggered = False
+
+        while not self.stop_event.is_set():
+            if self.work_idx != self.soundcard_reader.work_idx and not self.soundcard_reader.is_paused:
                 transposed_data = np.transpose(self.soundcard_reader.audio_data[self.work_idx])
-                #self.proxy_callback((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
-                self.buffer_queue.put((librosa.to_mono(transposed_data)*65536).astype(np.int16)) # 32768
+                frame = (librosa.to_mono(transposed_data) * 65536).astype(np.int16)
                 self.work_idx += 1
                 if self.work_idx > 9:
                     self.work_idx = 0
-            else: sleep(0.01)
+                
+                if len(frame) < 320:
+                    continue
+                is_speech = self.vad.is_speech(frame, 16000)
 
-    def read(self):
-        return self.buffer_queue.get()
+                if not triggered:
+                    ring_buffer.append((frame, is_speech))
+                    num_voiced = sum(1 for _, speech in ring_buffer if speech)
+                    #logging.debug(f"Voiced frames in buffer: {num_voiced}")
+                    if num_voiced > ratio * len(ring_buffer):
+                        self.voiced_duration = num_voiced * self.frame_duration_ms
+                        self.silence_duration = 0
+                        triggered = True
+                        self.collect_audio = [f for f,s in ring_buffer if s]
+                        ring_buffer.clear()
+                else:
+                    if is_speech:
+                        self.collect_audio.append(frame)
+                        self.voiced_duration += self.frame_duration_ms
+                        self.silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
+                        if self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                            self.silence_duration = 0  # 정적 지속 시간을 리셋
+                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
+                            self.collect_audio = []
+                    else:
+                        self.voiced_duration += self.frame_duration_ms
+                        self.silence_duration += self.frame_duration_ms
+                        if self.voiced_duration > 3000 and self.silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
+                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                            self.silence_duration = 0  # 정적 지속 시간을 리셋
+                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
+                            self.collect_audio = []
+                        elif self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
+                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                            self.silence_duration = 0  # 정적 지속 시간을 리셋
+                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
+                            self.collect_audio = []
+
+                    ring_buffer.append((frame, is_speech))
+                    num_unvoiced = sum(1 for _, speech in ring_buffer if not speech)
+                    if num_unvoiced > ratio * len(ring_buffer):
+                        triggered = False
+                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
+                        self.silence_duration = 0  # 정적 지속 시간을 리셋
+                        self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
+                        self.collect_audio = []
+                        ring_buffer.clear()
+            else:
+                time.sleep(0.01)
+        
+    def get_audio_data(self):
+        if self.speech is not None:
+            speech = self.speech
+            self.speech = None
+            return speech
 
     def destroy(self):
         self.soundcard_reader.stop()
@@ -139,87 +186,6 @@ class Audio(threading.Thread):
     def resume(self):
         self.soundcard_reader.resume()
 
-# 음성 활동 감지 클래스 : 3초 이상 음성 감지시 10ms의 정적 후 음성 자르기, 4초는 그대로 음성 자르기
-class VADAudio(Audio):
-    def __init__(self, aggressiveness=3, device=None):
-        super().__init__(device=device)
-        self.vad = webrtcvad.Vad(aggressiveness)
-        self.voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
-        self.silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
-        self.check_speech = ""
-
-    def frame_generator(self):
-        while True:
-            yield self.read()
-
-    def vad_collector(self, padding_ms=600, ratio=0.60, frames=None):
-        if frames is None:
-            frames = self.frame_generator()
-        num_padding_frames = padding_ms // self.frame_duration_ms # 300ms // 20ms = 15 frames : //(나눗셈의 정수형)
-        ring_buffer = collections.deque(maxlen=num_padding_frames) 
-        triggered = False # 음성 감지 여부 초기화(감지 안된 상태)
-
-        for frame in frames: 
-            if len(frame) < 320:  # 프레임 유효성 검사 : 1 block_size 이상인지 확인(크지 않으면 처리할 가치가 없음을 의미)
-                return
-
-            # 현재 프레임이 음성인지 비음성인지를 판단합니다. 이 메서드는 VAD 알고리즘을 사용하여 결정하며, 반환값은 True 또는 False입니다.
-            is_speech = self.vad.is_speech(frame, 16000) # 32000으로 고정 : 16000으로 하면 인식이 떨어지는듯.
-
-            # TRACE : 음성 감지 여부를 확인합니다.
-            # if is_speech:
-            #     self.check_speech += '1'
-            # else:
-            #     self.check_speech += '0'
-
-            # if len(self.check_speech) > 49:
-            #     print(self.check_speech)
-            #     self.check_speech = ""
-
-            # 기존 프레임이 음성이 아닌 상태에서 음성이 감지되면, 링 버퍼를 초기화하고 음성 감지를 시작합니다. f:frame, s:is_speech
-            if not triggered:
-                ring_buffer.append((frame, is_speech)) # 링버퍼에 샘플과 음성 여부를 추가
-                num_voiced = len([f for f, speech in ring_buffer if speech]) # 링버퍼에 있는 음성 프레임의 개수를 계산
-
-                if num_voiced > ratio * ring_buffer.maxlen: # 링버퍼에 있는 음성 프레임의 비율이 설정된 ratio를 초과하면 음성 감지를 시작
-                    self.voiced_duration = num_voiced * self.frame_duration_ms
-                    self.silence_duration = 0
-                    triggered = True # 음성 감지 상태로 변경
-                    for f, s in ring_buffer:
-                        if s:
-                            yield f
-                    ring_buffer.clear()
-            else:
-                if is_speech:
-                    self.voiced_duration += self.frame_duration_ms
-                    self.silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
-                    if self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                        self.silence_duration = 0  # 정적 지속 시간을 리셋
-                        yield None 
-                else:
-                    self.voiced_duration += self.frame_duration_ms
-                    self.silence_duration += self.frame_duration_ms
-                    if self.voiced_duration > 3000 and self.silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
-                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                        self.silence_duration = 0  # 정적 지속 시간을 리셋
-                        yield None 
-                    elif self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                        self.silence_duration = 0  # 정적 지속 시간을 리셋
-                        yield None 
-
-                if is_speech:
-                    yield frame
-                ring_buffer.append((frame, is_speech))
-                num_unvoiced = len(
-                    [f for f, speech in ring_buffer if not speech])
-                if num_unvoiced > ratio * ring_buffer.maxlen:
-                    self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                    self.silence_duration = 0  # 정적 지속 시간을 리셋
-                    triggered = False
-                    yield None
-                    ring_buffer.clear()
     
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -276,6 +242,22 @@ class Translator:
             except Exception as e:
                 pass
 
+    def translate_file(self, text, source_lang, target_lang):
+            self.ctrans.check_model(source_lang, target_lang)
+            #print(text)
+            outPut = ''
+            for txt in text:
+                txt = txt.strip()
+                # txt에서 \n을 제거
+                txt = txt.replace('\n', ' ')
+                if( len(txt) == 0): continue
+                outPut += '\r\n'
+                outPut += self.ctrans.translate(txt, source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
+
+            # 파일 저장
+            with open(os.getcwd()+"/translate_out.txt", 'w', encoding='UTF-8') as file:
+                file.write(outPut)
+
 # JSON 파일을 열고 그 내용을 읽어서 파이썬 객체로 변환하는 함수입니다.
 def load_json_file(file_path):
     if os.path.exists(file_path):
@@ -285,6 +267,25 @@ def load_json_file(file_path):
     else: 
         #print(f"{file_path} 파일이 존재하지 않습니다.")
         return None
+    
+def load_translate_file(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='UTF-8') as file:
+            # 텍스트 파일을 읽어서 내용을 반환
+            data = file.read()
+            # 첫줄에서 ->를 기준으로 이전은 src_lang, 이후는 tgt_lang로 분리
+            first_line = data.split('\n')[0]
+            langs = first_line.split('->')
+            if len(langs) == 2:
+                langs = [lang.strip() for lang in langs]
+                outData = {"src_lang":langs[0], "tgt_lang":langs[1]}
+            else:
+                return None
+            
+            # data의 2번째 줄부터는 번역할 텍스트
+            outData["data"] = data.split('\n')[1:]
+            return outData
+    return None
 
 import re
 def halu_filter(src_txt, filter_list):    
@@ -362,8 +363,6 @@ def main(ARGS):
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
                          device=devNo)
 
-    frames = vad_audio.vad_collector()
-
     # Faster Whisper 원본 모델 로드
     from faster_whisper import WhisperModel
     if ARGS.model_size == "large":
@@ -379,7 +378,8 @@ def main(ARGS):
     vad_audio.resume()
 
     wav_data = bytearray()
-    for frame in frames:
+    while True:
+        
         # 시스템 명령 체크 ( 번역에 관한 변경사항 적용 ) : 3초에 한번
         if time.time() > (cmdCheckTime+3):
             cmdCheckTime = time.time()
@@ -397,21 +397,29 @@ def main(ARGS):
                 if work["src_lang"]=="xx": 
                     # 기존 유지
                     use_recognize= False
-                    #vad_audio.pause()
+                    vad_audio.pause()
                 else: 
                     ARGS.source_lang = work["src_lang"]
                     use_recognize = True
-                    #vad_audio.resume()
+                    vad_audio.resume()
                 
                 os.remove(os.getcwd()+"/pymsg.json")
+
+            trans_data=load_translate_file(os.getcwd()+"/translate.txt")
+            if trans_data != None:
+                translator.translate_file(text=trans_data["data"], source_lang=trans_data["src_lang"], target_lang=trans_data["tgt_lang"])
+                os.remove(os.getcwd()+"/translate.txt")
 
         if use_recognize == False:
             sleep(0.01)
             continue
 
-        if frame is not None:
-            wav_data.extend(frame)
-        else:
+        wav_data = vad_audio.get_audio_data()
+
+        if wav_data is None: 
+            sleep(0.01)
+
+        if wav_data is not None:
             # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
@@ -476,8 +484,8 @@ def main(ARGS):
                         if use_trans: 
                             translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
 
-                frame = bytearray()
-                wav_data = bytearray()
+            #frame = bytearray()
+            wav_data = bytearray()
 
     # GPU 메모리 해제
     torch.cuda.empty_cache()

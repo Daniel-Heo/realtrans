@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CDlgSummary.h" />
+    <ClInclude Include="CDlgTrans.h" />
     <ClInclude Include="CMenusDlg.h" />
     <ClInclude Include="CSettings.h" />
     <ClInclude Include="deepl_api.h" />
@@ -151,9 +152,11 @@
     <ClInclude Include="StrConvert.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="openai_api.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CDigSummary.cpp" />
+    <ClCompile Include="CDlgTrans.cpp" />
     <ClCompile Include="CMenusDlg.cpp" />
     <ClCompile Include="CSettings.cpp" />
     <ClCompile Include="deepl_api.cpp" />
