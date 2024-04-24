@@ -6,6 +6,8 @@
 
 ![](summary.png?raw=true)
 
+![](text_trans.png?raw=true)
+
 This is a program for real-time voice translation. Recognizes and translates the voice heard from the current sound output device. Create sentences from speech using the Faster Whisper model, and translate the sentences using the nllb model. It also has a function to summarize through API based on spoken sentences. The translation part also provides the ability to translate using the DeepL API. Text translation is also supported. Translation is possible after entering data directly or importing data through file input and selecting a language. Based on Nvidia 3080, approximately 300 lines are translated per second.
 
 - Support API : OpenAI API ( Summary ), DeepL ( real time translation )
