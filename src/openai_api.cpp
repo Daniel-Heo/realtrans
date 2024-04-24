@@ -3,9 +3,17 @@
 #include "openai_api.h"
 #include "json.hpp"
 #include "StrConvert.h"
+#include <regex>
 
 using json = nlohmann::json;
 #pragma comment(lib, "winhttp.lib")
+
+// HTML 엔티티 "&#...;"을 제거하는 함수
+std::string removeHtmlEntities(const std::string& input) {
+    std::regex entityPattern("\\&\\#[0-9]+;");
+    std::string result = std::regex_replace(input, entityPattern, "");
+    return result;
+}
 
 // JSON 문자열에서 특정 문자를 필터링하는 함수
 std::string FilterJSONString(const std::string& input) {
@@ -19,6 +27,7 @@ std::string FilterJSONString(const std::string& input) {
 			result += ' ';
 		}
     }
+    result = removeHtmlEntities(result);
     return result;
 }
 

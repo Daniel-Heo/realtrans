@@ -26,18 +26,6 @@ import json
 import librosa
 import ctrans_manager
 
-
-# 파일 읽기 : 파일이 존재하면 파일을 읽어서 내용을 반환, 파일이 존재하지 않으면 None을 반환
-def read_file_if_exists(file_path):
-    # 파일이 존재하는지 체크
-    if os.path.exists(file_path):
-        # 파일이 존재하면, 파일을 열고 내용을 읽은 후 반환
-        with open(file_path, 'r') as file:
-            return file.read()
-    else:
-        #print(f"{file_path} 파일이 존재하지 않습니다.")
-        return None
-
 # Low Level 사운드 입력을 처리하는 클래스
 class LoopbackAudio(threading.Thread):
     def __init__(self, callback, device):
@@ -74,12 +62,12 @@ class LoopbackAudio(threading.Thread):
     
     def resume(self):
         self.is_paused = False
+    
+    def is_paused(self):
+        return self.is_paused
 
 class VADAudio(threading.Thread):
-    RATE_PROCESS = 16000
-    CHANNELS = 1
-    BLOCKS_PER_SECOND = 20
-    frame_duration_ms = BLOCKS_PER_SECOND
+    frame_duration_ms = 20 # 20ms
 
     def __init__(self, aggressiveness=3, device=None):
         threading.Thread.__init__(self)
@@ -94,7 +82,6 @@ class VADAudio(threading.Thread):
         self.silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
     
         self.vad = webrtcvad.Vad(aggressiveness)
-        self.completed_buffers = queue.Queue()
         self.collect_audio = []
         self.speech = None
 
@@ -186,6 +173,9 @@ class VADAudio(threading.Thread):
     def resume(self):
         self.soundcard_reader.resume()
 
+    def is_paused(self):
+        return self.soundcard_reader.is_paused()
+
     
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -206,7 +196,9 @@ class Translator:
         self.lock = threading.Lock()
         self.lang_map = ARGS.lang_map
         self.cuda_dev = ARGS.cuda_dev
+        self.work_path = ARGS.work_path
         self.ctrans = None
+        self.file_size = 0
 
         self.initialize(ARGS)
 
@@ -246,17 +238,43 @@ class Translator:
             self.ctrans.check_model(source_lang, target_lang)
             #print(text)
             outPut = ''
-            for txt in text:
-                txt = txt.strip()
-                # txt에서 \n을 제거
-                txt = txt.replace('\n', ' ')
-                if( len(txt) == 0): continue
-                outPut += '\r\n'
-                outPut += self.ctrans.translate(txt, source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
+            work_pos = 0
+            source_sentences = [text[i:i+2000] for i in range(0, len(text), 2000)]
+            total = len(source_sentences)
+            for i in range(len(source_sentences)):
+                txt = source_sentences[i]
+                outPut += self.ctrans.translate_file(txt, source_lang=source_lang, target_lang=target_lang, lang_map=self.lang_map)
 
+                work_pos += 1
+                percent = 10+int(work_pos/total*90)
+                print(f'[{percent}]')
+                #print(f'{percent}, {work_pos}, {self.file_size}')
+
+            print(f'[100]')
             # 파일 저장
-            with open(os.getcwd()+"/translate_out.txt", 'w', encoding='UTF-8') as file:
+            with open(self.work_path+"/translate_out.txt", 'w', encoding='UTF-8') as file:
                 file.write(outPut)
+
+    def load_translate_file(self, file_path):
+        if os.path.exists(file_path):
+            # 파일 사이즈를 가져온다.
+            self.file_size = os.path.getsize(file_path)
+            with open(file_path, 'r', encoding='UTF-8') as file:
+                # 텍스트 파일을 읽어서 내용을 반환
+                data = file.read()
+                # 첫줄에서 ->를 기준으로 이전은 src_lang, 이후는 tgt_lang로 분리
+                first_line = data.split('\n')[0]
+                langs = first_line.split('->')
+                if len(langs) == 2:
+                    langs = [lang.strip() for lang in langs]
+                    outData = {"src_lang":langs[0], "tgt_lang":langs[1]}
+                else:
+                    return None
+                
+                # data의 2번째 줄부터는 번역할 텍스트
+                outData["data"] = data.split('\n')[1:]
+                return outData
+        return None
 
 # JSON 파일을 열고 그 내용을 읽어서 파이썬 객체로 변환하는 함수입니다.
 def load_json_file(file_path):
@@ -267,25 +285,6 @@ def load_json_file(file_path):
     else: 
         #print(f"{file_path} 파일이 존재하지 않습니다.")
         return None
-    
-def load_translate_file(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, 'r', encoding='UTF-8') as file:
-            # 텍스트 파일을 읽어서 내용을 반환
-            data = file.read()
-            # 첫줄에서 ->를 기준으로 이전은 src_lang, 이후는 tgt_lang로 분리
-            first_line = data.split('\n')[0]
-            langs = first_line.split('->')
-            if len(langs) == 2:
-                langs = [lang.strip() for lang in langs]
-                outData = {"src_lang":langs[0], "tgt_lang":langs[1]}
-            else:
-                return None
-            
-            # data의 2번째 줄부터는 번역할 텍스트
-            outData["data"] = data.split('\n')[1:]
-            return outData
-    return None
 
 import re
 def halu_filter(src_txt, filter_list):    
@@ -353,7 +352,7 @@ def main(ARGS):
     
 
     # Whisper 모델 환상 제거용 필터 
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hallucination_filter.json")
+    file_path = os.path.join(ARGS.exec_path, "hallucination_filter.json")
     json_filter = load_json_file(file_path)
 
     devNo=GetDevNo(ARGS)
@@ -370,7 +369,6 @@ def main(ARGS):
     else: model_size = ARGS.model_size
 
     whisper_model = WhisperModel(model_size, device="cuda", compute_type="float16")
-
     # 번역 클래스 생성
     translator = Translator(ARGS)
 
@@ -380,10 +378,10 @@ def main(ARGS):
     wav_data = bytearray()
     while True:
         
-        # 시스템 명령 체크 ( 번역에 관한 변경사항 적용 ) : 3초에 한번
-        if time.time() > (cmdCheckTime+3):
+        # 시스템 명령 체크 ( 번역에 관한 변경사항 적용 ) : 0.3초에 한번
+        if time.time() > (cmdCheckTime+0.2):
             cmdCheckTime = time.time()
-            work=load_json_file(os.getcwd()+"/pymsg.json")
+            work=load_json_file(ARGS.work_path+"/pymsg.json")
             if work != None:
                 # 번역 설정
                 if work["tgt_lang"]=="xx": 
@@ -403,12 +401,15 @@ def main(ARGS):
                     use_recognize = True
                     vad_audio.resume()
                 
-                os.remove(os.getcwd()+"/pymsg.json")
+                os.remove(ARGS.work_path+"/pymsg.json")
 
-            trans_data=load_translate_file(os.getcwd()+"/translate.txt")
+            trans_data=translator.load_translate_file(ARGS.work_path+"/translate.txt")
             if trans_data != None:
+                pause_stats = vad_audio.is_paused
+                if pause_stats == False: vad_audio.pause()
                 translator.translate_file(text=trans_data["data"], source_lang=trans_data["src_lang"], target_lang=trans_data["tgt_lang"])
-                os.remove(os.getcwd()+"/translate.txt")
+                os.remove(ARGS.work_path+"/translate.txt")
+                if pause_stats == False: vad_audio.resume()
 
         if use_recognize == False:
             sleep(0.01)
@@ -553,9 +554,13 @@ if __name__ == '__main__':
         if( ARGS.target_lang == None):
             ARGS.target_lang = "kor_Hang"
         ARGS.use_trans = True # 번역을 한다.
-        
+
+    # 시작 정보로 Path 지정 : work_path가 움직이는 것을 방지
+    ARGS.exec_path = os.path.dirname(os.path.abspath(__file__))
+    ARGS.work_path = os.getcwd()
+
     # Whisper 지원 언어 목록
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "whisper_lang_map.json")
+    file_path = os.path.join(ARGS.exec_path, "whisper_lang_map.json")
     ARGS.lang_map = load_json_file(file_path)
 
     #cuda activate : Translation processing with CPU

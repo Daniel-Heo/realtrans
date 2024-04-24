@@ -358,6 +358,9 @@ BOOL CDlgSummary::BgSummary() {
 			}
 			RequestOpenAIChat(tmpReq, strWOut, lang, settings["ed_summary_hint"], StringToWStringInSummary(settings.value("ed_summary_api_key", "")).c_str());
 		}
+
+		// 번역
+		
 		// child Richedit에 텍스트 추가
 		rich_buf += L"\r\n\r\n"+strWOut;
 

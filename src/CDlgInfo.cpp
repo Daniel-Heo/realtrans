@@ -46,7 +46,6 @@ INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					PNMLINK pNMLink = (PNMLINK)lParam;
 					char url[2048];
 					size_t len;
-					//DlgInfo->Alert((const WCHAR*)pNMLink->item.szUrl);
 					wcstombs_s(&len, url, (size_t)2048,	pNMLink->item.szUrl, (size_t)2048 - 1);
 					ShellExecuteA(0, "open", "chrome.exe", (LPCSTR)url, NULL, SW_SHOWNORMAL);
 					break;

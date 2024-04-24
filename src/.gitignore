@@ -64,6 +64,8 @@ images/
 model/
 models/
 hub/
+include/
+libvc/
 *.txt
 
 # 단기적으로 제외할 파일

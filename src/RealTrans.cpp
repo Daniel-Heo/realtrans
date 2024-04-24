@@ -39,6 +39,7 @@ RECT iconRect;
 
 // 전역 변수:
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
+std::string strExecutePath = "";
 
 HWND hwndTextBox; // 전역 변수로 메인 윈도우 핸들과 텍스트박스 핸들을 선언합니다.
 HFONT hFont; // 전역 변수로 폰트 핸들을 저장
@@ -222,7 +223,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 		if (0) {
 			convertBuf = Utf8ToWideString(readBuf);
 			if (convertBuf.size() > 0) {
-				//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
 				AppendTextToRichEdit(hwndTextBox, (WCHAR*)convertBuf.c_str());
 			}
 		}
@@ -230,7 +230,6 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 			if (settings["ck_orgin_subtext"] == true) {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
-					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n");
 					AppendTextToRichEdit(hwndTextBox, (WCHAR *)convertBuf.c_str());
 				}
 			}
@@ -253,11 +252,19 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 				}
 			}
 		}
+		// 번역 진행도
+		else if (readBuf[1] == '[') {
+			if (DlgTrans != NULL && DlgTrans->isTrans==TRUE ) {
+				// ']'를 찾아서 그 앞까지 읽어서 Percent를 만든다.
+				std::string strPercent = readBuf.substr(2, readBuf.find(']'));
+				int nPercent = atoi(strPercent.c_str());
+				DlgTrans->transPercent = nPercent;
+			}
+		}
 		else {
 			if (settings["ck_pctrans"] == true || readBuf[1] == '#') {
 				convertBuf = Utf8ToWideString(readBuf);
 				if (convertBuf.size() > 0) {
-					//AppendTextToRichEdit(hwndTextBox, (WCHAR*)L"\r\n ");
 					AppendTextToRichEdit(hwndTextBox, (WCHAR*)convertBuf.c_str());
 				}
 			}
@@ -290,7 +297,10 @@ void RunJobs() {
 		runSummary = false;
 	}
 	// 번역파일 처리 : translate_out.txt 파일이 있으면 번역창에 표시하고 삭제한다.
-	if ( DlgTrans!=NULL ) DlgTrans->CheckTransFile();
+	if (DlgTrans != NULL && DlgTrans->bVisible) {
+		DlgTrans->CheckTransFile();
+		DlgTrans->ProgressBar(DlgTrans->transPercent);
+	}
 
 }
 
@@ -489,7 +499,6 @@ bool TerminatePythonProcess() {
 	return processTerminated;
 }
 
-
 BOOL bActThread = FALSE; // 작업 Thread가 실행중인지 확인
 BOOL bBgThread = FALSE; // 백그라운드 Thread가 실행중인지 확인
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -501,6 +510,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
 	// TODO: 여기에 코드를 입력합니다.
+
+	// 현재 실행 경로를 얻어옵니다.
+	WCHAR strPath[MAX_PATH] = { 0 };
+	GetModuleFileName(NULL, strPath, MAX_PATH);
+	strExecutePath = WCHARToString(strPath);
+#ifndef NDEBUG // 디버그 모드
+	for (int i = 0; i < 3; i++) {
+		strExecutePath = strExecutePath.substr(0, strExecutePath.find_last_of("\\")); // 실행파일 끊고, 실행경로에서 2단계 위로 올라가야함
+	}
+#else
+	for (int i = 0; i < 1; i++) {
+		strExecutePath = strExecutePath.substr(0, strExecutePath.find_last_of("\\")); // 실행파일만 끊음.
+	}
+#endif
+	strExecutePath = strExecutePath + "\\";
+	SetCurrentDirectory(StringToWString(strExecutePath).c_str());
 
 	// Python 프로세스 종료
 	if (!TerminatePythonProcess()) {
@@ -709,7 +734,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	// 번역창
-	if( DlgTrans!=NULL ) DlgTrans->WndProc(hWnd, message, wParam, lParam);
+	//if (DlgTrans != NULL) {
+	//	int act = 0;
+	//	switch(message) {
+	//	case 273: // WM_COMMAND
+	//	case 32: // MOUSEMOVE
+	//	case 132: // WM_NCHITTEST
+	//	case 512: // WM_MOUSEMOVE
+	//	case 70: // WM_WINDOWPOSCHANGING
+	//	case 71: // WM_WINDOWPOSCHANGED
+	//	case 160: // WM_NCACTIVATE :  비-클라이언트 영역에는 윈도우의 테두리, 제목 표시줄, 메뉴, 그리고 시스템 버튼(최소화, 최대화, 닫기 등)이 포함
+	//	case 20: // WM_SETCURSOR
+	//	case 297: // WM_NCMOUSEMOVE
+	//	case 295: // WM_NCMOUSELEAVE
+	//	//case 296: // WM_NCLBUTTONDOWN
+	//	case 307: // WM_NCLBUTTONUP
+	//	case 674: // WM_NCMOUSEHOVER
+	//	case 134: // WM_NCACTIVATE
+	//	case 528: // WM_MOUSEHOVER
+	//	case 641: // WM_NCMOUSELEAVE
+	//	case 642: // WM_NCMOUSEHOVER
+	//	case 534: // WM_MOUSEHOVER
+	//	case 36: // WM_GETMINMAXINFO
+	//	case 3: // WM_MOVE
+	//		break;
+	//	default:
+	//		act = 1;
+	//	}
+	//	if (act == 1) {
+	//		char tmp[100];
+	//		sprintf_s(tmp, "isVisible=%d, %d", DlgTrans->bVisible, message);
+	//		AppendTextToRichEdit(hwndTextBox, (WCHAR*)Utf8ToWideString(tmp).c_str());
+	//	}
+
+	//}
+	if( DlgTrans!=NULL && DlgTrans->bVisible == TRUE ) DlgTrans->WndProc(hWnd, message, wParam, lParam);
 
 	//long style;
 	switch (message)
@@ -788,19 +847,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_PAINT:
 	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		Graphics graphics(hdc);
-		if (bStopMenu == FALSE) {
-			Image image(L"lmenu_normal.png");
-			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
-		}
-		else {
-			Image image(L"lmenu_over.png");
-			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
-		}
+		if (DlgTrans == NULL || DlgTrans->bVisible == FALSE) {
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+			Graphics graphics(hdc);
+			if (bStopMenu == FALSE) {
+				Image image(L"lmenu_normal.png");
+				graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
+			}
+			else {
+				Image image(L"lmenu_over.png");
+				graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
+			}
 
-		EndPaint(hWnd, &ps);
+			EndPaint(hWnd, &ps);
+		}
 	}
 	break;
 

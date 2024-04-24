@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <windows.h>
 #include <Richedit.h>
 #include <string>
@@ -6,26 +6,28 @@
 
 class CDlgTrans {
 public:
-    HINSTANCE hInstance; // ¾ÖÇÃ¸®ÄÉÀÌ¼Ç ÀÎ½ºÅÏ½º ÇÚµé
-    HWND hWnd; // ºÎ¸ğ À©µµ¿ìÀÇ ÇÚµé
-    BOOL bVisible; // ¿ä¾àÃ¢ÀÌ º¸ÀÌ´ÂÁö ¿©ºÎ
-    BOOL bExistDlg; // ¿ä¾àÃ¢ÀÌ Á¸ÀçÇÏ´ÂÁö ¿©ºÎ
-    BOOL isTrans; // ¹ø¿ªÁßÀÎÁö È®ÀÎ
+    HINSTANCE hInstance; // ì• í”Œë¦¬ì¼€ì´ì…˜ ì¸ìŠ¤í„´ìŠ¤ í•¸ë“¤
+    HWND hWnd; // ë¶€ëª¨ ìœˆë„ìš°ì˜ í•¸ë“¤
+    BOOL bVisible; // ë³´ì´ëŠ”ì§€ ì—¬ë¶€
+    BOOL bExistDlg; // ì¡´ì¬í•˜ëŠ”ì§€ ì—¬ë¶€
+    BOOL isTrans; // ë²ˆì—­ì¤‘ì¸ì§€ í™•ì¸
+    // ë²ˆì—­ ì§„í–‰ %
+    int transPercent;
 
-    // À©µµ¿ì Å©±â
+    // ìœˆë„ìš° í¬ê¸°
     int window_width;
     int window_height;
 
-    // RichEdit ÄÁÆ®·Ñ
-    HWND hRich1; // RichEdit ÄÁÆ®·ÑÀÇ ÇÚµé1
-    HWND hRich2; // RichEdit ÄÁÆ®·ÑÀÇ ÇÚµé2
+    // RichEdit ì»¨íŠ¸ë¡¤
+    HWND hRich1; // RichEdit ì»¨íŠ¸ë¡¤ì˜ í•¸ë“¤1
+    HWND hRich2; // RichEdit ì»¨íŠ¸ë¡¤ì˜ í•¸ë“¤2
 
 public:
     CDlgTrans(HINSTANCE hInst);
 
     BOOL WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-    // RichEdit ÄÁÆ®·ÑÀ» »ı¼ºÇÏ°í ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+    // RichEdit ì»¨íŠ¸ë¡¤ì„ ìƒì„±í•˜ê³  ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
     void InitDialogControls();
     void HideDialogControls();
     void ShowDialogControls();
@@ -36,10 +38,18 @@ public:
     void CheckTransFile();
     void ShowTransFile();
 
+    // íŒŒì¼ë¡œ í…ìŠ¤íŠ¸ ì…ë ¥ : txt, pdf
+    BOOL InputFile();
+    BOOL OutputFile();
+    BOOL BrowseFile(WCHAR* szPath, WCHAR* szFile);
+    BOOL BrowseSaveFile(WCHAR* szPath, WCHAR* szFile);
 
-    void Alert(const WCHAR* msg); // °æ°íÃ¢À¸·Î »ç¿ëÇÒ °æ¿ì »ç¿ë
+    void ProgressBar(int percent);
 
-    // ¿ä¾àÃ¢ ¼û±â±â ( ±âº»ÀûÀ¸·Î È°¼ºÈ­µÇ¸é ±× ´ÙÀ½ºÎÅÍ´Â ¼û±â±â¿Í º¸ÀÌ±â·Î Á¦¾î )
+
+    void Alert(const WCHAR* msg); // ê²½ê³ ì°½ìœ¼ë¡œ ì‚¬ìš©í•  ê²½ìš° ì‚¬ìš©
+
+    // ìš”ì•½ì°½ ìˆ¨ê¸°ê¸° ( ê¸°ë³¸ì ìœ¼ë¡œ í™œì„±í™”ë˜ë©´ ê·¸ ë‹¤ìŒë¶€í„°ëŠ” ìˆ¨ê¸°ê¸°ì™€ ë³´ì´ê¸°ë¡œ ì œì–´ )
     void Hide();
     void Show();
 

@@ -82,6 +82,8 @@
 #define IDC_CB_TGTLANG                  1062
 #define IDC_BTN_TRANSLATE               1063
 #define IDC_STATIC_ARROW                1064
+#define IDC_BTN_OPEN_FILE               1065
+#define IDC_BTN_SAVE_FILE			   1066
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -91,7 +93,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1065
+#define _APS_NEXT_CONTROL_VALUE         1067
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

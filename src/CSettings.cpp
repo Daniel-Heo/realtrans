@@ -19,6 +19,8 @@ extern json settings;
 extern bool isRefreshEnv;
 extern time_t nSummaryTime;
 extern CDlgSummary* DlgSum;
+extern std::string strExecutePath;
+extern std::string addText;
 
 // 번역 결과 언어
 WCHAR langArr[32][2][40] = {
@@ -64,8 +66,25 @@ void PrintJson()
 void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang )
 {
 	std::string txt = "{ \"src_lang\": \"" + src_lang + "\", \"tgt_lang\": \"" + tgt_lang + "\" }";
-	std::ofstream file("pymsg.json");
+	std::string strFileName = strExecutePath + "pymsg.json";
+	std::ofstream file(strFileName);
+	if (!file.is_open()) {
+		std::cerr << "Error: Unable to open file for writing: " << strFileName << std::endl;
+		return; // 파일을 열지 못했을 때 오류 코드 반환
+	}
 	file << txt;
+	file.close(); // 파일을 닫음
+}
+
+// 설정파일 저장
+void SaveSimpleSettings() {
+	std::string strFileName = strExecutePath + "config.json";
+	std::ofstream file(strFileName);
+	if (file.is_open()) {
+		file << settings.dump(4);
+		//std::cout << "입력 받은 문자열 :: " << file.dump() << std::endl;
+		file.close();
+	}
 }
 
 // 현재 설정을 파일로 저장
@@ -190,16 +209,25 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	DlgSum->SetFont();
 
 	// JSON 파일로 저장
-	std::ofstream file(filePath);
+	std::string strFileName = strExecutePath + filePath;
+	std::ofstream file(strFileName.c_str());
+	if (file.is_open() == false) {
+		std::cerr << "Error: Unable to open file for writing: " << strFileName << std::endl;
+		return; 
+	}
 	file << settings.dump(4); // 예쁘게 출력하기 위해 4를 들여쓰기로 사용
+	file.close(); // 파일을 닫음
 }
 
 // JSON 객체에 기본값 설정 : 초기화 시에도 사용
 void defaultJson() {
 	// 언어 모델 크기 설정
-	settings["model_size"] = DEFULAT_MODEL_SIZE; // 언어
+	settings["ui_lang"] = 0; // 환경설정 언어 설정
+	settings["model_size"] = DEFULAT_MODEL_SIZE; // 모델 사이즈
 
-	settings["ui_lang"] = 0; // 언어
+	settings["txt_trans_src"] = "eng_Latn"; // 텍스트 번역 소스 언어
+	settings["txt_trans_tgt"] = "kor_Hang"; // 텍스트 번역 대상 언어	
+
 	settings["ck_orgin_subtext"] = false; // 원문 자막 표시
 	settings["ck_pctrans"] = true; // 자동 번역 PC
 	settings["ck_apitrans"] = false; // 자동 번역 API
@@ -320,8 +348,6 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 			}
 		}
 
-		// 첫 번째 아이템을 선택 상태로 설정
-		//SendMessage(hListBox, CB_SETCURSEL, settings["cb_voice_lang"].get<int>(), 0); // 두번째 1,0
 		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
@@ -652,10 +678,12 @@ void InitSettings(HWND hwnd) {
 // 설정 파일 읽기
 void ReadSettings(const std::string& filePath) {
 	// 파일에서 JSON 데이터 읽기
-	std::ifstream file(filePath);
+	std::string strFileName = strExecutePath +filePath;
+	std::ifstream file(strFileName);
 	if (file.is_open()) {
 		file >> settings;
 		//std::cout << "입력 받은 문자열 :: " << file.dump() << std::endl;
+		file.close();
 	}
 	else {
 		defaultJson();
@@ -687,6 +715,7 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 	{
 		// 다이얼로그 초기화 코드 시작
 		LoadSettings(hwndDlg, "config.json");
+		//addText +=settings.dump(4);
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_HINT));
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_TRANS_API_KEY));
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_API_KEY));
