@@ -154,6 +154,7 @@ class CTrans:
             "local_files_only": False,
             "allow_patterns": allow_patterns,
             "tqdm_class": disabled_tqdm,
+            "local_dir_use_symlinks": False
         }
 
         print(f"#Model loading. Please wait... It may take several minutes or more at first.")
