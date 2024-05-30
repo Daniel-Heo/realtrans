@@ -514,7 +514,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 현재 실행 경로를 얻어옵니다.
 	WCHAR strPath[MAX_PATH] = { 0 };
 	GetModuleFileName(NULL, strPath, MAX_PATH);
-	strExecutePath = WCHARToString(strPath);
+	std::wstring wstrPath = strPath;
+	char chPath[MAX_PATH];
+	UTF16toUTF8(wstrPath, chPath);
+	strExecutePath = chPath;
 #ifndef NDEBUG // 디버그 모드
 	for (int i = 0; i < 3; i++) {
 		strExecutePath = strExecutePath.substr(0, strExecutePath.find_last_of("\\")); // 실행파일 끊고, 실행경로에서 2단계 위로 올라가야함

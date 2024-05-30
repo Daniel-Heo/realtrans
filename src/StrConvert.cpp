@@ -210,6 +210,28 @@ std::string WCHARToString(const WCHAR* wcharArray) {
     return strTo;
 }
 
+std::string WCharToString(const WCHAR* wcharArray) {
+    if (!wcharArray) return std::string();
+
+    // 필요한 버퍼 크기를 계산합니다 (널 종료 문자 포함).
+    size_t sizeNeeded;
+    errno_t err = wcstombs_s(&sizeNeeded, nullptr, 0, wcharArray, _TRUNCATE);
+    if (err != 0) throw std::runtime_error("Conversion error or empty string");
+
+    // 변환된 문자열을 저장할 버퍼를 생성합니다.
+    std::string strTo(sizeNeeded, '\0'); // 널 종료 문자를 포함한 크기
+
+    // 실제 변환을 수행합니다.
+    size_t convertedSize;
+    err = wcstombs_s(&convertedSize, &strTo[0], sizeNeeded, wcharArray, _TRUNCATE);
+    if (err != 0) throw std::runtime_error("Conversion failed");
+
+    // 변환된 문자열의 크기를 조정하여 널 종료 문자를 제외합니다.
+    strTo.resize(convertedSize - 1);
+
+    return strTo;
+}
+
 
 int wstringToInt(const std::wstring& wstr) {
     int number = 0;
