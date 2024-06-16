@@ -153,7 +153,7 @@ class CTrans:
         kwargs = {
             "local_files_only": False,
             "allow_patterns": allow_patterns,
-            "tqdm_class": disabled_tqdm,
+            #"tqdm_class": disabled_tqdm,
             "local_dir_use_symlinks": False
         }
 
@@ -378,3 +378,59 @@ class CTrans:
 
 def print_list(data):
     if data is not None: print((' '.join(map(str,data))).encode('utf-8').decode('utf-8'))
+
+# Fastwhisper download
+_FW_MODELS = {
+    "small": "Systran/faster-whisper-small",
+    "medium": "Systran/faster-whisper-medium",
+    "large-v3": "Systran/faster-whisper-large-v3",
+    "large": "Systran/faster-whisper-large-v3",
+}
+
+from typing import List, Optional
+
+def check_fwmodel(
+    size_or_id: str,
+    output_dir: Optional[str] = None,
+    local_files_only: bool = False,
+    cache_dir: Optional[str] = None,
+):
+    import huggingface_hub
+    import requests
+
+    repo_id = _FW_MODELS.get(size_or_id)
+
+    allow_patterns = [
+        "config.json",
+        "preprocessor_config.json",
+        "model.bin",
+        "tokenizer.json",
+        "vocabulary.*",
+    ]
+
+    kwargs = {
+        "local_files_only": local_files_only,
+        "allow_patterns": allow_patterns,
+        #"tqdm_class": disabled_tqdm,
+        "local_dir_use_symlinks": False,
+    }
+
+    if output_dir is not None:
+        kwargs["local_dir"] = output_dir
+
+    if cache_dir is not None:
+        kwargs["cache_dir"] = cache_dir
+
+    print(f"#Checking FastWhisper Model. Please wait... It may take several minutes or more at first.")
+    try:
+        ret=huggingface_hub.snapshot_download(repo_id, resume_download=True, **kwargs)
+        print("#Checking Success!")
+        return ret
+    except (
+        huggingface_hub.utils.HfHubHTTPError,
+        requests.exceptions.ConnectionError,
+    ) as exception:
+        kwargs["local_files_only"] = True
+        ret=huggingface_hub.snapshot_download(repo_id, resume_download=True, **kwargs)
+        print("#Checking Success!")
+        return ret

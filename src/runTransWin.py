@@ -368,6 +368,8 @@ def main(ARGS):
         model_size = "large-v3"
     else: model_size = ARGS.model_size
 
+    ctrans_manager.check_fwmodel(model_size)
+
     whisper_model = WhisperModel(model_size, device="cuda", compute_type="float16")
     # 번역 클래스 생성
     translator = Translator(ARGS)
