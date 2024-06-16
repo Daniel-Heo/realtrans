@@ -28,6 +28,7 @@ run batch file ( install python package )
 - Run python runTransWin.py. If the Translation processing with cuda message appears, it is normal.
 - If you play something like YouTube and make audio come out, the message will be translated into English and Korean in the console window you run.
 - If you have succeeded up to this point, run RealTrans.exe and it will run normally.
+  * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
 
 Final Windows program execution
 > realtrans.exe
@@ -150,6 +151,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - python runTransWin.py를 실행해봄 Translation processing with cuda 메시지가 나오면 정상
  - 유튜브 같은 것을 플레이해서 음성이 나오게 하면 실행한 콘솔창에서 영한번역이 되어서 메시지가 출력됩니다.
  - 여기까지 성공하셨으면 RealTrans.exe를 실행하면 정상적으로 수행되게됩니다.
+   * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
 
 최종 윈도우 프로그램 실행
 >realtrans.exe 실행
