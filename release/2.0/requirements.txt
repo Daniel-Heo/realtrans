@@ -1,5 +1,6 @@
 --extra-index-url https://download.pytorch.org/whl/cu121
 soundcard==0.4.2
+numpy==1.26.4
 Halo
 pyaudio
 resampy==0.4.3
