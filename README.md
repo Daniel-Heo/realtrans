@@ -21,7 +21,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 - In the console window, cd C:\installation folder
 - Run python (when executed, exit by entering exit())
 
-2. run batch file ( install python package )
+2. run realtrans install batch file ( install python package )
 > Run install.bat in cmd (located in the downloaded realtrans folder)
 
 - install.bat must be completed without error. When an error occurs, you must respond to the error message.
@@ -144,7 +144,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
-2. 파이선 패키지 설치
+2. Realtrans 설치
 > cmd에서 install.bat 실행 (down 받은 realtrans 폴더에 존재 )
 
  - install.bat이 오류 없이 완료가 되어야함. 오류 발생시 해당 오류 메시지에 대한 대처를 해야됩니다.
