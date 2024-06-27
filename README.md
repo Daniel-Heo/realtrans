@@ -15,14 +15,14 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
+1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
 - Create a console window by running cmd in the window.
 - In the console window, cd C:\installation folder
 - Run python (when executed, exit by entering exit())
 
-run batch file ( install python package )
-> install.bat
+2. run batch file ( install python package )
+> Run install.bat in cmd (located in the downloaded realtrans folder)
 
 - install.bat must be completed without error. When an error occurs, you must respond to the error message.
 - Run python runTransWin.py. If the Translation processing with cuda message appears, it is normal.
@@ -30,7 +30,7 @@ run batch file ( install python package )
 - If you have succeeded up to this point, run RealTrans.exe and it will run normally.
   * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
 
-Final Windows program execution
+3. Final Windows program execution
 > realtrans.exe
 
   - If execution is successful, you only need to run realtrans.exe from next time.
@@ -138,14 +138,14 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
+1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
  - window에서 cmd를 실행하여 console창을 만듬
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
-파이선 패키지 설치
->install.bat
+2. 파이선 패키지 설치
+> cmd에서 install.bat 실행 (down 받은 realtrans 폴더에 존재 )
 
  - install.bat이 오류 없이 완료가 되어야함. 오류 발생시 해당 오류 메시지에 대한 대처를 해야됩니다.
  - python runTransWin.py를 실행해봄 Translation processing with cuda 메시지가 나오면 정상
@@ -153,8 +153,8 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - 여기까지 성공하셨으면 RealTrans.exe를 실행하면 정상적으로 수행되게됩니다.
    * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
 
-최종 윈도우 프로그램 실행
->realtrans.exe 실행
+3. 최종 윈도우 프로그램 실행
+> realtrans.exe 실행
 
  - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다.
 
