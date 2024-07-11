@@ -370,7 +370,13 @@ def main(ARGS):
 
     ctrans_manager.check_fwmodel(model_size)
 
-    whisper_model = WhisperModel(model_size, device="cuda", compute_type="float16")
+    # cuda 사용 여부에 따라 데이터 타입 변경 : CPU는 float32, GPU는 float16
+    if ARGS.cuda_dev == 'cpu':
+        data_type = "float32"
+    else:
+        data_type = "float16"
+    
+    whisper_model = WhisperModel(model_size, device=ARGS.cuda_dev, compute_type=data_type)
     # 번역 클래스 생성
     translator = Translator(ARGS)
 
