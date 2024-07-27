@@ -17,17 +17,15 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
-How to check installation result
+> How to check installation result
 - Create a console window by running cmd in the window.
 - In the console window, cd C:\installation folder
 - Run python ( If it runs normally, exit by entering exit() )
 
 2. run realtrans install batch file ( install python package )
 
-Run install.bat
-
+> Run install.bat
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
-
 * Method 2: When installing from cmd, run install.bat from the realtrans folder (downloaded realtrans folder)
 
 - install.bat must be completed without error. When an error occurs, you must respond to the error message.
@@ -147,17 +145,15 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
-정상 설치 확인 방법
+> 정상 설치 확인 방법
  - window에서 cmd를 실행하여 console창을 만듬
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
 2. Realtrans 설치
 
-install.bat 실행
-
+> install.bat 실행
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
-
 * 방법 2 : cmd에서 설치시에는 해당 realtrans 폴더에서 install.bat 실행 (down 받은 realtrans 폴더 )
 
  - install.bat이 오류 없이 완료가 되어야함. 오류 발생시 해당 오류 메시지에 대한 대처를 해야됩니다.
