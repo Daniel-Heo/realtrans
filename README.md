@@ -156,7 +156,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
-#### 2. Realtrans 설치
+#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행
 
 > install.bat 실행
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
