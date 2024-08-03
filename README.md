@@ -38,7 +38,7 @@ This is a program for real-time voice translation. Recognizes and translates the
   * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
   * Note) If install.bat is not executed properly, a no module error may occur when running.
 
-3. Final Windows program execution
+#### 3. Final Windows program execution
 > realtrans.exe
 
   - If execution is successful, you only need to run realtrans.exe from next time.
@@ -146,17 +146,17 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 ### 설치
 
-#### 1. 파이선 설치
-#### 2. RealTrans 폴더의 install.bat 실행
+> 1. 파이선 설치
+> 2. RealTrans 폴더의 install.bat 실행
 
-1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
 > 정상 설치 확인 방법
  - window에서 cmd를 실행하여 console창을 만듬
  - 콘솔창에서 cd C:\설치폴더
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
-2. Realtrans 설치
+#### 2. Realtrans 설치
 
 > install.bat 실행
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
@@ -169,7 +169,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
    * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
    * 참고) 정상적으로 install.bat이 실행되지 않은 경우 실행시 no module 에러가 발생할 수 있습니다.
 
-3. 최종 윈도우 프로그램 실행
+#### 3. 최종 윈도우 프로그램 실행
 > realtrans.exe 실행
 
  - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다.
