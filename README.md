@@ -15,17 +15,17 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 ### Install
 
-#### 1. Install Python
-#### 2. Run install.bat in the RealTrans folder
+>> 1. Install Python
+>> 2. Run install.bat in the RealTrans folder
 
-1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
+####1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
 > How to check installation result
 - Create a console window by running cmd in the window.
 - In the console window, cd C:\installation folder
 - Run python ( If it runs normally, exit by entering exit() )
 
-2. run realtrans install batch file ( install python package )
+####2. run realtrans install batch file ( install python package )
 
 > Run install.bat
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
