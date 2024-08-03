@@ -17,6 +17,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 > 1. Install Python
 > 2. Run install.bat in the RealTrans folder
+> 3. Run realtrans.exe in the RealTrans folder
 
 #### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
 
@@ -25,7 +26,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 - In the console window, cd C:\installation folder
 - Run python ( If it runs normally, exit by entering exit() )
 
-#### 2. run realtrans install batch file ( install python package )
+#### 2. run realtrans install batch file in the RealTrans folder ( install python package )
 
 > Run install.bat
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
@@ -148,6 +149,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 > 1. 파이선 설치
 > 2. RealTrans 폴더의 install.bat 실행
+> 3. RealTrans 폴더의 realtrans.exe 실행
 
 #### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
 
