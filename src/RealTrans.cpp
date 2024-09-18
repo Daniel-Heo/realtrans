@@ -246,9 +246,16 @@ void CALLBACK TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTime)
 					CharToWChar(strDebug.c_str(), strT);
 					AppendTextToRichEdit(hwndTextBox, strT);*/
 					// 디버깅용 - end
-					RequestDeepL(&readBuf[1], strOut, settings["cb_apitrans_lang"], settings["ed_trans_api_key"]);
+					RequestDeepL(&readBuf[1], strOut, settings["cb_apitrans_lang"], settings["ed_trans_api_key"], 1);
 					std::wstring strChg = StringToWCHAR(strOut);
 					AppendTextToRichEdit(hwndTextBox, (WCHAR *)strChg.c_str());
+				}
+				else if (settings["cb_trans_api"] == 1) // DeepL Pro
+				{
+					std::string strOut;
+					RequestDeepL(&readBuf[1], strOut, settings["cb_apitrans_lang"], settings["ed_trans_api_key"], 2);
+					std::wstring strChg = StringToWCHAR(strOut);
+					AppendTextToRichEdit(hwndTextBox, (WCHAR*)strChg.c_str());
 				}
 			}
 		}

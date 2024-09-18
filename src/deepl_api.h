@@ -3,4 +3,4 @@
 #include <winhttp.h>
 #include <string>
 
-void RequestDeepL(const std::string& text, std::string& strOut, const std::string& lang, const std::string& api_key);
+void RequestDeepL(const std::string& text, std::string& strOut, const std::string& lang, const std::string& api_key, const int dns_type);

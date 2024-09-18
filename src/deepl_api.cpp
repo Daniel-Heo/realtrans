@@ -26,7 +26,7 @@ std::string FilterString(const std::string& input) {
 
 // DeepL API를 사용하여 번역할 경우
 //  결과는 가져오는데 내용이 없는 경우가 있다. 이것은 deepL에서 발생하는 문제로 보인다.
-void RequestDeepL(const std::string& text, std::string& strOut, const std::string& lang, const std::string& api_key) {
+void RequestDeepL(const std::string& text, std::string& strOut, const std::string& lang, const std::string& api_key, const int dns_type) {
     // WinHTTP 세션 초기화
     HINTERNET hSession = WinHttpOpen(L"A WinHTTP Example Program/1.0",
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
@@ -55,7 +55,11 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
     //}
 
     // 연결 핸들 생성
-    HINTERNET hConnect = WinHttpConnect(hSession, L"api-free.deepl.com",
+	std::wstring deepl_dns;
+	if (dns_type == 1) deepl_dns = L"api-free.deepl.com";
+	else if (dns_type == 2) deepl_dns = L"api.deepl.com";
+
+    HINTERNET hConnect = WinHttpConnect(hSession, deepl_dns.c_str(),
         INTERNET_DEFAULT_HTTPS_PORT, 0);
     if (!hConnect) {
         //wprintf(L"WinHttpConnect failed with error %u\n", GetLastError());

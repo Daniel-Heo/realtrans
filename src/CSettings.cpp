@@ -621,6 +621,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	if (hListBox != NULL) {
 		if (isStart) {
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"DeepL");
+			SendMessage(hListBox, CB_ADDSTRING, 1, (LPARAM)L"DeepL Pro");
 		}
 
 		// 첫 번째 아이템을 선택 상태로 설정
