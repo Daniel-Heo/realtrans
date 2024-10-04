@@ -20,6 +20,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 3. Run realtrans.exe in the RealTrans folder
 
 #### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
+( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
 - Create a console window by running cmd in the window.
@@ -27,6 +28,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 - Run python ( If it runs normally, exit by entering exit() )
 
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
+( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > Run install.bat
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
@@ -152,6 +154,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 > 3. RealTrans 폴더의 realtrans.exe 실행
 
 #### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
+( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
  - window에서 cmd를 실행하여 console창을 만듬
@@ -159,6 +162,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
 
 #### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행
+( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > install.bat 실행
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
