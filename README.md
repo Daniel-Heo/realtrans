@@ -23,9 +23,9 @@ This is a program for real-time voice translation. Recognizes and translates the
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
-- Create a console window by running cmd in the window.
-- In the console window, cd C:\installation folder
-- Run python ( If it runs normally, exit by entering exit() )
+- Run cmd in Windows to create a console window
+- Run python --version (If it runs and the python version is printed, it is normal, so enter exit() to exit)
+* If Python does not run normally, Python may have been installed multiple times. In this case, remove all previously installed Pythons and reinstall them. If it is not a duplicate, the python path may be missing from the environment variables. In this case, you should reinstall it or select Path in Windows' Advanced System Settings/Environment Variables/System Variables, edit it, add the python path, and apply it.
 
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
 ( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
@@ -157,9 +157,9 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
- - window에서 cmd를 실행하여 console창을 만듬
- - 콘솔창에서 cd C:\설치폴더
- - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
+- window에서 cmd를 실행하여 console창을 만듬
+- python --version 실행 ( 실행이 되어서 python version이 출력되면 정상임으로 exit()를 입력하여 빠져나옴 )
+* 파이선이 정상적으로 실행이 되지 않을 경우에 파이선이 중복으로 설치되었을 수 있으며 이 경우에는 기존에 설치된 파이선들을 다 제거하고 다시 설치해보세요. 중복이 아닌 경우에는 환경변수에 python path가 누락되어있을 수 있습니다. 이 경우에는 재설치를 하시거나 윈도우의 고급 시스템 설정/환경변수/시스템 변수에서 Path를 선택하고 편집해서 python 경로를 추가해주시고 적용을 해주셔야합니다.
 
 #### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행
 ( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
