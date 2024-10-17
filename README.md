@@ -64,7 +64,7 @@ How to use the program
   - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
 
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
-*Model downloading may take a long time.
+*Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -198,7 +198,7 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
  - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다. OpenAI 응답이 느리기 때문에 많은 양을 처리할 경우에 대기시간이 많이 걸릴 수 있습니다.
 
 * 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
-* 모델 다운로드 시간이 많이 걸릴 수 있습니다. 
+* 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
