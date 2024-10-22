@@ -19,14 +19,16 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 2. Run install.bat in the RealTrans folder
 > 3. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** )
+#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12.
+( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
-- Create a console window by running cmd in the window.
-- In the console window, cd C:\installation folder
-- Run python ( If it runs normally, exit by entering exit() )
+- Run cmd in Windows to create a console window
+- Run python --version (If it runs and the python version is printed, it is normal, so enter exit() to exit)
+* If Python does not run normally, Python may have been installed multiple times. In this case, remove all previously installed Pythons and reinstall them. If it is not a duplicate, the python path may be missing from the environment variables. In this case, you should reinstall it or select Path in Windows' Advanced System Settings/Environment Variables/System Variables, edit it, add the python path, and apply it.
 
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
+( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > Run install.bat
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
@@ -44,7 +46,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
   - If execution is successful, you only need to run realtrans.exe from next time.
 
-* Optional (If you want more performance: You don’t have to install it.)
+* Optional: Installing Cuda Toolkit and CuDNN will reduce GPU and CPU load. If you have an Nvidia graphics card, installing them is recommended for many reasons.
   
    Install Cuda Toolkit: https://developer.nvidia.com/cuda-downloads (You can install the Windows version. Improves floating point calculation and PyTorch performance)
 
@@ -62,7 +64,7 @@ How to use the program
   - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
 
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
-*Model downloading may take a long time.
+*Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -151,14 +153,16 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 > 2. RealTrans 폴더의 install.bat 실행
 > 3. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** )
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원.
+( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
- - window에서 cmd를 실행하여 console창을 만듬
- - 콘솔창에서 cd C:\설치폴더
- - python 실행 ( 실행이 되면 exit()를 입력하여 빠져나옴 )
+- window에서 cmd를 실행하여 console창을 만듬
+- python --version 실행 ( 실행이 되어서 python version이 출력되면 정상임으로 exit()를 입력하여 빠져나옴 )
+* 파이선이 정상적으로 실행이 되지 않을 경우에 파이선이 중복으로 설치되었을 수 있으며 이 경우에는 기존에 설치된 파이선들을 다 제거하고 다시 설치해보세요. 중복이 아닌 경우에는 환경변수에 python path가 누락되어있을 수 있습니다. 이 경우에는 재설치를 하시거나 윈도우의 고급 시스템 설정/환경변수/시스템 변수에서 Path를 선택하고 편집해서 python 경로를 추가해주시고 적용을 해주셔야합니다.
 
 #### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행
+( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > install.bat 실행
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
@@ -176,7 +180,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
  - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다.
 
-* 선택사항 ( 더 많은 성능을 원하실 경우 : 설치안하셔도 무관합니다. )
+* 옵션사항 : Cuda Toolkit, CuDNN을 설치하시면 GPU부하와 CPU부하가 줄어듭니다. Nvidia 그래픽 카드를 가지셨다면 설치하시는게 여러모로 좋습니다.
   
   Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
 
@@ -194,7 +198,7 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
  - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다. OpenAI 응답이 느리기 때문에 많은 양을 처리할 경우에 대기시간이 많이 걸릴 수 있습니다.
 
 * 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
-* 모델 다운로드 시간이 많이 걸릴 수 있습니다. 
+* 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
