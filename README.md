@@ -69,6 +69,7 @@ How to use the program
 *Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
 
 * For better recognition rate improvement, change the content below in line 20 of Lib\site-packages\faster_whisper\util.py under the Python installation directory to use the whisper-large-v3-turbo version when selecting medium. The large-v3-turbo version uses less graphics memory (from 3GB to 1.6GB) than the large-v3 version, but has slightly lower quality than the large-v3 version. It is a good model to use the large-v3 at high speed.
+* Feeling by model size: The small model is recognized, but the quality feels a lot lower. The medium model has somewhat good recognition and translation. The large model has a slightly better recognition and translation than the medium model.
 
 python\Lib\site-packages\faster_whisper\util.py 20 lines
 
@@ -213,6 +214,7 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 * 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
 
 * 더 나은 인식률 개선을 위해서는 파이선 설치 디렉토리 밑의 Lib\site-packages\faster_whisper\util.py의 20 line의 아래 내용을 변경하여 medium을 선택했을 경우 whisper-large-v3-turbo 버젼을 사용하도록 수정하시면됩니다. large-v3-turbo버젼은 large-v3 버젼에 비해 그래픽메모리 사용량이 3기가에서 1.6기가로 적은 용량을 사용하면서 품질은 large-v3에 비해 약간 떨어지는 성능을 가집니다. 고속으로 large-v3를 사용하기 좋은 모델입니다.
+* 모델 사이즈별 느낌 : small 모델은 인식은 되는데 품질은 많이 떨어지는 느낌. medium은 인식과 번역이 어느정도 쓸만하다는 느낌. large는 인식과 번역이 medium보다는 조금 잘되는 느낌.
 
 python\Lib\site-packages\faster_whisper\util.py 20 lines
 
