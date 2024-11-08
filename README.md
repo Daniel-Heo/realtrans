@@ -71,11 +71,11 @@ How to use the program
 
 * For better recognition rate improvement, change the content below in line 20 of Lib\site-packages\faster_whisper\util.py under the Python installation directory to use the whisper-large-v3-turbo version when selecting medium. The large-v3-turbo version uses less graphics memory (from 3GB to 1.6GB) than the large-v3 version, but has slightly lower quality than the large-v3 version. It is a good model to use the large-v3 at high speed.
 
-python\Lib\site-packages\faster_whisper\util.py 20 lines
+	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
-#"medium": "Systran/faster-whisper-medium",
+	#"medium": "Systran/faster-whisper-medium",
 
-"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -216,11 +216,11 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 
 * 더 나은 인식률 개선을 위해서는 파이선 설치 디렉토리 밑의 Lib\site-packages\faster_whisper\util.py의 20 line의 아래 내용을 변경하여 medium을 선택했을 경우 whisper-large-v3-turbo 버젼을 사용하도록 수정하시면됩니다. large-v3-turbo버젼은 large-v3 버젼에 비해 그래픽메모리 사용량이 3기가에서 1.6기가로 적은 용량을 사용하면서 품질은 large-v3에 비해 약간 떨어지는 성능을 가집니다. 고속으로 large-v3를 사용하기 좋은 모델입니다.
 
-python\Lib\site-packages\faster_whisper\util.py 20 lines
+	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
-#"medium": "Systran/faster-whisper-medium",
+	#"medium": "Systran/faster-whisper-medium",
 
-"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
