@@ -19,7 +19,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 2. Run install.bat in the RealTrans folder
 > 3. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12.
+#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12. ( Python : 3.12.7 Windows installer (64-bit) )
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
@@ -164,7 +164,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 > 2. RealTrans 폴더의 install.bat 실행
 > 3. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원.
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.7 Windows installer (64-bit) )
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
