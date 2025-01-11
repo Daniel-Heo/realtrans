@@ -19,7 +19,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 2. Run install.bat in the RealTrans folder
 > 3. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12.
+#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12. ( Python : 3.12.7 Windows installer (64-bit) )
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
@@ -48,9 +48,11 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 * Optional: Installing Cuda Toolkit and CuDNN will reduce GPU and CPU load. If you have an Nvidia graphics card, installing them is recommended for many reasons.
   
-   Install Cuda Toolkit: https://developer.nvidia.com/cuda-downloads (You can install the Windows version. Improves floating point calculation and PyTorch performance)
+   Install Cuda Toolkit: https://developer.nvidia.com/cuda-toolkit (You can install the Windows version. Improves floating point calculation and PyTorch performance)
 
-   Install CuDNN: https://developer.nvidia.com/rdp/cudnn-archive (performance can be improved by about 20%)
+   Install CuDNN: https://developer.nvidia.com/cudnn-downloads (performance can be improved by about 20%)
+  
+  	Old CuDNN version: https://developer.nvidia.com/rdp/cudnn-archive
 
 ## Usage
 
@@ -65,14 +67,15 @@ How to use the program
 
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
 *Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
+* Feeling by model size: The small model is recognized, but the quality feels a lot lower. The medium model has somewhat good recognition and translation. The large model has a slightly better recognition and translation than the medium model.
 
 * For better recognition rate improvement, change the content below in line 20 of Lib\site-packages\faster_whisper\util.py under the Python installation directory to use the whisper-large-v3-turbo version when selecting medium. The large-v3-turbo version uses less graphics memory (from 3GB to 1.6GB) than the large-v3 version, but has slightly lower quality than the large-v3 version. It is a good model to use the large-v3 at high speed.
 
-python\Lib\site-packages\faster_whisper\util.py 20 lines
+	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
-#"medium": "Systran/faster-whisper-medium",
+	#"medium": "Systran/faster-whisper-medium",
 
-"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -161,7 +164,7 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 > 2. RealTrans 폴더의 install.bat 실행
 > 3. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원.
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.7 Windows installer (64-bit) )
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
@@ -190,9 +193,11 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 * 옵션사항 : Cuda Toolkit, CuDNN을 설치하시면 GPU부하와 CPU부하가 줄어듭니다. Nvidia 그래픽 카드를 가지셨다면 설치하시는게 여러모로 좋습니다.
   
-  Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-downloads ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
+  Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-toolkit ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
 
-  CuDNN 설치 : https://developer.nvidia.com/rdp/cudnn-archive ( 20%정도 성능 개선 가능 )
+  CuDNN 설치 : CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads ( 20%정도 성능 개선 가능 )
+  
+	CuDNN 예전버젼 : https://developer.nvidia.com/rdp/cudnn-archive
   
 
 ## 사용법
@@ -207,14 +212,15 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 
 * 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
 * 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
+* 모델 사이즈별 느낌 : small 모델은 인식은 되는데 품질은 많이 떨어지는 느낌. medium은 인식과 번역이 어느정도 쓸만하다는 느낌. large는 인식과 번역이 medium보다는 조금 잘되는 느낌.
 
 * 더 나은 인식률 개선을 위해서는 파이선 설치 디렉토리 밑의 Lib\site-packages\faster_whisper\util.py의 20 line의 아래 내용을 변경하여 medium을 선택했을 경우 whisper-large-v3-turbo 버젼을 사용하도록 수정하시면됩니다. large-v3-turbo버젼은 large-v3 버젼에 비해 그래픽메모리 사용량이 3기가에서 1.6기가로 적은 용량을 사용하면서 품질은 large-v3에 비해 약간 떨어지는 성능을 가집니다. 고속으로 large-v3를 사용하기 좋은 모델입니다.
 
-python\Lib\site-packages\faster_whisper\util.py 20 lines
+	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
-#"medium": "Systran/faster-whisper-medium",
+	#"medium": "Systran/faster-whisper-medium",
 
-"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
