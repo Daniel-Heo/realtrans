@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include "SoundDev.h"
 
 // 언어와 관련 데이터를 저장하는 구조체 정의
 struct LanguageData {

@@ -34,19 +34,30 @@ class LoopbackAudio(threading.Thread):
         self.samplerate = 16000
         self.block_size = 20 # 20ms
         self.frame_size = int(self.samplerate * self.block_size / 1000)
-        self.mics = sc.all_microphones(include_loopback=True)
-        self.mic_index = device
         self.stop_event = threading.Event()
         self.is_paused = True
         self.work_idx = 0 # 0~9 : LoopbackAudio의 처리
         self.audio_data = [None] * 10
 
-    def run(self):
-        if self.mic_index == None:
-            mic = sc.default_microphone()
+        p = pyaudio.PyAudio()
+        audio_info = ""
+        if device == "speaker":
+            audio_info = p.get_default_output_device_info()
+            self.snd = sc.all_microphones(include_loopback=True)
         else:
-            mic = self.mics[self.mic_index]
-        with mic.recorder(samplerate=self.samplerate) as recorder:
+            audio_info = p.get_default_input_device_info()
+            self.snd = sc.all_microphones(include_loopback=False)
+        for i in range(len(self.snd)):
+            if self.snd[i].name.find(audio_info['name'])>=0:
+                self.snd_index = i
+                self.snd_channels = self.snd[i].channels
+                break
+        p.terminate()
+
+    def run(self):
+        dev = self.snd[self.snd_index]
+
+        with dev.recorder(samplerate=self.samplerate) as recorder:
             while not self.stop_event.is_set():
                 if self.is_paused == False:
                     self.audio_data[self.work_idx] = recorder.record(numframes=self.frame_size)
@@ -99,7 +110,10 @@ class VADAudio(threading.Thread):
         while not self.stop_event.is_set():
             if self.work_idx != self.soundcard_reader.work_idx and not self.soundcard_reader.is_paused:
                 transposed_data = np.transpose(self.soundcard_reader.audio_data[self.work_idx])
-                frame = (librosa.to_mono(transposed_data) * 65536).astype(np.int16)
+                if transposed_data.ndim == 1:
+                    frame = (transposed_data * 65536).astype(np.int16)
+                else:
+                    frame = (librosa.to_mono(transposed_data[0]) * 65536).astype(np.int16)
                 self.work_idx += 1
                 if self.work_idx > 9:
                     self.work_idx = 0
@@ -355,12 +369,12 @@ def main(ARGS):
     file_path = os.path.join(ARGS.exec_path, "hallucination_filter.json")
     json_filter = load_json_file(file_path)
 
-    devNo=GetDevNo(ARGS)
-    if devNo<0:
-        return 0
+    # devNo=GetDevNo(ARGS)
+    # if devNo<0:
+    #     return 0
 
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
-                         device=devNo)
+                         device=ARGS.device)
 
     # Faster Whisper 원본 모델 로드
     from faster_whisper import WhisperModel
@@ -371,7 +385,7 @@ def main(ARGS):
     ctrans_manager.check_fwmodel(model_size)
 
     # cuda 사용 여부에 따라 데이터 타입 변경 : CPU는 float32, GPU는 float16
-    if ARGS.cuda_dev == 'cpu':
+    if ARGS.cuda_dev == 'cpu' or ARGS.proc == "cuda float32":
         data_type = "float32"
     else:
         data_type = "float16"
@@ -498,20 +512,6 @@ def main(ARGS):
 
     # GPU 메모리 해제
     torch.cuda.empty_cache()
-    
-
-# 음성 입력장치의 번호를 반환
-def GetDevNo(ARGS):
-    if ARGS.device is None:
-        return -1
-
-    mics = sc.all_microphones(include_loopback=True)
-
-    for i in range(len(mics)):
-        if mics[i].name.find(ARGS.device)>=0:
-            return i
-
-    return -1
 
 # int16 -> float로 변환
 def Int2Float(data, dtype=np.float32):
@@ -525,7 +525,7 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser(description="Stream from speacker to whisper and translate")
-    parser.add_argument('-d', '--device', type=str, default=None,
+    parser.add_argument('-d', '--device', type=str, default="speaker",
                         help="Device active sound input name")
     parser.add_argument('-m', '--model_size', type=str, default="small",
                         help="Model size : large, medium, small")
@@ -535,19 +535,14 @@ if __name__ == '__main__':
                         help="Voice input Language : eng_Latn, kor_Hang")
     parser.add_argument('-t', '--target_lang', type=str, default=None, # kor_Hang
                         help="Transfer Language : eng_Latn, kor_Hang, xx")
+    parser.add_argument('-p', '--proc', type=str, default="cuda float16",
+                        help="Process Method : cuda float16, cuda float32, CPU")
     parser.add_argument('-v', '--view', type=str, default=None,
                         help="Debug mode : None, not None")
     parser.add_argument('-w', '--webRTC_aggressiveness', type=int, default=3,
                         help="Set aggressiveness of webRTC: an integer between 0 and 3, 0 being the least aggressive about filtering out non-speech, 3 the most aggressive. Default: 3")      
 
     ARGS = parser.parse_args()
-
-    # Check Input parameter
-    if ARGS.device is None:
-        p = pyaudio.PyAudio()
-        audio_info = p.get_default_output_device_info()
-        ARGS.device = audio_info['name']
-        p.terminate()
 
     if( ARGS.source_lang == None):
         ARGS.source_lang = "eng_Latn"
@@ -573,6 +568,10 @@ if __name__ == '__main__':
 
     #cuda activate : Translation processing with CPU
     ARGS.cuda_dev = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if ARGS.proc == "CPU" or ARGS.cuda_dev == 'cpu':
+        ARGS.cuda_dev = 'cpu'
+    else:
+        ARGS.cuda_dev = 'cuda'
     torch.device(ARGS.cuda_dev)
     print('#Translation processing with ' + ARGS.cuda_dev)
 

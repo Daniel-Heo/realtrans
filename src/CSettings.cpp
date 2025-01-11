@@ -10,6 +10,8 @@
 
 // 기본 모델 크기
 #define DEFULAT_MODEL_SIZE "small"
+#define DEFULAT_PROC "cuda float16"
+#define DEFULAT_INPUT_DEV "speaker"
 
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
@@ -103,6 +105,18 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 	SendMessage(hCbBox, CB_GETLBTEXT, nSel, (LPARAM)comboBoxItem);
 	settings["model_size"] = WCHARToString((WCHAR*)comboBoxItem);
+
+	// 음성 입력장치 설정
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_INPUT_DEV);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	SendMessage(hCbBox, CB_GETLBTEXT, nSel, (LPARAM)comboBoxItem);
+	settings["input_dev"] = WCHARToString((WCHAR*)comboBoxItem);
+
+	// 처리 방식 설정
+	hCbBox = GetDlgItem(hwnd, IDC_COMBO_PROC);
+	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
+	SendMessage(hCbBox, CB_GETLBTEXT, nSel, (LPARAM)comboBoxItem);
+	settings["proc"] = WCHARToString((WCHAR*)comboBoxItem);
 
 	// 언어 설정
 	switch (settings["ui_lang"].get<int>())
@@ -225,6 +239,10 @@ void defaultJson() {
 	settings["ui_lang"] = 0; // 환경설정 언어 설정
 	settings["model_size"] = DEFULAT_MODEL_SIZE; // 모델 사이즈
 
+	// 입력장치 및 처리방식 설정
+	settings["input_dev"] = "speaker";
+	settings["proc"] = "cuda float16"; // 처리장치 설정
+
 	settings["txt_trans_src"] = "eng_Latn"; // 텍스트 번역 소스 언어
 	settings["txt_trans_tgt"] = "kor_Hang"; // 텍스트 번역 대상 언어	
 
@@ -298,6 +316,44 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		}
 
 		SendMessage(hListBox, CB_SETCURSEL, settings["ui_lang"].get<int>(), 0); // 두번째 1,0
+	}
+
+	// 처리방식
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_PROC); // ListBox의 핸들을 가져옵니다.
+	if (hListBox != NULL) {
+		if (isStart) {
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"cuda float16");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"cuda float32");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"CPU");
+		}
+
+		if (settings.find("proc") == settings.end()) settings["proc"] = DEFULAT_PROC;
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			SendMessage(hListBox, CB_GETLBTEXT, (WPARAM)i, (LPARAM)tmp);
+			if (CompareStringWString(settings.value("proc", ""), (WCHAR*)tmp) == true) {
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
+	}
+
+	// 입력장치
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_INPUT_DEV); // ListBox의 핸들을 가져옵니다.
+	if (hListBox != NULL) {
+		if (isStart) {
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"speaker");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"mic");
+		}
+		if (settings.find("input_dev") == settings.end()) settings["input_dev"] = DEFULAT_INPUT_DEV;
+		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
+		for (int i = 0; i < itemCount; ++i) {
+			SendMessage(hListBox, CB_GETLBTEXT, (WPARAM)i, (LPARAM)tmp);
+			if (CompareStringWString(settings.value("input_dev", ""), (WCHAR*)tmp) == true) {
+				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
+				break;
+			}
+		}
 	}
 
 	// 원문 자막 표시
@@ -770,14 +826,16 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 				}
 				break;
 			case IDC_COMBO_MODEL_SIZE:
+			case IDC_COMBO_PROC:
+			case IDC_COMBO_INPUT_DEV:
 				if (wmEvent == CBN_SELCHANGE) {
 					// 콤보박스에서 선택한 항목의 인덱스를 가져옵니다.
 					int index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
 					// 해당 인덱스에 해당하는 문자열을 가져옵니다.
-					WCHAR tmp[256];
-					SendMessage((HWND)lParam, CB_GETLBTEXT, (WPARAM)index, (LPARAM)tmp);
+					//WCHAR tmp[256];
+					//SendMessage((HWND)lParam, CB_GETLBTEXT, (WPARAM)index, (LPARAM)tmp);
 					// settings["model_size"]의 내용과 비교하여 같은지 확인
-					if (CompareStringWString(settings.value("model_size", ""), (WCHAR*)tmp) != true) {
+					//if (CompareStringWString(settings.value("model_size", ""), (WCHAR*)tmp) != true) {
 						TCHAR szLoadedString[256]; // 로드된 문자열을 저장할 버퍼
 						TCHAR szLoadedStringALERT[256]; // 로드된 문자열을 저장할 버퍼
 
@@ -789,7 +847,7 @@ INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 							// 문자열 사용 (예: 메시지 박스로 표시)
 							MessageBox(hwndDlg, szLoadedString, szLoadedStringALERT, MB_OK| MB_ICONWARNING);
 						}
-					}
+					//}
 				}
 				break;
 

@@ -31,12 +31,14 @@
 #define IDC_COMBO_VOICE_LANG2           1008
 #define IDC_TEXT_MODEL_SIZE             1008
 #define IDC_CHECK_VSUB2                 1009
+#define IDC_TEXT_MODEL_SIZE2            1009
 #define IDC_CHECK_PCTRANS               1010
 #define IDC_TEXT_SEL_VLANG5             1011
 #define IDC_TEXT_SEL_VLANG6             1012
 #define IDC_CHECK_APITRANS              1013
 #define IDC_TEXT_SEL_VLANG7             1014
 #define IDC_COMBO_FONT_COLOR            1015
+#define IDC_TEXT_MODEL_SIZE3            1015
 #define IDC_TEXT_SEL_VLANG8             1016
 #define IDC_TEXT_SEL_VLANG18            1017
 #define IDC_TEXT_SEL_VLANG12            1018
@@ -77,13 +79,15 @@
 #define IDC_COMBO_MODEL_SIZE            1054
 #define IDC_EDIT_TRANS_API_KEY          1055
 #define IDC_EDIT_SUMMARY_API_KEY        1056
+#define IDC_COMBO_INPUT_DEV             1057
+#define IDC_COMBO_PROC                  1058
 #define IDC_STATIC2                     1060
 #define IDC_CB_SRCLANG                  1061
 #define IDC_CB_TGTLANG                  1062
 #define IDC_BTN_TRANSLATE               1063
 #define IDC_STATIC_ARROW                1064
 #define IDC_BTN_OPEN_FILE               1065
-#define IDC_BTN_SAVE_FILE			   1066
+#define IDC_BTN_SAVE_FILE               1066
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

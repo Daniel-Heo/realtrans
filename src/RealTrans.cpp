@@ -32,6 +32,7 @@
 using json = nlohmann::json;
 
 #define MAX_LOADSTRING 100
+#define TIMER_ID 1 // 타이머 ID
 
 // 전역 변수로 타이틀바 아이콘에 대한 식별자와 위치를 정의
 #define IDI_SETTINGS 132
@@ -347,28 +348,11 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	siStartInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES; // STARTF_USESTDHANDLES is Required.
 	siStartInfo.wShowWindow = SW_HIDE; // Prevents cmd window from flashing. Requires STARTF_USESHOWWINDOW in dwFlags.
 
-	// 기본 사운드 장치 검색해서 Python 실행인자로 넘겨줌
-	WCHAR strActSound[200];
-	WCHAR strSoundInfo[200]=L"";
-	WAVEFORMATEX waveFormat;
-	if (GetActiveSound(strActSound, &waveFormat) == TRUE) {
-		// waveFormat.nChannels; // 채널 수를 나타냅니다. 여기서는 2채널
-		// waveFormat.wBitsPerSample; // bps : 샘플 당 비트 수를 나타냅니다. 여기서는 32비트
-		// waveFormat.nSamplesPerSec; // 초당 샘플링 횟수를 나타냅니다. 여기서는 48000Hz
-		
-		// waveFormat.wFormatTag; // 오디오 데이터 포맷을 나타냅니다. 65534 (또는 WAVE_FORMAT_EXTENSIBLE)는 확장 가능한 포맷을 의미하며, 
-							// 오디오 스트림이 여러 채널을 가지고 있거나, 높은 비트 해상도를 사용하는 경우에 주로 사용
-		// waveFormat.nBlockAlign; // 8 : 블록 정렬을 나타냅니다. 즉, 샘플 하나를 저장하는 데 필요한 바이트 수입니다. 
-							// 여기서는 8바이트, 즉 64비트를 의미합니다. 스테레오(2채널)에서 샘플 당 32비트를 사용한다면, 샘플 하나를 위해 8바이트가 필요
-		// waveFormat.cbSize; // 추가 정보의 크기를 나타냅니다. 여기서는 22바이트
-							// WAVEFORMATEX 구조체가 WAVE_FORMAT_EXTENSIBLE 포맷을 사용하는 경우, 이는 WAVEFORMATEXTENSIBLE 구조체를 통해 추가적인 정보를 제공합니다.
-							// 이 구조체는 WAVEFORMATEX를 확장하여, 오디오 샘플의 정확한 포맷, 채널 구성, 채널 마스크 등을 더 상세하게 명시할 수 있습니다.
-							// bps가 32비트인 오디오 포맷은 높은 해상도의 오디오 처리에 적합하며, 전문적인 오디오 작업과 고품질 오디오 스트리밍에 주로 사용
-		/*char  strTmp[500];  
-		sprintf_s(strTmp, "Name:%s channel:%d bps:%d sample rate:%d format:%d block size:%d cbSize:%d", strActSound, waveFormat.nChannels, waveFormat.wBitsPerSample, waveFormat.nSamplesPerSec, waveFormat.wFormatTag, waveFormat.nBlockAlign, waveFormat.cbSize);
-		addText += strTmp;*/
-		swprintf_s(strSoundInfo, L"-r %d", waveFormat.nSamplesPerSec);
-	}
+	std::string strProc;
+	std::wstring wstrProc;
+
+	strProc = "-d " + settings.value("input_dev", "") + " -p \"" + settings.value("proc", "cuda float16")+"\"";
+	wstrProc = StringToWCHAR(strProc);
 
 	std::string strLang;
 	std::wstring wstrLang;
@@ -385,11 +369,14 @@ DWORD WINAPI ThreadProc(LPVOID lpParam)
 	TCHAR cmd[300]; // 실행 명령
 #ifndef NDEBUG // 디버그 모드
 	//swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); # 언어 체크
-	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo); 
+	swprintf(cmd, 300, L"python.exe D:\\work\\trans\\runTransWin.py %s %s", wstrProc.c_str(), wstrLang.c_str());
 	//swprintf(cmd, 300, L"python.exe D:\\git\\realtrans\\release\\2.0\\runTransWin.py -d \"%s\" -v debug %s", strActSound, wstrLang.c_str()); // git test
+	// cmd 내용을 messagebox로 출력
+	//MessageBox(NULL, cmd, L"cmd", MB_OK);
 #else
 	//swprintf(cmd, 300, L"python.exe -W ignore::UserWarning: runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
-	swprintf(cmd, 300, L"python.exe runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
+	//swprintf(cmd, 300, L"python.exe runTransWin.py -d \"%s\" %s %s", strActSound, wstrLang.c_str(), strSoundInfo);
+	swprintf(cmd, 300, L"python.exe runTransWin.py %s %s", wstrProc.c_str(), wstrLang.c_str());
 #endif
 	if (!CreateProcess(
 
@@ -714,6 +701,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		NULL, NULL, hInstance, NULL
 	);
 
+	//HWND hWnd = CreateWindowEx(
+	//	WS_EX_TOPMOST | WS_EX_LAYERED, //WS_EX_LAYERED,                // 투명도 설정을 위한 확장 스타일
+	//	L"RoundWindow",               // 클래스 이름
+	//	NULL,                         // 타이틀바 없음
+	//	WS_POPUP,                     // 타이틀바와 테두리 제거된 윈도우
+	//	CW_USEDEFAULT, CW_USEDEFAULT, 1280, 400, // 위치 및 크기
+	//	//hParent, NULL, hInstance, NULL);
+	//	NULL, NULL, hInstance, NULL);
+
 	if (!hWnd) return FALSE;
 
 	// 요약창
@@ -744,6 +740,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	if (GetCurrentThreadId() != g_MainUIThreadID) {
 		return 0;
 	}
+
+	static BOOL isMouseInside = FALSE; // 마우스가 창 내부에 있는지 여부
 
 	// 번역창
 	//if (DlgTrans != NULL) {
@@ -826,6 +824,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// 창을 항상 맨 위에 위치하게 설정
 		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+		// 0.5초 간격으로 타이머 설정
+		SetTimer(hWnd, TIMER_ID, 500, NULL);
 	}
 	break;
 	case WM_WINDOWPOSCHANGED:
@@ -953,6 +954,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		MoveWindow(hwndTextBox, 43, 10, width - 43, height - 20, TRUE);
 	}
 	break;
+	case WM_TIMER: {
+		if (wParam == TIMER_ID) {
+			// 마우스 위치 얻기
+			POINT pt;
+			GetCursorPos(&pt);
+
+			// 마우스가 창 내부에 있는지 확인
+			RECT rc;
+			GetWindowRect(hWnd, &rc);
+			BOOL isInside = PtInRect(&rc, pt);
+
+			// 상태가 변경되었을 때만 처리
+			if (isMouseInside != isInside) {
+				isMouseInside = isInside;
+
+				if (isMouseInside) {
+					// 마우스가 창 내부로 들어옴
+					// 타이틀바 및 테두리를 추가
+					SetWindowLong(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+					SetWindowPos(hWnd, NULL, 0, 0, 0, 0,
+						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+				}
+				else {
+					// 마우스가 창 외부로 나감
+					SetWindowLong(hWnd, GWL_EXSTYLE, WS_EX_LAYERED); // 확장 스타일을 모두 제거
+					SetWindowLong(hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+					SetWindowPos(hWnd, NULL, 0, 0, 0, 0,
+						//SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+				}
+			}
+		}
+	} break;
 	case WM_DESTROY:
 		// Kill process if it is still running. 
 		TerminateProcess(piProcInfo.hProcess, 0);
