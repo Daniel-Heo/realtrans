@@ -156,36 +156,28 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 ## Frequently Asked Questions
 
 1. What are the graphic card requirements?
-
 Small can be run with CPU. From the medium model, it can be run normally without slowdown on Nvidia 1660Super, 2060 or higher.
 
 
 ## Error message explanation
 
 - Requested float16 compute type, but the target device or backend do not support efficient float16 computation.
-
 The error above means that float16 is not supported. If your nvidia graphics card is old, this error may occur. Then you need to change it to float32. Set the processing unit to cuda float32 in the settings.
 
 - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
-
 The above error is because the dll file of cudnn cannot be found. If you installed the cuda toolkit, cudnn should be in that location. You should read the installation manual on the Internet and place the dll files in the corresponding location.
 
-​
-
 - If only "ython" is displayed on the screen
-
 This is because you did not check the with path option when installing Python or Python cannot be found for other reasons.
 
-​
-
 - ModuleNotFoundError: No module named 'soundcard'
-
 This happens if you don't run the install.bat file of the realtrans compressed file.
 
-
 - Fetching 4 files: If it stops at 25%
-
 When downloading a model, it takes a long time to complete. It can take 10 minutes for a small model, 30 minutes for a medium model, and more than an hour for a large model.
+
+- runTransWin.py: error: argument -d/--device: expected one argument
+This is a compatibility error that occurs when you overwrite a new version of RealTrans with an older version of the config.json file. Try saving the settings in Settings and then restarting.
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # RealTrans ( 한국어 )
@@ -345,26 +337,19 @@ small은 CPU로 돌려도 돌아갑니다. medium 모델부터는 Nvidia 1660Sup
 ## 에러메시지 설명
 
 - Requested float16 compute type, but the target device or backend do not support efficient float16 computation.
-
 위의 에러는 float16을 지원하지 않는다는 것입니다. nvidia 그래픽카드인데 오래된 것은 해당 에러가 발생할 수 있습니다. 그러면 float32로 변경하셔야합니다. 설정에서 처리장치를 cuda float32로 설정하세요.
 
-​
-
 - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
-
 위의 에러는 cudnn의 dll 파일을 찾지못해서 그렇습니다. cuda toolkit을 설치하셨으면 cudnn이 해당 위치에 있어야합니다. 인터넷의 해당 설치메뉴얼을 읽으시고 해당하는 곳에 dll파일들을 위치시키셔야합니다.
 
-​
-
 - 화면에 "ython"만 보일 경우
-
 파이선 설치하실때 with path 옵션을 체크하지 않았거나 기타 이유로 파이선을 찾지못하는 경우입니다.
 
-​
-
 - ModuleNotFoundError: No module named 'soundcard'
-
 realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니다.
+
+- runTransWin.py: error: argument -d/--device: expected one argument
+기존에 RealTrans를 사용하다가 새로운 버젼을 덮어씌울때 config.json파일이 예전버젼이라서 생기는 호환성 오류입니다. 설정에서 환경설정을 저장한 후에 다시 시작해보세요.
 
 ​
 
