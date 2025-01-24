@@ -225,7 +225,7 @@ This is a compatibility error that occurs when you overwrite a new version of Re
 > 3. CuDNN 설치
 > 4. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.7 Windows installer (64-bit) ) *중요*
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.8 Windows installer (64-bit) ) *중요*
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
