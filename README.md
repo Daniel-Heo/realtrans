@@ -192,7 +192,7 @@ The error above means that float16 is not supported. If your nvidia graphics car
 
 - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
   
-The above error is because the dll file of cudnn cannot be found. If you installed the cuda toolkit, cudnn should be in that location. You should read the installation manual on the Internet and place the dll files in the corresponding location.
+The above error is because the dll file of cudnn cannot be found. You need to read the installation manual on the Internet and place the dll files in the appropriate location.
 
 - If only "ython" is displayed on the screen
   
@@ -387,7 +387,7 @@ small은 CPU로 돌려도 돌아갑니다. medium 모델부터는 Nvidia 1660Sup
 
 - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
   
-위의 에러는 cudnn의 dll 파일을 찾지못해서 그렇습니다. cuda toolkit을 설치하셨으면 cudnn이 해당 위치에 있어야합니다. 인터넷의 해당 설치메뉴얼을 읽으시고 해당하는 곳에 dll파일들을 위치시키셔야합니다.
+위의 에러는 cudnn의 dll 파일을 찾지못해서 그렇습니다. 인터넷의 해당 설치메뉴얼을 읽으시고 해당하는 곳에 dll파일들을 위치시키셔야합니다.
 
 - 화면에 "ython"만 보일 경우
   
