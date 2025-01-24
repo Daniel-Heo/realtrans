@@ -20,7 +20,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 3. Install CuDNN
 > 4. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.7 Windows installer (64-bit) ) *Important*
+#### 1. Install Python ( Require 3.12.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.7 Windows installer (64-bit) ) *Important*
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
