@@ -60,7 +60,7 @@ Copy the .dll files from this path to the realtrans folder.
 Edit the system environment variables, click Path under User Variables, and add the following:
 C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6.
 
-#### 3. Final Windows program execution
+#### 4. Final Windows program execution
 > realtrans.exe
 
   - If execution is successful, you only need to run realtrans.exe from next time.
