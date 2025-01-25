@@ -220,6 +220,7 @@ ValueError: max() iterable argument is empty
 python/Lib/site-packages/faster_whisper/transcribe.py Let’s modify the file starting from line 419.
 
 Before)
+
                     language = max(
                         detected_language_info,
                         key=lambda lang: len(detected_language_info[lang]),
@@ -227,6 +228,7 @@ Before)
                     language_probability = max(detected_language_info[language])
 
 After) 
+
                     if( not detected_language_info ):
                         language = "en"
                         language_probability = 1
@@ -442,6 +444,7 @@ ValueError: max() iterable argument is empty
 python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인부터 변경하자.
 
 기존)
+
                     language = max(
                         detected_language_info,
                         key=lambda lang: len(detected_language_info[lang]),
@@ -449,6 +452,7 @@ python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인
                     language_probability = max(detected_language_info[language])
 
 변경) 
+
                     if( not detected_language_info ):
                         language = "en"
                         language_probability = 1
