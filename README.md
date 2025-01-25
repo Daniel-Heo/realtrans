@@ -217,7 +217,7 @@ ValueError: max() iterable argument is empty
 
  When the language is set to ALL, there are cases where the language cannot be detected in non-speech audio. In such cases, an error occurs in faster-whisper. Modifying the faster-whisper source code as shown below prevents this issue.
 
-python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인부터 변경하자.
+python/Lib/site-packages/faster_whisper/transcribe.py Let’s modify the file starting from line 419.
 
 Before)
 
