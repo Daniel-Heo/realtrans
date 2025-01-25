@@ -405,3 +405,44 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 
 모델을 다운로드 받을 경우 완료되기까지 시간이 걸립니다. small 모델은 10분 medium 모델은 30분, large 모델은 1시간 이상이 걸릴 수 있습니다.
 
+- File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
+    language = max(
+               ^^^^
+ValueError: max() iterable argument is empty
+
+ 언어를 ALL로 설정한 경우에 음성이 아닌 것에서 언어를 감지못하는 경우가 있는데, 이 경우 faster-whisper에 에러가 발생한다. faster-whisper의 소스를 아래와같이 변경하면 발생하지 않는다.
+
+python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인부터 변경하자.
+
+기존)
+
+                    language = max(
+
+                        detected_language_info,
+
+                        key=lambda lang: len(detected_language_info[lang]),
+
+                    )
+
+                    language_probability = max(detected_language_info[language])
+
+변경) 
+
+                    if( not detected_language_info ):
+
+                        language = "en"
+
+                        language_probability = 1
+
+                    else:
+
+                        language = max(
+
+                            detected_language_info,
+
+                            key=lambda lang: len(detected_language_info[lang]),
+
+                        )
+
+                        language_probability = max(detected_language_info[language])
+
