@@ -210,6 +210,47 @@ When downloading a model, it takes a long time to complete. It can take 10 minut
   
 This is a compatibility error that occurs when you overwrite a new version of RealTrans with an older version of the config.json file. Try saving the settings in Settings and then restarting.
 
+- File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
+    language = max(
+               ^^^^
+ValueError: max() iterable argument is empty
+
+ When the language is set to ALL, there are cases where the language cannot be detected in non-speech audio. In such cases, an error occurs in faster-whisper. Modifying the faster-whisper source code as shown below prevents this issue.
+
+python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인부터 변경하자.
+
+Before)
+
+                    language = max(
+
+                        detected_language_info,
+
+                        key=lambda lang: len(detected_language_info[lang]),
+
+                    )
+
+                    language_probability = max(detected_language_info[language])
+
+After) 
+
+                    if( not detected_language_info ):
+
+                        language = "en"
+
+                        language_probability = 1
+
+                    else:
+
+                        language = max(
+
+                            detected_language_info,
+
+                            key=lambda lang: len(detected_language_info[lang]),
+
+                        )
+
+                        language_probability = max(detected_language_info[language])
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # RealTrans ( 한국어 )
 
