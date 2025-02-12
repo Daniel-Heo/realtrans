@@ -13,4 +13,4 @@ faster_whisper==1.0.2
 torch==2.2.0
 torchvision==0.17.0
 torchaudio==2.2.0
-transformers==4.39.3
+transformers==4.48.0
