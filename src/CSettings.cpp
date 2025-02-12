@@ -12,6 +12,8 @@
 #define DEFULAT_MODEL_SIZE "small"
 #define DEFULAT_PROC "cuda float16"
 #define DEFULAT_INPUT_DEV "speaker"
+#define DEFULAT_TRANSPARENT 95
+#define DEFULAT_BG_COLOR "#000000"
 
 // nlohmann 라이브러리의 네임스페이스 사용
 using json = nlohmann::json;
@@ -192,6 +194,9 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	GetDlgItemText(hwnd, IDC_EDIT_OLDFONT_COLOR, comboBoxItem, 256);
 	settings["ed_oldfont_color"] = WCHARToString(comboBoxItem);
 
+	GetDlgItemText(hwnd, IDC_BG_COLOR, comboBoxItem, 256);
+	settings["bg_color"] = WCHARToString(comboBoxItem);
+
 	GetDlgItemText(hwnd, IDC_EDIT_SUMFONT_COLOR, comboBoxItem, 256);
 	settings["ed_sumfont_color"] = WCHARToString(comboBoxItem);
 
@@ -203,6 +208,9 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 
 	GetDlgItemText(hwnd, IDC_EDIT_SUMFONT_SIZE, comboBoxItem, 256);
 	settings["cb_sumfont_size"] = wstringToInt(comboBoxItem);
+
+	GetDlgItemText(hwnd, IDC_COMBO_TRANSPARENT, comboBoxItem, 256);
+	settings["transparent"] = wstringToInt(comboBoxItem);
 
 	// API Key
 	GetDlgItemText(hwnd, IDC_EDIT_TRANS_API_KEY, comboBoxItem, 256);
@@ -267,6 +275,10 @@ void defaultJson() {
 	// 요약창 폰트 컬러
 	settings["ed_sumfont_color"] = "#C8C8FF";
 	settings["cb_sumfont_size"] = 13;
+	// 배경 컬러
+	settings["bg_color"] = DEFULAT_BG_COLOR;
+	// 투명도
+	settings["transparent"] = DEFULAT_TRANSPARENT;
 
 	settings["ed_trans_api_key"] = ""; // 번역에 사용할 API Key
 	settings["ed_summary_api_key"] = ""; // 요약에 사용할 API Key
@@ -712,10 +724,31 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	wsprintf(tmp, L"%d", settings["cb_sumfont_size"].get<int>());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMFONT_SIZE, tmp);
 
+	// 투명도
+	hListBox = GetDlgItem(hwnd, IDC_COMBO_TRANSPARENT); // ListBox의 핸들을 가져옵니다.
+	if (hListBox != NULL) {
+		std::string transparentPercent = "";
+		if (isStart) {
+			// 0 ~ 100까지의 숫자를 추가합니다.
+			for (int i = 0; i <= 100; ++i) {
+				wsprintf(tmp, L"%d", i);
+				SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)tmp);
+			}
+		}
+
+		// settings["transparent"].get<int>()를 transparentPercent에 넣기
+		if (settings.find("transparent") == settings.end()) settings["transparent"] = DEFULAT_TRANSPARENT;
+		SendMessage(hListBox, CB_SETCURSEL, (WPARAM)settings["transparent"].get<int>(), 0);
+	}
+
 	// 폰트 컬러
 	SetDlgItemText(hwnd, IDC_EDIT_FONT_COLOR, StringToWCHAR(settings.value("ed_font_color", "")).c_str());
 	SetDlgItemText(hwnd, IDC_EDIT_OLDFONT_COLOR, StringToWCHAR(settings.value("ed_oldfont_color", "")).c_str());
 	SetDlgItemText(hwnd, IDC_EDIT_SUMFONT_COLOR, StringToWCHAR(settings.value("ed_sumfont_color", "")).c_str());
+
+	// 배경 컬러
+	if (settings.find("bg_color") == settings.end()) settings["bg_color"] = DEFULAT_BG_COLOR;
+	SetDlgItemText(hwnd, IDC_BG_COLOR, StringToWCHAR(settings.value("bg_color", "")).c_str());
 
 	// API Key
 	SetDlgItemText(hwnd, IDC_EDIT_TRANS_API_KEY, StringToWCHAR(settings.value("ed_trans_api_key", "")).c_str());

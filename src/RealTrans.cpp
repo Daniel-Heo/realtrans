@@ -65,6 +65,7 @@ CString strResult; // Contains result of cmdArg.
 // Left Menu
 CMenusDlg* lmenu;
 BOOL bStopMenu = FALSE;
+bool bMenuHide = false; // 메뉴 숨김 여부
 
 // Thread
 HANDLE hThread;
@@ -82,6 +83,7 @@ std::string strEng = "";
 // 환경설정
 bool isRefreshEnv = false;
 json settings;
+bool bSetupActive = false; // 설정창이 활성화되었는지 여부
 
 // 요약창
 CDlgSummary* DlgSum;
@@ -185,7 +187,6 @@ void AppendTextToRichEdit(HWND hRichEdit, WCHAR* textToAdd) {
 	st.flags = ST_DEFAULT; // 기본 설정 사용
 	st.codepage = 1200;    // UTF-16LE 코드 페이지
 	SendMessage(hRichEdit, EM_REPLACESEL, (WPARAM)&st, (LPARAM)wstrAdd.c_str());
-
 	SendMessage(hRichEdit, EM_SCROLL, SB_BOTTOM, 0);
 }
 
@@ -693,7 +694,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	hInst = hInstance; // 인스턴스 핸들을 전역 변수에 저장합니다.
 
 	HWND hWnd = CreateWindowEx(
-		WS_EX_CLIENTEDGE, // 확장 스타일
+		WS_EX_CLIENTEDGE, // | WS_EX_LAYERED, // 확장 스타일
 		APP_TITLE,      // 윈도우 클래스 이름
 		APP_TITLE_VERSION, // 윈도우 타이틀 (이 경우에는 보이지 않음)
 		WS_OVERLAPPEDWINDOW & ~WS_CAPTION, // 기본 스타일에서 WS_CAPTION을 제거
@@ -741,7 +742,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return 0;
 	}
 
-	static BOOL isMouseInside = FALSE; // 마우스가 창 내부에 있는지 여부
+	static BOOL isMouseInside = TRUE; // 마우스가 창 내부에 있는지 여부
 
 	// 번역창
 	//if (DlgTrans != NULL) {
@@ -785,10 +786,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 	{
+		COLORREF bg_color;
 		// 윈도우 투명도 설정
 		// 타이틀바를 사용하지 않으면 전체 테두리도 사용하지 않게된다.
 		SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-		SetLayeredWindowAttributes(hWnd, 0, (255 * 80) / 100, LWA_ALPHA);
+		//SetLayeredWindowAttributes(hWnd, 0, (255 * 80) / 100, LWA_ALPHA);
+		SetLayeredWindowAttributes(hWnd, 0, (255 * settings["transparent"]) / 100, LWA_ALPHA);
 
 		// 타이틀 아이콘의 초기 위치 설정
 		iconRect = { 500, 3, 34, 34 }; // 실제 프로젝트에서는 타이틀바의 위치와 크기를 계산하여 설정
@@ -796,6 +799,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// RichEdit 컨트롤 생성
 		hwndTextBox = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
 									WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_READONLY,
+									//WS_CHILD | WS_VISIBLE |  ES_MULTILINE | ES_READONLY,
 									33, 0, 300, 200, hWnd, (HMENU)1, GetModuleHandle(NULL), NULL);
 
 		// 폰트 생성
@@ -817,7 +821,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(hwndTextBox, WM_SETFONT, (WPARAM)hFont, TRUE);
 
 		// 배경색 변경
-		SendMessage(hwndTextBox, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
+		bg_color = HexToCOLORREF(settings["bg_color"]);
+		SendMessage(hwndTextBox, EM_SETBKGNDCOLOR, 0, (LPARAM)bg_color);
 
 		// 메뉴 생성 : GDI만 사용 ( Image 관련 기능 안됨 )
 		lmenu = new CMenusDlg();
@@ -885,7 +890,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// 특정 영역 예: (100, 100) ~ (200, 200)
 		if (pt.x > 0 && pt.x < 34 && pt.y > 0 && pt.y < 44) {
 			// 환경설정
+			bSetupActive = true;
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOG_SETUP), hWnd, DialogProc);
+			bSetupActive = false;
+			COLORREF bg_color;
+			bg_color = HexToCOLORREF(settings["bg_color"]);
+			SetLayeredWindowAttributes(hWnd, 0, (255 * settings["transparent"]) / 100, LWA_ALPHA);
+			SendMessage(hwndTextBox, EM_SETBKGNDCOLOR, 0, (LPARAM)bg_color);
+			//SendMessage(hWnd, EM_SETBKGNDCOLOR, 0, (LPARAM)bg_color);
 		}
 		else if (pt.x > 0 && pt.x < 34 && pt.y > 44 && pt.y < 81) {
 			// 요약
@@ -951,7 +963,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		int height = HIWORD(lParam); // 새로운 윈도우의 높이
 
 		// 텍스트박스의 크기와 위치를 윈도우의 크기에 맞추어 조정
-		MoveWindow(hwndTextBox, 43, 10, width - 43, height - 20, TRUE);
+		if (isMouseInside)
+			MoveWindow(hwndTextBox, 43, 10, width - 43, height - 20, TRUE);
+		else
+			MoveWindow(hwndTextBox, 0, 0, width, height, TRUE);
 	}
 	break;
 	case WM_TIMER: {
@@ -966,7 +981,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			BOOL isInside = PtInRect(&rc, pt);
 
 			// 상태가 변경되었을 때만 처리
-			if (isMouseInside != isInside) {
+			if (isMouseInside != isInside && bSetupActive==false ) {
 				isMouseInside = isInside;
 
 				if (isMouseInside) {
@@ -975,6 +990,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					SetWindowLong(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
 					SetWindowPos(hWnd, NULL, 0, 0, 0, 0,
 						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+					// 메뉴창 표시
 				}
 				else {
 					// 마우스가 창 외부로 나감
@@ -983,6 +999,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					SetWindowPos(hWnd, NULL, 0, 0, 0, 0,
 						//SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 						SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+					// 메뉴창 숨김
 				}
 			}
 		}

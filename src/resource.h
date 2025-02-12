@@ -45,6 +45,7 @@
 #define IDC_COMBO_APITRANS_LANG         1019
 #define IDC_TEXT_SEL_VLANG9             1020
 #define IDC_COMBO_API                   1021
+#define IDC_TEXT_SEL_VLANG21            1021
 #define IDC_TEXT_SEL_VLANG10            1022
 #define IDC_EDIT2                       1023
 #define IDC_TEXT_SEL_VLANG11            1024
@@ -54,10 +55,12 @@
 #define IDC_COMBO_SUM_API               1030
 #define IDC_TEXT_SEL_VLANG14            1031
 #define IDC_EDIT3                       1032
+#define IDC_COMBO_TRANSPARENT           1032
 #define IDC_TEXT_SEL_VLANG15            1033
 #define IDC_EDIT_FONT_SIZE              1034
 #define IDC_EDIT_OLDFONT_SIZE           1035
 #define IDC_EDIT_TRANS_API_SEC          1036
+#define IDC_TEXT_SEL_VLANG20            1036
 #define IDC_EDIT_SUMFONT_SIZE           1037
 #define IDC_TEXT_SEL_VLANG16            1038
 #define IDC_EDIT_SUMMARY_HINT           1039
@@ -70,6 +73,8 @@
 #define IDC_TEXT_SEL_VLANG19            1046
 #define ID_INIT                         1047
 #define IDC_INIT                        1048
+#define IDC_EDIT_SUMFONT_COLOR2         1048
+#define IDC_BG_COLOR                    1048
 #define IDC_SYSLINK1                    1049
 #define IDC_COMBO_UI_LANG               1050
 #define IDC_COMBO_TRANS_API             1051
