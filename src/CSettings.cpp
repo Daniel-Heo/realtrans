@@ -774,6 +774,10 @@ void ReadSettings(const std::string& filePath) {
 		file >> settings;
 		//std::cout << "입력 받은 문자열 :: " << file.dump() << std::endl;
 		file.close();
+
+		// 추가 인자 확인
+		if (settings.find("transparent") == settings.end()) settings["transparent"] = DEFULAT_TRANSPARENT;
+		if (settings.find("bg_color") == settings.end()) settings["bg_color"] = DEFULAT_BG_COLOR;
 	}
 	else {
 		defaultJson();
