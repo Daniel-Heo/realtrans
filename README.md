@@ -17,9 +17,10 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 > 1. Install Python
 > 2. Run install.bat in the RealTrans folder
-> 3. Run realtrans.exe in the RealTrans folder
+> 3. Install CuDNN
+> 4. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.10.x ) : https://www.python.org/downloads/ ( *** Be sure to select run Admin and add PATH. *** ) - Supports only up to Python 3.12. ( Python : 3.12.7 Windows installer (64-bit) )
+#### 1. Install Python ( Require 3.12.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.8 Windows installer (64-bit) ) *Important*
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
@@ -41,18 +42,37 @@ This is a program for real-time voice translation. Recognizes and translates the
   * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
   * Note) If install.bat is not executed properly, a no module error may occur when running.
 
-#### 3. Final Windows program execution
+### 3. Install CuDNN
+If not installed, you may encounter the following error:
+
+Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
+
+CuDNN Installation : https://developer.nvidia.com/cudnn-downloads 
+
+After extracting or installing the downloaded file, you will find three folders: bin, include, and lib.
+
+Installation Path Example:
+C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6
+
+Copy the .dll files from this path to the realtrans folder.
+
+* If other programs also require CuDNN, you can add the directory containing the .dll files to the system environment variables.
+Edit the system environment variables, click Path under User Variables, and add the following:
+C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6.
+
+#### 4. Final Windows program execution
 > realtrans.exe
 
   - If execution is successful, you only need to run realtrans.exe from next time.
 
-* Optional: Installing Cuda Toolkit and CuDNN will reduce GPU and CPU load. If you have an Nvidia graphics card, installing them is recommended for many reasons.
+* Optional: Installing Cuda Toolkit and CuDNN will reduce GPU and CPU loads. It is not recommended to install them when installing for the first time. Install them later when you need performance. You must install both of them when installing.
   
    Install Cuda Toolkit: https://developer.nvidia.com/cuda-toolkit (You can install the Windows version. Improves floating point calculation and PyTorch performance)
 
    Install CuDNN: https://developer.nvidia.com/cudnn-downloads (performance can be improved by about 20%)
-  
-  	Old CuDNN version: https://developer.nvidia.com/rdp/cudnn-archive
+	When you unzip or install the downloaded file, there are three folders: bin, include, and lib.
+	In the folder where you installed the CUDA Toolkit, there is a folder with the same name as the three folders above. (CUDA Toolkit directory: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6)
+	Add the files in the cuDNN bin, include, and lib folders to the bin, include, and lib folders in the folder in the CUDA Toolkit.
 
 ## Usage
 
@@ -64,18 +84,26 @@ How to use the program
   - When translating, the PC has the function of translating from its own computer to AI, and the API sends voice-recognized text through the API KEY of an external cloud service and receives and displays the translated text.
   - If your computer's performance is slow, activate only voice recognition and use an external API for translation to reduce the load on your computer.
   - The summary sends the contents of the text window to OpenAI using the API KEY, receives the summarized results, and displays them. Because OpenAI response is slow, there may be a lot of waiting time when processing a large amount of data.
+  - If you select speaker for the voice input in the settings, voice input will be received from the speaker output. If you select mic, input will be received from the microphone.
+  - The processing method of the settings is cuda float16 by default. If an error occurs with an old nvidia graphics card, try using cuda float32. If you are running it on a CPU, use the small version.
 
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
 *Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
 * Feeling by model size: The small model is recognized, but the quality feels a lot lower. The medium model has somewhat good recognition and translation. The large model has a slightly better recognition and translation than the medium model.
 
-* For better recognition rate improvement, change the content below in line 20 of Lib\site-packages\faster_whisper\util.py under the Python installation directory to use the whisper-large-v3-turbo version when selecting medium. The large-v3-turbo version uses less graphics memory (from 3GB to 1.6GB) than the large-v3 version, but has slightly lower quality than the large-v3 version. It is a good model to use the large-v3 at high speed.
+* * To improve the recognition speed in the medium model, you can use the turbo model. In this case, you can modify the relevant parts in the two files below.
 
 	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
 	#"medium": "Systran/faster-whisper-medium",
 
-	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+
+	Lib\ctrans_manager.py 385 lines
+
+	#"medium": "Systran/faster-whisper-medium",
+
+	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -150,6 +178,67 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/realtrans)
 
+## Frequently Asked Questions
+
+1. What are the graphic card requirements?
+Small can be run with CPU. From the medium model, it can be run normally without slowdown on Nvidia 1660Super, 2060 or higher.
+
+
+## Error message explanation
+
+- Requested float16 compute type, but the target device or backend do not support efficient float16 computation.
+  
+The error above means that float16 is not supported. If your nvidia graphics card is old, this error may occur. Then you need to change it to float32. Set the processing unit to cuda float32 in the settings.
+
+- Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
+  
+The above error is because the dll file of cudnn cannot be found. You need to read the installation manual on the Internet and place the dll files in the appropriate location.
+
+- If only "ython" is displayed on the screen
+  
+This is because you did not check the with path option when installing Python or Python cannot be found for other reasons.
+
+- ModuleNotFoundError: No module named 'soundcard'
+  
+This happens if you don't run the install.bat file of the realtrans compressed file.
+
+- Fetching 4 files: If it stops at 25%
+  
+When downloading a model, it takes a long time to complete. It can take 10 minutes for a small model, 30 minutes for a medium model, and more than an hour for a large model.
+
+- runTransWin.py: error: argument -d/--device: expected one argument
+  
+This is a compatibility error that occurs when you overwrite a new version of RealTrans with an older version of the config.json file. Try saving the settings in Settings and then restarting.
+
+- File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
+    language = max(
+               ^^^^
+ValueError: max() iterable argument is empty
+
+ When the language is set to ALL, there are cases where the language cannot be detected in non-speech audio. In such cases, an error occurs in faster-whisper. Modifying the faster-whisper source code as shown below prevents this issue.
+
+python/Lib/site-packages/faster_whisper/transcribe.py Let’s modify the file starting from line 419.
+
+Before)
+
+                    language = max(
+                        detected_language_info,
+                        key=lambda lang: len(detected_language_info[lang]),
+                    )
+                    language_probability = max(detected_language_info[language])
+
+After) 
+
+                    if( not detected_language_info ):
+                        language = "en"
+                        language_probability = 1
+                    else:
+                        language = max(
+                            detected_language_info,
+                            key=lambda lang: len(detected_language_info[lang]),
+                        )
+                        language_probability = max(detected_language_info[language])
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # RealTrans ( 한국어 )
 
@@ -162,9 +251,10 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
 
 > 1. 파이선 설치
 > 2. RealTrans 폴더의 install.bat 실행
-> 3. RealTrans 폴더의 realtrans.exe 실행
+> 3. CuDNN 설치
+> 4. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.7 Windows installer (64-bit) )
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.8 Windows installer (64-bit) ) *중요*
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
@@ -185,19 +275,27 @@ I am not liable for any direct, indirect, consequential, incidental, or special 
  - 여기까지 성공하셨으면 RealTrans.exe를 실행하면 정상적으로 수행되게됩니다.
    * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
    * 참고) 정상적으로 install.bat이 실행되지 않은 경우 실행시 no module 에러가 발생할 수 있습니다.
+  
+### 3. CuDNN 설치
 
-#### 3. 최종 윈도우 프로그램 실행
+ 설치하지 않을 경우 다음과 같은 에러가 발생합니다. 
+
+  - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
+
+CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads 
+
+다운로드한 파일을 압축 해제하거나 설치를 하면 bin, include, lib 3개의 폴더가 존재한다.
+
+설치형 위치 : C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6
+
+해당 위치에서 dll파일들을 realtrans폴더에 카피를 한다.
+
+* 다른 프로그램에서도 CuDNN을 사용할 경우에는 시스템환경변수 편집에서 환경변수를 클릭하고 사용자 변수의 Path에 dll파일이 있는 C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6를 추가한다.
+
+#### 4. 최종 윈도우 프로그램 실행
 > realtrans.exe 실행
 
  - 실행이 정상적으로 되면 다음부터는 realtrans.exe만 실행하면 됩니다.
-
-* 옵션사항 : Cuda Toolkit, CuDNN을 설치하시면 GPU부하와 CPU부하가 줄어듭니다. Nvidia 그래픽 카드를 가지셨다면 설치하시는게 여러모로 좋습니다.
-  
-  Cuda Toolkit 설치 : https://developer.nvidia.com/cuda-toolkit ( 윈도우 버젼을 설치하시면 됩니다. 부동소수점 계산 및 PyTorch의 성능 개선  )
-
-  CuDNN 설치 : CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads ( 20%정도 성능 개선 가능 )
-  
-	CuDNN 예전버젼 : https://developer.nvidia.com/rdp/cudnn-archive
   
 
 ## 사용법
@@ -209,18 +307,26 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
  - 번역시에 PC는 자체 컴퓨터에서 AI로 번역하는 기능이고, API는 외부 클라우드 서비스의 API KEY를 통해 음성인식한 텍스트를 보내고 번역된 텍스트를 받아서 표시합니다.
  - 컴퓨터의 성능이 느릴 경우에는 음성인식만 활성화시킨후에 번역은 외부 API를 사용하시면 컴퓨터에 부하가 적어집니다.
  - 요약은 OpenAI에 API KEY로 텍스트 창의 내용을 보내서 요약한 결과를 받아서 표시합니다. OpenAI 응답이 느리기 때문에 많은 양을 처리할 경우에 대기시간이 많이 걸릴 수 있습니다.
+ - 설정의 음성입력은 speaker로 선택하시면 스피커 출력에서 음성입력을 받습니다. mic 선택시 마이크에서 입력받습니다.
+ - 설정의 처리방식은 cuda float16이 기본이며, 예전 nvidia 그래픽카드일 경우 에러가 발생하면 cuda float32을 사용해보세요. CPU로 돌릴 경우에는 small버젼을 사용하세요.
 
 * 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
 * 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
 * 모델 사이즈별 느낌 : small 모델은 인식은 되는데 품질은 많이 떨어지는 느낌. medium은 인식과 번역이 어느정도 쓸만하다는 느낌. large는 인식과 번역이 medium보다는 조금 잘되는 느낌.
 
-* 더 나은 인식률 개선을 위해서는 파이선 설치 디렉토리 밑의 Lib\site-packages\faster_whisper\util.py의 20 line의 아래 내용을 변경하여 medium을 선택했을 경우 whisper-large-v3-turbo 버젼을 사용하도록 수정하시면됩니다. large-v3-turbo버젼은 large-v3 버젼에 비해 그래픽메모리 사용량이 3기가에서 1.6기가로 적은 용량을 사용하면서 품질은 large-v3에 비해 약간 떨어지는 성능을 가집니다. 고속으로 large-v3를 사용하기 좋은 모델입니다.
+* medium 모델에서 인식 속도 개선을 위해서는 turbo 모델을 사용할 수 있습니다. 이 경우 아래 2개의 파일에 해당 부분을 수정해주시면됩니다.
 
 	python\Lib\site-packages\faster_whisper\util.py 20 lines
 
 	#"medium": "Systran/faster-whisper-medium",
 
-	"medium": "deepdml/faster-whisper-large-v3-turbo-ct2",
+	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+
+	Lib\ctrans_manager.py 385 lines
+
+	#"medium": "Systran/faster-whisper-medium",
+
+	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
@@ -294,3 +400,65 @@ ko2en : NHNDQ/nllb-finetuned-ko2en ct2 float16
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/realtrans)
 
+## 자주 묻는 질문
+
+1. 그래픽 카드 요구사항은?
+
+small은 CPU로 돌려도 돌아갑니다. medium 모델부터는 Nvidia 1660Super, 2060이상 정도에서 정상적으로 느려지지 않게 돌아갑니다.
+
+​
+
+## 에러메시지 설명
+
+- Requested float16 compute type, but the target device or backend do not support efficient float16 computation.
+  
+위의 에러는 float16을 지원하지 않는다는 것입니다. nvidia 그래픽카드인데 오래된 것은 해당 에러가 발생할 수 있습니다. 그러면 float32로 변경하셔야합니다. 설정에서 처리장치를 cuda float32로 설정하세요.
+
+- Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
+  
+위의 에러는 cudnn의 dll 파일을 찾지못해서 그렇습니다. 인터넷의 해당 설치메뉴얼을 읽으시고 해당하는 곳에 dll파일들을 위치시키셔야합니다.
+
+- 화면에 "ython"만 보일 경우
+  
+파이선 설치하실때 with path 옵션을 체크하지 않았거나 기타 이유로 파이선을 찾지못하는 경우입니다.
+
+- ModuleNotFoundError: No module named 'soundcard'
+  
+realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니다.
+
+- runTransWin.py: error: argument -d/--device: expected one argument
+  
+기존에 RealTrans를 사용하다가 새로운 버젼을 덮어씌울때 config.json파일이 예전버젼이라서 생기는 호환성 오류입니다. 설정에서 환경설정을 저장한 후에 다시 시작해보세요.
+
+- Fetching 4 files: 25%에서 멈춰있는 경우
+
+모델을 다운로드 받을 경우 완료되기까지 시간이 걸립니다. small 모델은 10분 medium 모델은 30분, large 모델은 1시간 이상이 걸릴 수 있습니다.
+
+- File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
+    language = max(
+               ^^^^
+ValueError: max() iterable argument is empty
+
+ 언어를 ALL로 설정한 경우에 음성이 아닌 것에서 언어를 감지못하는 경우가 있는데, 이 경우 faster-whisper에 에러가 발생한다. faster-whisper의 소스를 아래와같이 변경하면 발생하지 않는다.
+
+python/Lib/site-packages/faster_whisper/transcribe.py 파일의 419번째 라인부터 변경하자.
+
+기존)
+
+                    language = max(
+                        detected_language_info,
+                        key=lambda lang: len(detected_language_info[lang]),
+                    )
+                    language_probability = max(detected_language_info[language])
+
+변경) 
+
+                    if( not detected_language_info ):
+                        language = "en"
+                        language_probability = 1
+                    else:
+                        language = max(
+                            detected_language_info,
+                            key=lambda lang: len(detected_language_info[lang]),
+                        )
+                        language_probability = max(detected_language_info[language])
