@@ -824,6 +824,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		bg_color = HexToCOLORREF(settings["bg_color"]);
 		SendMessage(hwndTextBox, EM_SETBKGNDCOLOR, 0, (LPARAM)bg_color);
 
+		// Margin 설정
+		RECT rcMargins;
+		GetClientRect(hwndTextBox, &rcMargins);
+
+		// 상하좌우 마진 설정
+		rcMargins.left += 7;
+		rcMargins.top += 7;
+		rcMargins.right -= 7;
+		rcMargins.bottom -= 3;
+
+		SendMessage(hwndTextBox, EM_SETRECT, 0, (LPARAM)&rcMargins);
+
 		// 메뉴 생성 : GDI만 사용 ( Image 관련 기능 안됨 )
 		lmenu = new CMenusDlg();
 
