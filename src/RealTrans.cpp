@@ -477,7 +477,8 @@ bool TerminatePythonProcess() {
 	bool processTerminated = false;
 	do {
 		// 여기서는 "python.exe" 또는 "pythonw.exe" 프로세스를 찾습니다.
-		if (wcscmp(pe32.szExeFile, L"runTransWin.exe") == 0 || wcscmp(pe32.szExeFile, L"python.exe") == 0) {
+		//if (wcscmp(pe32.szExeFile, L"runTransWin.exe") == 0 || wcscmp(pe32.szExeFile, L"python.exe") == 0) {
+		if (wcscmp(pe32.szExeFile, L"runTransWin.exe") == 0) {
 			HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pe32.th32ProcessID);
 			if (hProcess != NULL) {
 				if (TerminateProcess(hProcess, 0)) {
