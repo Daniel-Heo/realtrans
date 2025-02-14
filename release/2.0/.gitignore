@@ -15,6 +15,7 @@ bld/
 [Ll]og/
 [Ll]ogs/
 [Rr]eal[Tt]rans/
+[Bb]ackup/
 
 # Visual Studio MFC 프로젝트 파일
 *.aps
@@ -61,3 +62,8 @@ images/
 메모/
 다운/
 *.txt
+
+# 특정 파일 제외
+resource.reorg
+resource_backup.h
+ctrans_manager.py

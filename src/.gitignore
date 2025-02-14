@@ -70,3 +70,8 @@ libvc/
 
 # 단기적으로 제외할 파일
 *.sln
+
+# 특정 파일 제외
+*.reorg
+resource_backup.h
+ctrans_manager.py
