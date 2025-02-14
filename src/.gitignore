@@ -72,6 +72,5 @@ libvc/
 *.sln
 
 # 특정 파일 제외
-*.reorg
+resource.resorg
 resource_backup.h
-ctrans_manager.py

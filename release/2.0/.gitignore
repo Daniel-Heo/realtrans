@@ -62,8 +62,3 @@ images/
 메모/
 다운/
 *.txt
-
-# 특정 파일 제외
-resource.reorg
-resource_backup.h
-ctrans_manager.py
