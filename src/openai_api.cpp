@@ -106,8 +106,8 @@ void RequestOpenAIChat(const std::string& req, std::wstring& strOut, const std::
     // 1. Briefly summarize the message you received. : 30%정도밖에 감소가 안된다.
     // 2. Summarize the main points of the text. : 50%정도 감소
     // 한글 할루시네이션 제거용 : Change it to Korean and let me know the results, and check again if it is in Korean.
-    //std::string body = "{\"model\": \"gpt-3.5-turbo\",\"messages\": [{\"role\": \"system\",\"content\": \"";
-    std::string body = "{\"model\": \"gpt-3.5-turbo-0125\",\"messages\": [{\"role\": \"system\",\"content\": \"";
+    std::string body = "{\"model\": \"gpt-3.5-turbo\",\"messages\": [{\"role\": \"system\",\"content\": \"";
+    //std::string body = "{\"model\": \"gpt-3.5-turbo-0125\",\"messages\": [{\"role\": \"system\",\"content\": \"";
         //The following text is a conversation related to securities and economics. Please summarize the main topics, key data points, and conclusions in around 300 words. The summary should be arrange them in number list form to keep them short and concise.
     body += FilterJSONString(hint);
     body += " Make the whole thing perfectly 500 words.. Show only the content translated into " + lang + ".";
