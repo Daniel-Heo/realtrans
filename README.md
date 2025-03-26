@@ -208,7 +208,7 @@ When downloading a model, it takes a long time to complete. It can take 10 minut
 
 - Checking FastWhisper Model. Please wait... It may take several minutes or more at first. If it stops at the message.
 
-Downloading model. Small takes about 5 minutes, medium takes about 30 minutes, large takes about 1 hour. It may take longer depending on network conditions.
+Downloading model. Small takes about 10 minutes, medium takes about 30 minutes, large takes about 1 hour. It may take longer depending on network conditions.
 
 - runTransWin.py: error: argument -d/--device: expected one argument
   
@@ -444,7 +444,7 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 
 - Checking FastWhisper Model. Please wait... It may take several minutes or more at first. 메시지에서 멈춰있는 경우.
 
-모델을 다운로드하는 중입니다. small은 5분정도, medium은 30분 정도, large는 1시간정도. 네트웍 상태에 따라 더 걸릴 수 있습니다.
+모델을 다운로드하는 중입니다. small은 10분정도, medium은 30분 정도, large는 1시간정도. 네트웍 상태에 따라 더 걸릴 수 있습니다.
 
 - 컴퓨터에서 소리는 나는데, RealTrans에서 음성 감지를 못하는 경우.
 
