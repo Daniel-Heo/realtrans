@@ -206,9 +206,17 @@ This happens if you don't run the install.bat file of the realtrans compressed f
   
 When downloading a model, it takes a long time to complete. It can take 10 minutes for a small model, 30 minutes for a medium model, and more than an hour for a large model.
 
+- Checking FastWhisper Model. Please wait... It may take several minutes or more at first. If it stops at the message.
+
+Downloading model. Small takes about 10 minutes, medium takes about 30 minutes, large takes about 1 hour. It may take longer depending on network conditions.
+
 - runTransWin.py: error: argument -d/--device: expected one argument
   
 This is a compatibility error that occurs when you overwrite a new version of RealTrans with an older version of the config.json file. Try saving the settings in Settings and then restarting.
+
+- If you can hear sound from your computer, but RealTrans can't detect it.
+
+Go to Start > Settings > System > Sound and select the device from which the sound is ultimately output.
 
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
@@ -433,6 +441,14 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 - Fetching 4 files: 25%에서 멈춰있는 경우
 
 모델을 다운로드 받을 경우 완료되기까지 시간이 걸립니다. small 모델은 10분 medium 모델은 30분, large 모델은 1시간 이상이 걸릴 수 있습니다.
+
+- Checking FastWhisper Model. Please wait... It may take several minutes or more at first. 메시지에서 멈춰있는 경우.
+
+모델을 다운로드하는 중입니다. small은 10분정도, medium은 30분 정도, large는 1시간정도. 네트웍 상태에 따라 더 걸릴 수 있습니다.
+
+- 컴퓨터에서 소리는 나는데, RealTrans에서 음성 감지를 못하는 경우.
+
+시작 > 설정 > 시스템 > 소리에서 출력장치를 소리가 최종적으로 나오는 장치를 선택하세요.
 
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
