@@ -1,5 +1,4 @@
-# RealTrans ( English )
-
+<h1 align="center">RealTrans ( English )</h1>
 <p align="center">
     <a href="https://github.com/Daniel-Heo/realtrans/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/Daniel-Heo/realtrans"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/Daniel-Heo/realtrans"></a>
