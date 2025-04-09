@@ -5,7 +5,9 @@
     <a href="https://github.com/Daniel-Heo/realtrans/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/Daniel-Heo/realtrans"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/releases/latest"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/Daniel-Heo/realtrans/total?label=downloads (github)"></a> 
     <a href="https://github.com/Daniel-Heo/realtrans/releases/latest"><img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/Daniel-Heo/realtrans">
-    </a><br>
+    </a>
+    <a href="https://github.com/Daniel-Heo/realtrans/commits/master"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Daniel-Heo/realtrans/latest"></a>
+    <a href="https://github.com/Daniel-Heo/realtrans/compare/master...dev"><img alt="GitHub commits difference between master and dev branch" src="https://img.shields.io/github/commits-difference/Daniel-Heo/realtrans?base=master&head=dev&label=commits%20difference%20with%20%40dev%20branch"></a><br>
     <a href="https://github.com/Daniel-Heo/realtrans/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Daniel-Heo/realtrans?style=social"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Daniel-Heo/realtrans?style=social"></a>
 </p>
