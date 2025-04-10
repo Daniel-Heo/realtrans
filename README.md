@@ -2,7 +2,7 @@
 <p align="center">
     <a href="https://github.com/Daniel-Heo/realtrans/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/Daniel-Heo/realtrans"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/pulls"><img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/Daniel-Heo/realtrans"></a>
-    <a href="https://github.com/Daniel-Heo/realtrans/releases/latest"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/Daniel-Heo/realtrans/total?label=downloads (github)"></a>
+    <a href="https://github.com/Daniel-Heo/realtrans/releases/latest"><img alt="GitHub downloads" src="https://img.shields.io/github/downloads/Daniel-Heo/realtrans/total?label=downloads(github)"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/releases/latest"><img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/Daniel-Heo/realtrans"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/commits/master"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Daniel-Heo/realtrans/latest"></a><br>
     <a href="https://github.com/Daniel-Heo/realtrans/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Daniel-Heo/realtrans?style=social"></a>
