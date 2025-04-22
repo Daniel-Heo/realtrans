@@ -5,10 +5,9 @@ import os
 
 # 현재 디렉토리의 절대 경로를 구합니다.
 current_directory = os.path.dirname(os.path.abspath(__file__))
-## lib 폴더의 경로를 구합니다.
+# lib 폴더의 경로를 구합니다.
 lib_path = os.path.join(current_directory, 'lib')
-
-# # lib 폴더의 경로를 sys.path에 추가합니다.
+# lib 폴더의 경로를 sys.path에 추가합니다.
 if lib_path not in sys.path:
     sys.path.append(lib_path)
 
@@ -125,7 +124,6 @@ class VADAudio(threading.Thread):
                 if not triggered:
                     ring_buffer.append((frame, is_speech))
                     num_voiced = sum(1 for _, speech in ring_buffer if speech)
-                    #logging.debug(f"Voiced frames in buffer: {num_voiced}")
                     if num_voiced > ratio * len(ring_buffer):
                         self.voiced_duration = num_voiced * self.frame_duration_ms
                         self.silence_duration = 0
@@ -198,9 +196,6 @@ def find_keys_with_value(json_data, target_value):
         # 찾고자 하는 값과 일치하는 경우 키를 리턴합니다.
         if value == target_value:
             return key
-        # 값이 딕셔너리인 경우, 재귀적으로 함수를 호출해 내부에서도 검색합니다.
-        #elif isinstance(value, dict):
-        #    keys_found.extend(find_keys_with_value(value, target_value))
     return None
 
 # 번역 처리 클래스
@@ -250,7 +245,6 @@ class Translator:
 
     def translate_file(self, text, source_lang, target_lang):
             self.ctrans.check_model(source_lang, target_lang)
-            #print(text)
             outPut = ''
             work_pos = 0
             source_sentences = [text[i:i+2000] for i in range(0, len(text), 2000)]
@@ -262,7 +256,6 @@ class Translator:
                 work_pos += 1
                 percent = 10+int(work_pos/total*90)
                 print(f'[{percent}]')
-                #print(f'{percent}, {work_pos}, {self.file_size}')
 
             print(f'[100]')
             # 파일 저장
@@ -297,7 +290,6 @@ def load_json_file(file_path):
             data = json.load(file)
             return data
     else: 
-        #print(f"{file_path} 파일이 존재하지 않습니다.")
         return None
 
 import re
@@ -368,10 +360,6 @@ def main(ARGS):
     # Whisper 모델 환상 제거용 필터 
     file_path = os.path.join(ARGS.exec_path, "hallucination_filter.json")
     json_filter = load_json_file(file_path)
-
-    # devNo=GetDevNo(ARGS)
-    # if devNo<0:
-    #     return 0
 
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
                          device=ARGS.device)
@@ -446,7 +434,6 @@ def main(ARGS):
             # 오디오의 총 샘플 수를 샘플 레이트로 나누어 오디오의 길이(초 단위)를 계산합니다.
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
-            #if len(wav_data) > 0 and audio_length_seconds > 0.1:
             if len(wav_data) > 0:
                 npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
                 # 오디오 데이터를 부동소수점으로 변환
@@ -507,7 +494,6 @@ def main(ARGS):
                         if use_trans: 
                             translator.translate(text=transcript, source_lang=trans_lang, target_lang=ARGS.target_lang, ARGS=ARGS)
 
-            #frame = bytearray()
             wav_data = bytearray()
 
     # GPU 메모리 해제
@@ -528,7 +514,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--device', type=str, default="speaker",
                         help="Device active sound input name")
     parser.add_argument('-m', '--model_size', type=str, default="small",
-                        help="Model size : large, medium, small")
+                        help="Model size : large, turbo, medium, small")
     parser.add_argument('-r', '--sample_rate', type=int, default=48000,
                         help="Sampling rate : Default 48000")
     parser.add_argument('-s', '--source_lang', type=str, default=None, # eng_Latn, ALL
@@ -557,6 +543,10 @@ if __name__ == '__main__':
         if( ARGS.target_lang == None):
             ARGS.target_lang = "kor_Hang"
         ARGS.use_trans = True # 번역을 한다.
+
+    # medium -> turbo 매핑
+    if ARGS.model_size=="medium":
+        ARGS.model_size="turbo"
 
     # 시작 정보로 Path 지정 : work_path가 움직이는 것을 방지
     ARGS.exec_path = os.path.dirname(os.path.abspath(__file__))

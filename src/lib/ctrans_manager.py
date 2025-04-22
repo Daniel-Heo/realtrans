@@ -1,7 +1,7 @@
 import ctranslate2
 from huggingface_hub import snapshot_download
 import os
-from transformers import AutoTokenizer
+from nemo_tokenizer import NemoTokenizer
 import re
 from tqdm.auto import tqdm
 
@@ -9,6 +9,7 @@ model_list = {
     # "huge": ["JustFrederik/nllb-200-3.3B-ct2-float16","sentencepiece.bpe.model"], # 6.69GB
     "large": ["skywood/nllb-200-distilled-1.3B-ct2-float16","sentencepiece.bpe.model"], # 2.68GB
     "medium": ["skywood/nllb-200-distilled-1.3B-ct2-int8","sentencepiece.bpe.model"], # 1.35GB
+	"turbo": ["skywood/nllb-200-distilled-1.3B-ct2-int8","sentencepiece.bpe.model"], # 1.35GB
     "small": ["skywood/nllb-200-distilled-600M-ct2-int8","sentencepiece.bpe.model"], # 0.6GB
     "en2ko": ["skywood/NHNDQ-nllb-finetuned-en2ko-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
     "ko2en": ["skywood/NHNDQ-nllb-finetuned-ko2en-ct2-float16","sentencepiece.bpe.model"], # 1.23GB - small인 경우 활성화되지 않는다.
@@ -21,7 +22,7 @@ class disabled_tqdm(tqdm):
 
 class CTrans:
     def __init__(self, base_model, source_lang, target_lang,device="cpu", lang_map=None):
-        self.base_model = base_model # 기본 모델 : large, medium, small
+        self.base_model = base_model # 기본 모델 : large, turbo, medium, small
         self.model_name = "" # 입력받은 번역 모델 이름 : ALL, en2ko ... 
         self.device = device # cpu, cuda
         self.current_dir = os.getcwd() # 현재 디렉토리
@@ -30,6 +31,7 @@ class CTrans:
         self.load_model_name = "" # 현재 로드한 모델 이름 
         self.model_type = "" # 번역 모델 타입 : nllb, m2m
         self.translator = None # 번역기
+        self.tokenizer = None # 토크나이저
         self.sp_model = None # SentencePiece 모델
         self.lang_map = lang_map # 언어 코드 매핑
         self.tokenizer = None # 토크나이저
@@ -168,7 +170,6 @@ class CTrans:
             print("#Loading Success!")
         except:
             # resume download
-            #print("#Model download failed. Try to resume download.")
             kwargs["local_files_only"] = True
             if( resume == False):
                 model_path = snapshot_download(repo_id, **kwargs)
@@ -185,7 +186,6 @@ class CTrans:
         if self.translator is not None:
             del self.translator
 
-        #print(f"Loading {self.model_name} model...")
         self.load_model_name = self.model_name
 
         if model_list.get(self.model_name) is not None:
@@ -195,7 +195,6 @@ class CTrans:
 
         # 모델 다운로드 체크 및 다운로드 
         model_path = self._download_model(repo_id)
-        #print("rf_dir:",model_path)
 
         # 모델 저장 경로
         #model_path = os.path.join(self.models_directory, repo_id.replace("/", "_"))
@@ -203,7 +202,7 @@ class CTrans:
         resumable = False
         try:
             self.translator = ctranslate2.Translator(model_path, self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            self.tokenizer = NemoTokenizer(model_path+"/tokenizer.json")
         except:
             # resume download
             print("#Model loading failed. Resume download start.")
@@ -214,7 +213,7 @@ class CTrans:
         if resumable:
             self._download_model(repo_id, resume=True)
             self.translator = ctranslate2.Translator(model_path, self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            self.tokenizer = NemoTokenizer(model_path+"/tokenizer.json")
 
         if "nllb" in repo_id:
             self.model_type = "nllb"
@@ -224,10 +223,6 @@ class CTrans:
             self.model_type = None
 
     def translate(self, source, source_lang, target_lang, lang_map=None):
-        if self.model_type == "m2m":
-            source_lang = "__" + lang_map[source_lang] + "__"
-            target_lang = "__" + lang_map[target_lang] + "__"
-
         # "…、。" 이 문자들이 있으면 번역이 끊긴다. ( 끊기는 이유가 토큰때문? 아니면 모델 안에서? 파악해봐야. )
         translate_table = str.maketrans({
             '…': '.',
@@ -260,47 +255,14 @@ class CTrans:
         source_sentences = [sent.strip() for sent in input_list]
         target_prefix = [[target_lang]] * len(source_sentences)
 
-        self.tokenizer.src_lang = source_lang
         for i in range(len(source_sentences)):
-            source_sentences[i] = self.tokenizer.convert_ids_to_tokens(self.tokenizer.encode(source_sentences[i]))
+            source_sentences[i] = self.tokenizer.tokenize(source_sentences[i], add_special_tokens=True)
 
         # transformer tokenizer
         translation = ""
-        if True:
-            #if source_lang in ["jpn_Jpan"]: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.#low_trans_options)
-            #else: results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
-            results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
-            for result in results:
-                translation += self.tokenizer.decode(self.tokenizer.convert_tokens_to_ids(result.hypotheses[0]), skip_special_tokens=True)+" "
-        # spm tokenizer
-        else:
-            # Subword the source sentences
-            #print_list(source_sentences)  
-            source_sents_subworded = self.sp_model.encode_as_pieces(source_sentences) # spm tokenizer 사용
-            # print_list(source_sents_subworded)  
-            # print('------------------------------------')
-            if self.model_type == "m2m":
-                source_sents_subworded = [[source_lang] + sent for sent in source_sents_subworded]
-            else:
-                source_sents_subworded = [[source_lang] + sent + ["</s>"] for sent in source_sents_subworded]
-            print_list(source_sents_subworded) 
-            print(source_sents_subworded)
-
-            # Translate the source sentences
-            translations_subworded = self.translator.translate_batch(source_sents_subworded, batch_type="tokens", max_batch_size=2024, beam_size=4, target_prefix=target_prefix)
-            translations_subworded = [translation.hypotheses[0] for translation in translations_subworded]
-            for translation in translations_subworded:
-                if target_lang in translation:
-                    translation.remove(target_lang)
-
-            # Desubword the target sentences
-            translations = self.sp_model.decode(translations_subworded)
-            tmp_translations = ""
-            for tgt_sent in translations:
-                #print(src_sent, tgt_sent, sep="\n• ")
-                tmp_translations += tgt_sent
-            #translation = translations[0]
-            translation = tmp_translations
+        results = self.translator.translate_batch(source_sentences, target_prefix=target_prefix, **self.default_trans_options)
+        for result in results:
+            translation += self.tokenizer.convert_tokens_to_text(result.hypotheses[0])+" "
 
         return translation
     
@@ -326,17 +288,18 @@ class CTrans:
         self.tokenizer.src_lang = source_lang
         contents = []
         for k in range(len(text)):
-            #print(text[k])
             text[k] = text[k].strip()
             text[k] = text[k].translate(translate_table)
             if len(text[k]) == 0: continue
-            contents.append(self.tokenizer.convert_ids_to_tokens(self.tokenizer.encode(text[k])))
+            autodata = self.tokenizer.tokenize(text[k], add_special_tokens=False)
+            autodata = [self.tokenizer.src_lang] + autodata+ ["</s>"]
+            contents.append(autodata)
 
         translation = ""
         # transformer tokenizer
         results = self.translator.translate_batch(contents, target_prefix=target_prefix, **self.file_trans_options)
         for result in results:
-            translation += self.tokenizer.decode(self.tokenizer.convert_tokens_to_ids(result.hypotheses[0]), skip_special_tokens=True)+"\r\n"
+            translation += self.tokenizer.convert_tokens_to_text(result.hypotheses[0], skip_special_tokens=True)+"\r\n"
 
         return translation
     
@@ -348,12 +311,12 @@ class CTrans:
 
         # model_list에 있는 경우 
         if model_list.get(tmp_model_name) is not None:
-            # large, medium, small 모델 변경은 자유롭게 가능 : 외부 변경 가능
+            # large, turbo, medium, small 모델 변경은 자유롭게 가능 : 외부 변경 가능
             # 언어 모델은 base_model이 'small'인 경우 변경 불가능 : 저용량 유지를 위해
             if self.base_model == 'small' and self.load_model_name != self.base_model: # small 모델이 로드되지 않은 경우만
                 self.model_name = self.base_model
                 self.load_model()
-            elif self.base_model != 'small' or tmp_model_name in {'large', 'medium', 'small'}:
+            elif self.base_model != 'small' or tmp_model_name in {'large', 'turbo', 'medium', 'small'}:
                 self.model_name = tmp_model_name
                 self.load_model()
         # model_list에 없는 경우 기본 모델로 변경
@@ -385,6 +348,7 @@ _FW_MODELS = {
     "medium": "Systran/faster-whisper-medium",
     "large-v3": "Systran/faster-whisper-large-v3",
     "large": "Systran/faster-whisper-large-v3",
+	"turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 }
 
 from typing import List, Optional
