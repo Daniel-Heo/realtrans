@@ -29,7 +29,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 > 3. Install CuDNN
 > 4. Run realtrans.exe in the RealTrans folder
 
-#### 1. Install Python ( Require 3.12.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.8 Windows installer (64-bit) ) *Important*
+#### 1. Install Python ( Require 3.12.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.10 Windows installer (64-bit) ) *Important*
 ( Caution: It is recommended to install the Python installation folder in the simple format of C:\python\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
 > How to check installation result
@@ -61,13 +61,13 @@ CuDNN Installation : https://developer.nvidia.com/cudnn-downloads
 After extracting or installing the downloaded file, you will find three folders: bin, include, and lib.
 
 Installation Path Example:
-C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6
+C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.8
 
 Copy the .dll files from this path to the realtrans folder.
 
 * If other programs also require CuDNN, you can add the directory containing the .dll files to the system environment variables.
 Edit the system environment variables, click Path under User Variables, and add the following:
-C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6.
+C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.8.
 
 #### 4. Final Windows program execution
 > realtrans.exe
@@ -80,7 +80,7 @@ C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6.
 
    Install CuDNN: https://developer.nvidia.com/cudnn-downloads (performance can be improved by about 20%)
 	When you unzip or install the downloaded file, there are three folders: bin, include, and lib.
-	In the folder where you installed the CUDA Toolkit, there is a folder with the same name as the three folders above. (CUDA Toolkit directory: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6)
+	In the folder where you installed the CUDA Toolkit, there is a folder with the same name as the three folders above. (CUDA Toolkit directory: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8)
 	Add the files in the cuDNN bin, include, and lib folders to the bin, include, and lib folders in the folder in the CUDA Toolkit.
 
 ## Usage
@@ -99,20 +99,6 @@ How to use the program
 * It is recommended to run runTransWin.py once when running for the first time. The model download status may not appear in Windows programs.
 *Model downloading may take a long time. (Usually it takes about 10 minutes for small, 30 minutes for medium, and 1 hour for large. If the network conditions are bad, it may take twice as long.)
 * Feeling by model size: The small model is recognized, but the quality feels a lot lower. The medium model has somewhat good recognition and translation. The large model has a slightly better recognition and translation than the medium model.
-
-* * To improve the recognition speed in the medium model, you can use the turbo model. In this case, you can modify the relevant parts in the two files below.
-
-	python\Lib\site-packages\faster_whisper\util.py 20 lines
-
-	#"medium": "Systran/faster-whisper-medium",
-
-	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
-
-	Lib\ctrans_manager.py 385 lines
-
-	#"medium": "Systran/faster-whisper-medium",
-
-	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 
 ## Hallucination Filter (Filters out results that are unrelated to the voice.)
 
@@ -271,7 +257,7 @@ After)
 > 3. CuDNN 설치
 > 4. RealTrans 폴더의 realtrans.exe 실행
 
-#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.8 Windows installer (64-bit) ) *중요*
+#### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.10 Windows installer (64-bit) ) *중요*
 ( 주의 : 파이선 설치폴더는 간단하게 C:\python\로 설치하시는 것을 추천합니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
 > 정상 설치 확인 방법
@@ -303,11 +289,11 @@ CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads
 
 다운로드한 파일을 압축 해제하거나 설치를 하면 bin, include, lib 3개의 폴더가 존재한다.
 
-설치형 위치 : C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6
+설치형 위치 : C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.8
 
 해당 위치에서 dll파일들을 realtrans폴더에 카피를 한다.
 
-* 다른 프로그램에서도 CuDNN을 사용할 경우에는 시스템환경변수 편집에서 환경변수를 클릭하고 사용자 변수의 Path에 dll파일이 있는 C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6를 추가한다.
+* 다른 프로그램에서도 CuDNN을 사용할 경우에는 시스템환경변수 편집에서 환경변수를 클릭하고 사용자 변수의 Path에 dll파일이 있는 C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.8를 추가한다.
 
 #### 4. 최종 윈도우 프로그램 실행
 > realtrans.exe 실행
@@ -330,20 +316,6 @@ realtrans.exe 파일을 실행하면 프로그램이 실행됩니다.
 * 처음 실행시에는 runTransWin.py를 한번 실행하는 것이 좋습니다. 모델 다운로드 상태가 윈도우 프로그램에서 나타나지 않을 수 있습니다.
 * 모델 다운로드 시간이 많이 걸릴 수 있습니다.  ( 보통 small은 10분, mediaum은 30분, large는 1시간 정도 소요되며 네트웍 사정이 안좋을 경우에는 2배의 시간이 걸릴 수 있습니다. )
 * 모델 사이즈별 느낌 : small 모델은 인식은 되는데 품질은 많이 떨어지는 느낌. medium은 인식과 번역이 어느정도 쓸만하다는 느낌. large는 인식과 번역이 medium보다는 조금 잘되는 느낌.
-
-* medium 모델에서 인식 속도 개선을 위해서는 turbo 모델을 사용할 수 있습니다. 이 경우 아래 2개의 파일에 해당 부분을 수정해주시면됩니다.
-
-	python\Lib\site-packages\faster_whisper\util.py 20 lines
-
-	#"medium": "Systran/faster-whisper-medium",
-
-	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
-
-	Lib\ctrans_manager.py 385 lines
-
-	#"medium": "Systran/faster-whisper-medium",
-
-	"medium": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 
 ## 할루시네이션 필터 ( 음성과 상관없는 결과가 나오는 것을 필터합니다. )
 
