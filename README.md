@@ -279,7 +279,7 @@ After)
    * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
    * 참고) 정상적으로 install.bat이 실행되지 않은 경우 실행시 no module 에러가 발생할 수 있습니다.
   
-#####* 주의 ) RTX 5080/5090은 아래의 명령어로 torch 2.7 버젼을 설치하셔야 CUDA로 동작합니다.
+##### * 주의 ) RTX 5080/5090은 아래의 명령어로 torch 2.7 버젼을 설치하셔야 CUDA로 동작합니다.
 - pip uninstall torch torchvision torchaudio
 - pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
   
