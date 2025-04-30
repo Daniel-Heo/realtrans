@@ -280,8 +280,9 @@ After)
    * 참고) 정상적으로 install.bat이 실행되지 않은 경우 실행시 no module 에러가 발생할 수 있습니다.
   
 ##### * 주의 ) RTX 5080/5090은 아래의 명령어로 torch 2.7 버젼을 설치하셔야 CUDA로 동작합니다.
-- pip uninstall torch torchvision torchaudio
-- pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+	pip uninstall torch torchvision torchaudio
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
   
 ### 3. CuDNN 설치
 
