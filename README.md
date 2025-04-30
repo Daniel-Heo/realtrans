@@ -51,10 +51,9 @@ This is a program for real-time voice translation. Recognizes and translates the
   * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
   * Note) If install.bat is not executed properly, a no module error may occur when running.
  
-##### * Note) RTX 5080/5090 must install torch 2.7 version with the command below to operate with CUDA.
+##### * Note) RTX 5080/5090 is not currently supported.
 
-	pip uninstall torch torchvision torchaudio
-	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+- Not supported by torch.
 
 ### 3. Install CuDNN
 If not installed, you may encounter the following error:
@@ -284,10 +283,9 @@ After)
    * 처음 실행시 모델 다운로드가 몇분 걸릴수도 있습니다. 에러메시지가 나올 경우에 symlink관련 오류가 뜨면 모델 다운로드시에만 관리자권한이나 개발자모드를 설정하시면 정상적으로 다운로드가됩니다.
    * 참고) 정상적으로 install.bat이 실행되지 않은 경우 실행시 no module 에러가 발생할 수 있습니다.
   
-##### * 주의 ) RTX 5080/5090은 아래의 명령어로 torch 2.7 버젼을 설치하셔야 CUDA로 동작합니다.
+##### * 주의 ) RTX 5080/5090은 현재 지원하지 않습니다.
 
-	pip uninstall torch torchvision torchaudio
-	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+ - torch에서 지원하지 않습니다.
   
 ### 3. CuDNN 설치
 
