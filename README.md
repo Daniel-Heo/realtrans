@@ -50,6 +50,11 @@ This is a program for real-time voice translation. Recognizes and translates the
 - If you have succeeded up to this point, run RealTrans.exe and it will run normally.
   * When running for the first time, downloading the model may take several minutes. If an error message appears and a symlink-related error appears, set administrator privileges or developer mode only when downloading the model to download normally.
   * Note) If install.bat is not executed properly, a no module error may occur when running.
+ 
+##### * Note) RTX 5080/5090 must install torch 2.7 version with the command below to operate with CUDA.
+
+	pip uninstall torch torchvision torchaudio
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 ### 3. Install CuDNN
 If not installed, you may encounter the following error:
