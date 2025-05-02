@@ -10,7 +10,6 @@ tqdm
 huggingface_hub
 ctranslate2==4.6.0
 faster_whisper==1.1.1
-torch==2.6.0
-torchvision==0.21.0
-torchaudio==2.6.0
-transformers==4.48.3
+torch==2.7.0
+torchvision==2.7.0
+torchaudio==0.22.0
