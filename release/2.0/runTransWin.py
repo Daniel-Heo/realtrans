@@ -393,7 +393,7 @@ def main(ARGS):
             cmdCheckTime = time.time()
             work=load_json_file(ARGS.work_path+"/pymsg.json")
             if work != None:
-                # 종룜 설정
+                # 종료 체크
                 if work["tgt_lang"]=="exit":
                     vad_audio.destroy()
                     os.remove(ARGS.work_path+"/pymsg.json")
