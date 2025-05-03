@@ -134,7 +134,6 @@ void CALLBACK BgJob::TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTi
 {
     BgJob* pInstance = BgJob::GetInstance();
     if (pInstance->IsExitRequested()) return;
-    WCHAR strT[4096];
 
     if (pInstance->m_addFlag && pInstance->m_addText.size() > 0) {
         if (pInstance->m_addText.size() <= 2) {
@@ -154,9 +153,7 @@ void CALLBACK BgJob::TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTi
         }
 
         readBuf = Trim(readBuf);
-        TRACE("%s\n", readBuf.c_str());
         if (readBuf[0] == '-') {
-            TRACE(L"TYPE[-]\n");
             if (settings["ck_orgin_subtext"] == true) {
                 convertBuf = Utf8ToWideString(readBuf);
                 if (convertBuf.size() > 0) {
@@ -192,7 +189,6 @@ void CALLBACK BgJob::TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTi
         }
         // 번역 진행도
         else if (readBuf[0] == '[') {
-            TRACE(L"TYPE[[]\n");
             if (pInstance->m_pDlgTrans != NULL && pInstance->m_pDlgTrans->isTrans == TRUE) {
                 // ']'를 찾아서 그 앞까지 읽어서 Percent를 만든다.
                 std::string strPercent = readBuf.substr(1, readBuf.find(']'));
@@ -201,7 +197,6 @@ void CALLBACK BgJob::TimerProc(HWND hWnd, UINT message, UINT idTimer, DWORD dwTi
             }
         }
         else {
-            TRACE(L"TYPE[]\n");
             if (settings["ck_pctrans"] == true || readBuf[0] == '#') {
                 convertBuf = Utf8ToWideString(readBuf);
                 if (convertBuf.size() > 0) {

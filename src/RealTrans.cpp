@@ -90,6 +90,15 @@ void RealTrans::SetNemoViewerConfig() {
         m_pViewer->SetBgOpacity(bgOpacity);
         m_pViewer->SetMargin(7, 7, 7, 7);
     }
+
+    // 배경 투명도 설정
+    if (m_isMouseInside && m_pViewer) {
+        m_pViewer->SetBgOpacity(1);
+    }
+    else {
+        float bgOpacity = settings["transparent"] / 100.0f;
+        if (m_pViewer) m_pViewer->SetBgOpacity(bgOpacity);
+    }
 }
 
 // 제일 마지막 줄이 보이도록
@@ -439,22 +448,7 @@ LRESULT RealTrans::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
             CSettings::GetInstance()->Create(hWnd);
 
             m_bSetupActive = false;
-            SetNemoViewerConfig();
 
-            // 배경 투명도 설정
-            if (m_isMouseInside && m_pViewer) {
-                m_pViewer->SetBgOpacity(1);
-            }
-            else {
-                float bgOpacity = settings["transparent"] / 100.0f;
-                if (m_pViewer) m_pViewer->SetBgOpacity(bgOpacity);
-            }
-            //// 환경설정
-            //m_bSetupActive = true;
-            //DialogBox(m_hInst, MAKEINTRESOURCE(IDD_DIALOG_SETUP), hWnd, CSettings::StaticDialogProc);
-            //m_bSetupActive = false;
-
-            //SetNemoViewerConfig();
         }
         else if (pt.x > 0 && pt.x < 34 && pt.y > 44 && pt.y < 81) {
             // 요약
@@ -568,7 +562,7 @@ LRESULT RealTrans::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
             BOOL isInside = PtInRect(&rc, pt);
 
             // 상태가 변경되었을 때만 처리
-            if (m_isMouseInside != isInside && m_bSetupActive == false) {
+            if (m_isMouseInside != (bool)isInside && m_bSetupActive == false) {
                 m_isMouseInside = isInside;
 
                 if (m_isMouseInside) {

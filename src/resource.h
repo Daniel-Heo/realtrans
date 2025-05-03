@@ -93,7 +93,9 @@
 #define IDC_STATIC_ARROW                1064
 #define IDC_BTN_OPEN_FILE               1065
 #define IDC_BTN_SAVE_FILE               1066
-#define IDC_STATIC                      65535
+#define IDC_STATIC                      1067
+#define IDC_STATIC3                      1068
+#define IDC_STATIC4                      1069
 
 // Next default values for new objects
 // 
@@ -102,7 +104,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1067
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           1159
 #endif
 #endif

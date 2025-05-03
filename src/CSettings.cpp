@@ -903,6 +903,7 @@ INT_PTR CSettings::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			return (INT_PTR)TRUE;
 		case IDSUPPLY: // 저장 및 종료
 			SaveSettings(hwndDlg, "config.json");
+			RealTrans::GetInstance()->SetNemoViewerConfig();
 			EndDialog(hwndDlg, LOWORD(wParam));
 			m_hDlg = NULL;
 			return (INT_PTR)TRUE;

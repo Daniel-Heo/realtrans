@@ -80,7 +80,6 @@ CDlgTrans::~CDlgTrans() {
 void CDlgTrans::InitDialogControls() {
 	int index;
 	TCHAR buffer[256];    // 문자열을 저장할 버퍼
-	HWND sel;
 
 	// 설정값이 없을 경우 기본값 설정 : config.json이 있는 상태에서 default 값이 없으면 이 루틴이 필요함.
 	if (settings.value("txt_trans_src", "") == "") {
@@ -406,7 +405,6 @@ COLORREF CDlgTrans::HexToCOLORREF(const std::string& hexCode) {
 
 // OnPaint 함수 구현 - D2Render 사용
 void CDlgTrans::OnPaint() {
-	TRACE(L"DlgTrans OnPaint\n");
 	PAINTSTRUCT ps;
 
 	HDC hdc = BeginPaint(m_hwnd, &ps);

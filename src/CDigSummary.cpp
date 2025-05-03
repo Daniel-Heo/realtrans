@@ -286,9 +286,9 @@ BOOL CDlgSummary::BgSummary(std::string txt) {
 
     req = ConvertToUTF8(txt);
     chunks = CutBySize(req, BLOCK_4K);
-    for (int j = 0; j < chunks.size(); ++j) {
-        TRACE("chunk[%d]%s\n", j, chunks[j].c_str());
-    }
+    //for (int j = 0; j < chunks.size(); ++j) {
+    //    TRACE("chunk[%d]%s\n", j, chunks[j].c_str());
+    //}
 
     // api 키 존재여부 확인
     if (settings.value("ed_summary_api_key", "") == "") {
