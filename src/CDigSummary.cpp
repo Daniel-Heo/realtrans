@@ -1,444 +1,374 @@
-// ¿ä¾àÇØÁÖ´Â richedit dialogue control class
+ï»¿// ìš”ì•½í•´ì£¼ëŠ” richedit dialogue control class
 #include "CDlgSummary.h"
-#include "json.hpp" // ¶Ç´Â °æ·Î¸¦ ÁöÁ¤ÇØ¾ß ÇÒ °æ¿ì: #include "External/json.hpp"
 #include "openai_api.h"
 #include "StrConvert.h"
+#include "BgJob.h"
+#include "Util.h"
+#include "json.hpp"
 
 #define MAX_RICHEDIT_TEXT 10240
 
-// nlohmann ¶óÀÌºê·¯¸®ÀÇ ³×ÀÓ½ºÆäÀÌ½º »ç¿ë  
+// nlohmann ë¼ì´ë¸ŒëŸ¬ë¦¬ì˜ ë„¤ì„ìŠ¤í˜ì´ìŠ¤ ì‚¬ìš©  
 using json = nlohmann::json;
-
-// È¯°æ ¼³Á¤À» À§ÇÑ JSON °´Ã¼ »ı¼º
 extern json settings;
-extern CDlgSummary* DlgSum;
-extern HWND hwndTextBox;
-extern std::string strEng;
-extern bool runSummary;
 
-//WCHAR rich_buf[MAX_RICHEDIT_TEXT];
-std::wstring rich_buf;
-bool addSummaryFlag =false;
+// í´ë˜ìŠ¤ ì„ ì–¸
+CDlgSummary::CDlgSummary(HINSTANCE hInst) :
+    hInstance(hInst),
+    bVisible(FALSE),
+    bExistDlg(FALSE),
+    nParentRichPos(0)
+{}
 
-// int °ªÀ» ¿ä¾àÃ¢¿¡ º¸ÀÌ°Ô
-void DebugInt(HWND hEdit, int value)
-{
-	WCHAR buf[200];
-	wsprintf(buf, L"int: [%d]", value);
-	SendMessage(hEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)buf);
+CDlgSummary::~CDlgSummary() {
+    // ë¦¬ì†ŒìŠ¤ ì •ë¦¬
 }
 
-// ¿ä¾à ¹öÆ° Å¬¸¯½Ã ¹é±×¶ó¿îµå·Î ¿ä¾à
-INT_PTR CALLBACK SummaryProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	switch (uMsg) {
-		//case WM_CREATE:
-	case WM_INITDIALOG:
-	{
-		// ´ÙÀÌ¾ó·Î±× ÃÊ±âÈ­ ÄÚµå ½ÃÀÛ
-		// RichEdit ÄÁÆ®·Ñ »ı¼º
-		DlgSum->hSumRichEdit = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
-			WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL,
-			10, 45, 824, 235, hwndDlg, NULL, DlgSum->hInstance, NULL);
+// ì •ì  ë‹¤ì´ì–¼ë¡œê·¸ í”„ë¡œì‹œì € - ì¸ìŠ¤í„´ìŠ¤ì™€ ì—°ê²°ëœ ì‹¤ì œ í”„ë¡œì‹œì € í˜¸ì¶œ
+INT_PTR CALLBACK CDlgSummary::StaticDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    // WM_INITDIALOG ë©”ì‹œì§€ì—ì„œ ì¸ìŠ¤í„´ìŠ¤ í¬ì¸í„° ì„¤ì •
+    if (uMsg == WM_INITDIALOG) {
+        // lParamìœ¼ë¡œ ì „ë‹¬ëœ this í¬ì¸í„°ë¥¼ hwndDlgì˜ ì‚¬ìš©ì ë°ì´í„°ë¡œ ì €ì¥
+        SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (LONG_PTR)lParam);
+        CDlgSummary* pThis = (CDlgSummary*)lParam;
+        pThis->hDlgSummary = hwndDlg;
+    }
 
-		if (!DlgSum->hSumRichEdit) {
-			MessageBox(DlgSum->hWndParent, TEXT("Error to create RichEdit control."), TEXT("¿À·ù"), MB_OK);
-		}
-		else {
-			HFONT hFont;
-			// RichEdit ÄÁÆ®·Ñ ÃÊ±âÈ­
-			// ÆùÆ® »ı¼º
-			hFont = CreateFont(20, // -MulDiv(20, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72), // ³ôÀÌ
-				10,                          // ³Êºñ
-				0,                          // È¸Àü °¢µµ
-				0,                          // ±â¿ï±â °¢µµ
-				FW_NORMAL, // FW_NORMAL,                  // ÆùÆ® ±½±â
-				FALSE,                      // ÀÌÅÅ¸¯
-				FALSE,                      // ¹ØÁÙ
-				FALSE,                      // Ãë¼Ò¼±
-				ANSI_CHARSET, //HANGUL_CHARSET, //ANSI_CHARSET,               // ¹®ÀÚ ÁıÇÕ
-				OUT_TT_PRECIS, //OUT_DEFAULT_PRECIS,         // Ãâ·Â Á¤¹Ğµµ
-				CLIP_DEFAULT_PRECIS,        // Å¬¸®ÇÎ Á¤¹Ğµµ
-				DEFAULT_QUALITY,            // Ãâ·Â Ç°Áú
-				DEFAULT_PITCH | FF_ROMAN, //| FF_DONTCARE, //DEFAULT_PITCH | FF_SWISS,   // ÇÇÄ¡¿Í ÆĞ¹Ğ¸®
-				TEXT("Arial"));             // ÆùÆ® ÀÌ¸§
+    // ì¸ìŠ¤í„´ìŠ¤ í¬ì¸í„° ê°€ì ¸ì˜¤ê¸°
+    CDlgSummary* pThis = (CDlgSummary*)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 
-			// ÆùÆ® Àû¿ë
-			SendMessage(DlgSum->hSumRichEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+    // ì¸ìŠ¤í„´ìŠ¤ê°€ ìˆìœ¼ë©´ í•´ë‹¹ ì¸ìŠ¤í„´ìŠ¤ì˜ DialogProc í˜¸ì¶œ
+    if (pThis) {
+        return pThis->DialogProc(hwndDlg, uMsg, wParam, lParam);
+    }
 
-			// ¹è°æ»ö º¯°æ
-			SendMessage(DlgSum->hSumRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
-
-			DlgSum->SetFont();
-
-
-		}
-		return (INT_PTR)TRUE;
-	}
-	case WM_CTLCOLORDLG: // ´ÙÀÌ¾ó·Î±×ÀÇ ¹è°æ»öÀ» º¯°æ
-		return (INT_PTR)CreateSolidBrush(RGB(0, 0, 0));
-
-	case WM_PAINT:
-	{
-
-	}
-	break;
-	case WM_COMMAND:
-	{
-		int wmId = LOWORD(wParam); // ¸Ş´º ¼±ÅÃ, ¹öÆ° Å¬¸¯ µîÀÇ ÄÁÆ®·Ñ ½Äº°ÀÚ
-		int wmEvent = HIWORD(wParam); // ¾Ë¸² ÄÚµå
-
-		switch (wmId) {
-		case IDCANCEL:
-		{
-			DlgSum->Hide();
-			return (INT_PTR)TRUE;
-		}
-		break;
-		case IDOK:
-		{
-			return TRUE;
-		}
-		break;
-		}
-
-		switch (wmEvent) {
-		case BN_CLICKED:
-			switch (wmId) {
-			case IDC_SUM:
-			{
-				// api Å° Á¸Àç¿©ºÎ È®ÀÎ
-				if (settings.value("ed_summary_api_key", "") == "") {
-					MessageBox(hwndDlg, L"API Key is None.", L"Warning", MB_OK);
-					return FALSE;
-				}
-				// Ã³¸®ÇÒ ³»¿ëÀÌ ÀÖ´ÂÁö È®ÀÎ
-				if (strEng.size() <= DlgSum->nParentRichPos) {
-					MessageBox(hwndDlg, L"Summary text is None.", L"Warning", MB_OK);
-					return FALSE;
-				}
-				//DlgSum->MakeSummary();
-				runSummary = true;
-				return (INT_PTR)TRUE;
-			}
-			break;
-
-			}
-			break;
-		}
-	}
-	break;
-	case WM_SIZE:
-	{
-		int nWidth = LOWORD(lParam); // »õ·Î¿î ³Êºñ
-		int nHeight = HIWORD(lParam); // »õ·Î¿î ³ôÀÌ
-
-		SetWindowPos(DlgSum->hSumRichEdit, NULL, 10, 45, nWidth - 20, nHeight - 55, SWP_NOZORDER);
-	}
-	break;
-	case WM_CLOSE:
-		DlgSum->Hide();
-		return (INT_PTR)TRUE;
-	case WM_DESTROY:
-		// ÇÊ¿äÇÑ Á¤¸® ÀÛ¾÷ ¼öÇà
-		return 0;
-	}
-	return (INT_PTR)FALSE;
+    return FALSE;
 }
 
-// Å¬·¡½º ¼±¾ğ
-CDlgSummary::CDlgSummary(HINSTANCE hInst) {
-	hInstance = hInst;
-	bVisible = FALSE;
-	bExistDlg = FALSE;
-	nParentRichPos = 0;
+// ì¸ìŠ¤í„´ìŠ¤ ë‹¤ì´ì–¼ë¡œê·¸ í”„ë¡œì‹œì €
+INT_PTR CDlgSummary::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_INITDIALOG:
+        InitDialog(hwndDlg);
+        return (INT_PTR)TRUE;
+
+    case WM_CTLCOLORDLG: // ë‹¤ì´ì–¼ë¡œê·¸ì˜ ë°°ê²½ìƒ‰ì„ ë³€ê²½
+        return (INT_PTR)CreateSolidBrush(RGB(0, 0, 0));
+
+    case WM_PAINT:
+        break;
+
+    case WM_COMMAND:
+    {
+        int wmId = LOWORD(wParam); // ë©”ë‰´ ì„ íƒ, ë²„íŠ¼ í´ë¦­ ë“±ì˜ ì»¨íŠ¸ë¡¤ ì‹ë³„ì
+        int wmEvent = HIWORD(wParam); // ì•Œë¦¼ ì½”ë“œ
+
+        switch (wmId) {
+        case IDCANCEL:
+        {
+            Hide();
+            return (INT_PTR)TRUE;
+        }
+        break;
+        case IDOK:
+        {
+            return TRUE;
+        }
+        break;
+        }
+
+        switch (wmEvent) {
+        case BN_CLICKED:
+            switch (wmId) {
+            case IDC_SUM:
+            {
+                // api í‚¤ ì¡´ì¬ì—¬ë¶€ í™•ì¸
+                if (settings.value("ed_summary_api_key", "") == "") {
+                    MessageBox(hwndDlg, L"API Key is None.", L"Warning", MB_OK);
+                    return FALSE;
+                }
+                int sizeSrc = BgJob::GetInstance()->GetSrcSize();
+                // ì²˜ë¦¬í•  ë‚´ìš©ì´ ìˆëŠ”ì§€ í™•ì¸
+                if (sizeSrc<=0) {
+                    MessageBox(hwndDlg, L"Summary text is None.", L"Warning", MB_OK);
+                    return FALSE;
+                }
+                BgJob::GetInstance()->SetRunSummary(true);
+                return (INT_PTR)TRUE;
+            }
+            break;
+            }
+            break;
+        }
+    }
+    break;
+    case WM_SIZE:
+    {
+        int nWidth = LOWORD(lParam); // ìƒˆë¡œìš´ ë„ˆë¹„
+        int nHeight = HIWORD(lParam); // ìƒˆë¡œìš´ ë†’ì´
+
+        SetWindowPos(hSumRichEdit, NULL, 10, 45, nWidth - 20, nHeight - 55, SWP_NOZORDER);
+    }
+    break;
+    case WM_CLOSE:
+        Hide();
+        return (INT_PTR)TRUE;
+    case WM_DESTROY:
+        // í°íŠ¸ ë° GDI ê°ì²´ í•´ì œ
+        HFONT hFont = (HFONT)SendMessage(hSumRichEdit, WM_GETFONT, 0, 0);
+        if (hFont) DeleteObject(hFont);
+
+        // RichEdit ì»¨íŠ¸ë¡¤ ì •ë¦¬
+        if (IsWindow(hSumRichEdit)) DestroyWindow(hSumRichEdit);
+        hSumRichEdit = NULL;
+
+        // ë‹¤ì´ì–¼ë¡œê·¸ ìƒíƒœ ì´ˆê¸°í™”
+        bVisible = FALSE;
+        bExistDlg = FALSE;
+        return (INT_PTR)TRUE;
+    }
+    return (INT_PTR)FALSE;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» »ı¼ºÇÏ°í ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+// ë‹¤ì´ì–¼ë¡œê·¸ ì´ˆê¸°í™”
+void CDlgSummary::InitDialog(HWND hwndDlg) {
+    // RichEdit ì»¨íŠ¸ë¡¤ ìƒì„±
+    hSumRichEdit = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL,
+        10, 45, 824, 235, hwndDlg, (HMENU)1004, hInstance, NULL);
+
+    if (!hSumRichEdit) {
+        MessageBox(hWndParent, TEXT("Error to create RichEdit control."), TEXT("ì˜¤ë¥˜"), MB_OK);
+    }
+    else {
+        HFONT hFont;
+        // RichEdit ì»¨íŠ¸ë¡¤ ì´ˆê¸°í™”
+        // í°íŠ¸ ìƒì„±
+        hFont = CreateFont(20, // -MulDiv(20, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72), // ë†’ì´
+            10,                          // ë„ˆë¹„
+            0,                          // íšŒì „ ê°ë„
+            0,                          // ê¸°ìš¸ê¸° ê°ë„
+            FW_NORMAL, // FW_NORMAL,                  // í°íŠ¸ êµµê¸°
+            FALSE,                      // ì´íƒ¤ë¦­
+            FALSE,                      // ë°‘ì¤„
+            FALSE,                      // ì·¨ì†Œì„ 
+            ANSI_CHARSET, //HANGUL_CHARSET, //ANSI_CHARSET,               // ë¬¸ì ì§‘í•©
+            OUT_TT_PRECIS, //OUT_DEFAULT_PRECIS,         // ì¶œë ¥ ì •ë°€ë„
+            CLIP_DEFAULT_PRECIS,        // í´ë¦¬í•‘ ì •ë°€ë„
+            DEFAULT_QUALITY,            // ì¶œë ¥ í’ˆì§ˆ
+            DEFAULT_PITCH | FF_ROMAN, //| FF_DONTCARE, //DEFAULT_PITCH | FF_SWISS,   // í”¼ì¹˜ì™€ íŒ¨ë°€ë¦¬
+            TEXT("Arial"));             // í°íŠ¸ ì´ë¦„
+
+        // í°íŠ¸ ì ìš©
+        SendMessage(hSumRichEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+
+        // ë°°ê²½ìƒ‰ ë³€ê²½
+        SendMessage(hSumRichEdit, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
+
+        SetFont();
+    }
+}
+
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìƒì„±í•˜ê³  ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
 void CDlgSummary::Create(HWND hWndP) {
-	if (bExistDlg == FALSE) {
-		hWndParent = hWndP;
-		// Modaless Dialogue »ı¼º
-		hDlgSummary = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_DIALOG_SUMMARY), hWndParent, SummaryProc);
-		SetWindowLong(hDlgSummary, GWL_EXSTYLE, GetWindowLong(hDlgSummary, GWL_EXSTYLE) | WS_EX_LAYERED);
-		SetLayeredWindowAttributes(hDlgSummary, 0, (255 * 80) / 100, LWA_ALPHA);
-		bExistDlg = TRUE;
-	}
+    if (bExistDlg == FALSE) {
+        hWndParent = hWndP;
+        // Modaless Dialogue ìƒì„± - this í¬ì¸í„°ë¥¼ lParamìœ¼ë¡œ ì „ë‹¬
+        hDlgSummary = CreateDialogParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_SUMMARY),
+            hWndParent, StaticDialogProc, (LPARAM)this);
+        bExistDlg = TRUE;
+    }
 
-	if (bVisible == FALSE) {
-		Show();
-	}
+    if (bVisible == FALSE) {
+        Show();
+    }
 }
 
-// RichEdit ÄÁÆ®·Ñ¿¡ ÅØ½ºÆ® ¼³Á¤
+// RichEdit ì»¨íŠ¸ë¡¤ì— í…ìŠ¤íŠ¸ ì„¤ì •
 void CDlgSummary::SetText(const wchar_t* text) {
-	SETTEXTEX st;
-	st.flags = ST_DEFAULT; // ±âº» ¼³Á¤ »ç¿ë
-	st.codepage = 1200;    // UTF-16LE ÄÚµå ÆäÀÌÁö
-	SendMessage(hSumRichEdit, EM_SETTEXTEX, (WPARAM)&st, (LPARAM)text);
+    SETTEXTEX st;
+    st.flags = ST_DEFAULT; // ê¸°ë³¸ ì„¤ì • ì‚¬ìš©
+    st.codepage = 1200;    // UTF-16LE ì½”ë“œ í˜ì´ì§€
+    SendMessage(hSumRichEdit, EM_SETTEXTEX, (WPARAM)&st, (LPARAM)text);
 }
 
-// RichEdit ÄÁÆ®·Ñ¿¡¼­ ÅØ½ºÆ® °¡Á®¿À±â
+// RichEdit ì»¨íŠ¸ë¡¤ì—ì„œ í…ìŠ¤íŠ¸ ê°€ì ¸ì˜¤ê¸°
 void CDlgSummary::GetText(wchar_t* buffer, int bufferSize) {
-	SendMessage(hSumRichEdit, WM_GETTEXT, (WPARAM)bufferSize, (LPARAM)buffer);
+    SendMessage(hSumRichEdit, WM_GETTEXT, (WPARAM)bufferSize, (LPARAM)buffer);
 }
 
-// RTF Çü½ÄÀÇ 1x2 Å×ÀÌºíÀ» »ı¼ºÇÏ¿© RichEdit ÄÁÆ®·Ñ¿¡ »ğÀÔÇÏ´Â ÇÔ¼ö
+// RTF í˜•ì‹ì˜ 1x2 í…Œì´ë¸”ì„ ìƒì„±í•˜ì—¬ RichEdit ì»¨íŠ¸ë¡¤ì— ì‚½ì…í•˜ëŠ” í•¨ìˆ˜
 void CDlgSummary::InsertTable(const std::wstring& text) {
-	// ¼¿ ÆøÀ» °è»ê
-	HDC hdc = GetDC(hSumRichEdit);
-	int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-	ReleaseDC(hSumRichEdit, hdc);
+    // ì…€ í­ì„ ê³„ì‚°
+    HDC hdc = GetDC(hSumRichEdit);
+    int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+    ReleaseDC(hSumRichEdit, hdc);
 
-	RECT rect;
-	GetClientRect(hSumRichEdit, &rect);
-	int widthInPixels = rect.right - rect.left;
+    RECT rect;
+    GetClientRect(hSumRichEdit, &rect);
+    int widthInPixels = rect.right - rect.left;
 
-	int cellWidth = static_cast<int>((widthInPixels * 1440) / dpiX);
-	wchar_t buffer[256]; // ÀÓ½Ã ¹öÆÛ
-	std::wstring in_buf;
-	wsprintfW((LPWSTR)buffer, L"\\cellx%d ", cellWidth);
-	in_buf = buffer;
+    int cellWidth = static_cast<int>((widthInPixels * 1440) / dpiX);
+    wchar_t buffer[256]; // ì„ì‹œ ë²„í¼
+    std::wstring in_buf;
+    wsprintfW((LPWSTR)buffer, L"\\cellx%d ", cellWidth);
+    in_buf = buffer;
 
-	// RTF Çü½ÄÀÇ 1x2 Å×ÀÌºí Á¤ÀÇ
-	// ¿©±â¼­´Â Å×ÀÌºíÀÇ °¢ ¼¿ÀÇ ³Êºñ¸¦ Á¶ÀıÇÒ ¼ö ÀÖ½À´Ï´Ù. \cellxNÀº N À§Ä¡¿¡ ¼¿À» ³¡³»´Â °ÍÀ» ÀÇ¹ÌÇÕ´Ï´Ù.
-	std::wstring rtfTable = 
-		L"{\\rtf1"
-		L"\\trowd\\trgaph108\\trleft-108"
-		+ in_buf + // 1Çà 1¿­ÀÇ ³Êºñ¸¦ ¼³Á¤ÇÕ´Ï´Ù.
-		L"\\intbl "
-		+ text + // Ã¹¹øÂ° ¼¿ : ³»¿ë 
-		L"\\cell"
-		L"\\row" // ÇàÀ» Á¾·áÇÕ´Ï´Ù.
-		L"}";
+    // RTF í˜•ì‹ì˜ 1x2 í…Œì´ë¸” ì •ì˜
+    // ì—¬ê¸°ì„œëŠ” í…Œì´ë¸”ì˜ ê° ì…€ì˜ ë„ˆë¹„ë¥¼ ì¡°ì ˆí•  ìˆ˜ ìˆìŠµë‹ˆë‹¤. \cellxNì€ N ìœ„ì¹˜ì— ì…€ì„ ëë‚´ëŠ” ê²ƒì„ ì˜ë¯¸í•©ë‹ˆë‹¤.
+    std::wstring rtfTable =
+        L"{\\rtf1"
+        L"\\trowd\\trgaph108\\trleft-108"
+        + in_buf + // 1í–‰ 1ì—´ì˜ ë„ˆë¹„ë¥¼ ì„¤ì •í•©ë‹ˆë‹¤.
+        L"\\intbl "
+        + text + // ì²«ë²ˆì§¸ ì…€ : ë‚´ìš© 
+        L"\\cell"
+        L"\\row" // í–‰ì„ ì¢…ë£Œí•©ë‹ˆë‹¤.
+        L"}";
 
-	AddText(rtfTable);
-	GoBottom();
+    AddText(rtfTable);
+    GoBottom();
 }
 
-// tokken size Ã¼Å©
+// tokken size ì²´í¬
 int CDlgSummary::getTokenSize(const std::string& wstr, int curPos)
 {
-	/*
-		GPT-3.5 Turbo: GPT-3.5 Turbo´Â ÁÖ·Î ºñ¿ë È¿À²ÀûÀÎ ¼±ÅÃÁö·Î »ç¿ëµÇ¸ç, ´ëÃ¼·Î 4096 ÅäÅ«ÀÇ Á¦ÇÑÀ» °¡Áö°í ÀÖ½À´Ï´Ù.
-		ÀÌ´Â ¿äÃ»(payload)°ú ÀÀ´äÀ» ÇÕÄ£ ÀüÃ¼ ±æÀÌ°¡ 4096 ÅäÅ«À» ³ÑÁö ¾Ê¾Æ¾ß ÇÔÀ» ÀÇ¹ÌÇÕ´Ï´Ù.
+    /*
+        GPT-3.5 Turbo: GPT-3.5 TurboëŠ” ì£¼ë¡œ ë¹„ìš© íš¨ìœ¨ì ì¸ ì„ íƒì§€ë¡œ ì‚¬ìš©ë˜ë©°, ëŒ€ì²´ë¡œ 4096 í† í°ì˜ ì œí•œì„ ê°€ì§€ê³  ìˆìŠµë‹ˆë‹¤.
+        ì´ëŠ” ìš”ì²­(payload)ê³¼ ì‘ë‹µì„ í•©ì¹œ ì „ì²´ ê¸¸ì´ê°€ 4096 í† í°ì„ ë„˜ì§€ ì•Šì•„ì•¼ í•¨ì„ ì˜ë¯¸í•©ë‹ˆë‹¤.
 
-		GPT-4.0: ÃÖ´ë ÅäÅ« Á¦ÇÑÀº ¾à 8000~16384 ÅäÅ« ¹üÀ§ ³»¿¡¼­ ¸ğµ¨ ¹× »ç¿ë ¼³Á¤¿¡ µû¶ó ´Ş¶óÁú ¼ö ÀÖ½À´Ï´Ù.
-		ÀÌ´Â GPT-4°¡ Ã³¸®ÇÒ ¼ö ÀÖ´Â ÀÔ·Â°ú »ı¼ºÇÒ ¼ö ÀÖ´Â Ãâ·ÂÀÇ ÃÑ ÇÕ°è ±æÀÌ¿¡ ´ëÇÑ Á¦ÇÑÀÔ´Ï´Ù.
-	*/
-	int cnt = 0;
-	for (char wc : wstr) {
-		if (wc == ' ') {
-			cnt++;
-		}
-	}
-	cnt++;
+        GPT-4.0: ìµœëŒ€ í† í° ì œí•œì€ ì•½ 8000~16384 í† í° ë²”ìœ„ ë‚´ì—ì„œ ëª¨ë¸ ë° ì‚¬ìš© ì„¤ì •ì— ë”°ë¼ ë‹¬ë¼ì§ˆ ìˆ˜ ìˆìŠµë‹ˆë‹¤.
+        ì´ëŠ” GPT-4ê°€ ì²˜ë¦¬í•  ìˆ˜ ìˆëŠ” ì…ë ¥ê³¼ ìƒì„±í•  ìˆ˜ ìˆëŠ” ì¶œë ¥ì˜ ì´ í•©ê³„ ê¸¸ì´ì— ëŒ€í•œ ì œí•œì…ë‹ˆë‹¤.
+    */
+    int cnt = 0;
+    for (char wc : wstr) {
+        if (wc == ' ') {
+            cnt++;
+        }
+    }
+    cnt++;
 
-	return cnt;
+    return cnt;
 }
 
-// Handle·Î RichEdit ÄÁÆ®·Ñ¿¡¼­ ÅØ½ºÆ® °¡Á®¿À±â
-BOOL CDlgSummary::GetTextWithHandle(std::string& buf) {
-	int lenText;
-
-	buf = '\0';
-	//lenText = GetTextSize(hRich);
-	lenText = strEng.size();
-	if (nParentRichPos < lenText) {
-		buf = strEng.substr(nParentRichPos, lenText - nParentRichPos).c_str();
-		nParentRichPos = lenText;
-
-		// Ãß°¡µÈ °ÍÀÌ ¾øÀ» °æ¿ì
-		if (buf.size() == 0) return false;
-
-		return true;
-	}
-
-	return false;
-}
-
-// RichEdit ÄÁÆ®·Ñ¿¡ ÅØ½ºÆ® ¼³Á¤
+// RichEdit ì»¨íŠ¸ë¡¤ì— í…ìŠ¤íŠ¸ ì¶”ê°€
 void CDlgSummary::AddText(const std::wstring& text) {
-	// ÅØ½ºÆ®ÀÇ ¸¶Áö¸·¿¡ Ä¿¼­¸¦ À§Ä¡½ÃÅµ´Ï´Ù. -1, -1Àº ÅØ½ºÆ®ÀÇ ³¡À» ³ªÅ¸³À´Ï´Ù.
-	SendMessage(hSumRichEdit, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
-	SendMessage(hSumRichEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)text.c_str());
+    // í…ìŠ¤íŠ¸ì˜ ë§ˆì§€ë§‰ì— ì»¤ì„œë¥¼ ìœ„ì¹˜ì‹œí‚µë‹ˆë‹¤. -1, -1ì€ í…ìŠ¤íŠ¸ì˜ ëì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤.
+    SendMessage(hSumRichEdit, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
+    SendMessage(hSumRichEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)text.c_str());
 }
 
-// RichEdit ÄÁÆ®·Ñ¿¡ ÅØ½ºÆ® »çÀÌÁî °¡Á®¿À±â
+// RichEdit ì»¨íŠ¸ë¡¤ì— í…ìŠ¤íŠ¸ ì‚¬ì´ì¦ˆ ê°€ì ¸ì˜¤ê¸°
 int CDlgSummary::GetTextSize(HWND hRich) {
-	// ÅØ½ºÆ® »çÀÌÁî °¡Á®¿À±â ( À¯´ÏÄÚµåÀÏ °æ¿ì¿¡ »çÀÌÁî°¡ 2¹èÀÏ ¼ö ÀÖÀ½)
-	int ret = SendMessage(hRich, WM_GETTEXTLENGTH, (WPARAM)0, (LPARAM)0); // WPARAM°ú LPARAMÀº »ç¿ëÇÏÁö ¾ÊÀ¸¹Ç·Î 0À¸·Î ¼³Á¤ÇÕ´Ï´Ù.
-	return ret;
+    // í…ìŠ¤íŠ¸ ì‚¬ì´ì¦ˆ ê°€ì ¸ì˜¤ê¸° ( ìœ ë‹ˆì½”ë“œì¼ ê²½ìš°ì— ì‚¬ì´ì¦ˆê°€ 2ë°°ì¼ ìˆ˜ ìˆìŒ)
+    int ret = SendMessage(hRich, WM_GETTEXTLENGTH, (WPARAM)0, (LPARAM)0); // WPARAMê³¼ LPARAMì€ ì‚¬ìš©í•˜ì§€ ì•Šìœ¼ë¯€ë¡œ 0ìœ¼ë¡œ ì„¤ì •í•©ë‹ˆë‹¤.
+    return ret;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìˆ¨ê¹€
 void CDlgSummary::Hide() {
-	ShowWindow(hDlgSummary, SW_HIDE);
-	bVisible = FALSE;
+    ShowWindow(hDlgSummary, SW_HIDE);
+    bVisible = FALSE;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ë³´ì„
 void CDlgSummary::Show() {
-	ShowWindow(hDlgSummary, SW_SHOW);
-	bVisible = TRUE;
+    ShowWindow(hDlgSummary, SW_SHOW);
+    bVisible = TRUE;
 }
 
-// ¿ä¾à ¹öÆ° Å¬¸¯½Ã ¹é±×¶ó¿îµå·Î ¿ä¾à
-BOOL CDlgSummary::BgSummary() {
-	// Parent Richedit¿¡¼­ ÅØ½ºÆ® °¡Á®¿À±â
-	BOOL ret;
-	char lang[30];
-	std::string req;
-	std::wstring strWOut=L"";
+// ìš”ì•½ ë²„íŠ¼ í´ë¦­ì‹œ ë°±ê·¸ë¼ìš´ë“œë¡œ ìš”ì•½
+BOOL CDlgSummary::BgSummary(std::string txt) {
+    char lang[30];
+    std::string req;
+    std::vector<std::string> chunks;
+    std::wstring strWOut = L"";
 
-	ret = GetTextWithHandle(req);
-	if (ret == false) {
-		return ret;
-	}
-	else {
-		req=ConvertToUTF8(req);
-	}
+    req = ConvertToUTF8(txt);
+    chunks = CutBySize(req, BLOCK_4K);
+    for (int j = 0; j < chunks.size(); ++j) {
+        TRACE("chunk[%d]%s\n", j, chunks[j].c_str());
+    }
 
-	// api Å° Á¸Àç¿©ºÎ È®ÀÎ
-	if (settings.value("ed_summary_api_key", "") == "") {
-		MessageBox(hDlgSummary, L"API Key is None.", L"Warning", MB_OK);
-		return false;
-	}
+    // api í‚¤ ì¡´ì¬ì—¬ë¶€ í™•ì¸
+    if (settings.value("ed_summary_api_key", "") == "") {
+        MessageBox(hDlgSummary, L"API Key is None.", L"Warning", MB_OK);
+        return false;
+    }
 
-	// req »çÀÌÁî°¡ 10k ÃÊ°ú½Ã Àß¶ó¼­ Ã³¸®ÇÑ´Ù.
-	int reqSize = req.size();
-	std::string tmpReq;
-	size_t pos = 0;
+    for (size_t i = 0; i < chunks.size(); ++i) {
+        strWOut.clear();
+        // 20ì ì´í•˜ë©´ skip
+        if (chunks[i].size() < 20) break;
 
-	while (1) {
-		if (reqSize > 9192) {
-			pos = req.find('\n', 9192);
-			if (pos == std::string::npos) {
-				pos = req.find(' ', 9192);
-				if (pos == std::string::npos) {
-					tmpReq = req.substr(0, 9192);
-					req = req.substr(9192);
-				}
-				else {
-					tmpReq = req.substr(0, pos);
-					req = req.substr(pos);
-				}
-			}
-			else {
-				tmpReq = req.substr(0, pos);
-				req = req.substr(pos);
-			}
-		}
-		else {
-			tmpReq = req;
-			req.clear();
-		}
+        // API ì—°ë™
+        // envì—ì„œ ìš”ì•½ì •ë³´ ê°€ì ¸ì˜¤ê¸°
+        if (settings["cb_summary_api"] == 0) {
+            // openai API
+            // ì–¸ì–´ ì„¤ì •
+            switch (settings["cb_summary_lang"].get<int>()) {
+            case 0: strcpy_s(lang, "Korean"); break; // í•œêµ­ì–´ ( Korean )
+            case 1: strcpy_s(lang, "English"); break; // ì˜ì–´ ( English )
+            case 2: strcpy_s(lang, "German"); break; // ë…ì¼ì–´ ( German )
+            case 3: strcpy_s(lang, "Spanish"); break; // ìŠ¤í˜ì¸ì–´ ( Spanish ) 
+            case 4: strcpy_s(lang, "French"); break; // í”„ë‘ìŠ¤ì–´ ( French )
+            case 5: strcpy_s(lang, "Italian"); break; // ì´íƒˆë¦¬ì•„ì–´ ( Italian )
+            case 6: strcpy_s(lang, "Japanese"); break; // ì¼ë³¸ì–´ ( Japanese )
+            case 7: strcpy_s(lang, "Portuguese"); break; // í¬ë¥´íˆ¬ê°ˆì–´ ( Portuguese )
+            case 8: strcpy_s(lang, "Russian"); break; // ëŸ¬ì‹œì•„ì–´ ( Russian )
+            case 9: strcpy_s(lang, "Chinese"); break; // ì¤‘êµ­ì–´ ( Chinese ) 
+            case 10: strcpy_s(lang, "Arabic"); break; // ì•„ëì–´ ( Arabic ) 
+            case 11: strcpy_s(lang, "Hindi"); break; // íŒë””ì–´ ( Hindi ) 
+            default: strcpy_s(lang, "English"); break; // ì˜ì–´ ( English )
+            }
+            RequestOpenAIChat(chunks[i], strWOut, lang, settings["ed_summary_hint"], StringToWStringInSummary(settings.value("ed_summary_api_key", "")).c_str());
+        }
 
-		// 20ÀÚ ÀÌÇÏ¸é skip
-		if (tmpReq.size() < 20) break;
+        // í…ìŠ¤íŠ¸ ì¶”ê°€
+        AddRichText(L"\r\n\r\n" + strWOut);
+    }
 
-		// API ¿¬µ¿
-		// env¿¡¼­ ¿ä¾àÁ¤º¸ °¡Á®¿À±â
-		if (settings["cb_summary_api"] == 0) {
-			// openai API
-			// ¾ğ¾î ¼³Á¤
-			switch(settings["cb_summary_lang"].get<int>()) {
-				case 0: strcpy_s(lang, "Korean"); break; // ÇÑ±¹¾î ( Korean )
-				case 1: strcpy_s(lang, "English"); break; // ¿µ¾î ( English )
-				case 2: strcpy_s(lang, "German"); break; // µ¶ÀÏ¾î ( German )
-				case 3: strcpy_s(lang, "Spanish"); break; // ½ºÆäÀÎ¾î ( Spanish ) 
-				case 4: strcpy_s(lang, "French"); break; // ÇÁ¶û½º¾î ( French )
-				case 5: strcpy_s(lang, "Italian"); break; // ÀÌÅ»¸®¾Æ¾î ( Italian )
-				case 6: strcpy_s(lang, "Japanese"); break; // ÀÏº»¾î ( Japanese )
-				case 7: strcpy_s(lang, "Portuguese"); break; // Æ÷¸£Åõ°¥¾î ( Portuguese )
-				case 8: strcpy_s(lang, "Russian"); break; // ·¯½Ã¾Æ¾î ( Russian )
-				case 9: strcpy_s(lang, "Chinese"); break; // Áß±¹¾î ( Chinese ) 
-				case 10: strcpy_s(lang, "Arabic"); break; // ¾Æ¶ø¾î ( Arabic ) 
-				case 11: strcpy_s(lang, "Hindi"); break; // Èùµğ¾î ( Hindi ) 
-				default: strcpy_s(lang, "English"); break; // ¿µ¾î ( English )
-			}
-			RequestOpenAIChat(tmpReq, strWOut, lang, settings["ed_summary_hint"], StringToWStringInSummary(settings.value("ed_summary_api_key", "")).c_str());
-		}
+    //addSummaryFlag = true;
 
-		// ¹ø¿ª
-		
-		// child Richedit¿¡ ÅØ½ºÆ® Ãß°¡
-		rich_buf += L"\r\n\r\n"+strWOut;
-
-		reqSize = req.size();
-		if (reqSize <= 0) break;
-	}
-
-	addSummaryFlag = true;
-
-	return true;
+    return true;
 }
 
-BOOL CDlgSummary::AddRichText() {
-	if (addSummaryFlag == true) {
-		//InsertTable(rich_buf);
-		AddText(rich_buf);
-		GoBottom();
-		rich_buf.clear();
-		addSummaryFlag = false;
-	}
+BOOL CDlgSummary::AddRichText(std::wstring txt) {
+    AddText(txt);
+    GoBottom();
 
-	return true;
+    return true;
 }
 
-// ¸Ş½ÃÁö Æ®·¹ÀÌ½º¿ë : TraceÃ¢À¸·Î »ç¿ëÇÒ °æ¿ì »ç¿ë
+// ë©”ì‹œì§€ íŠ¸ë ˆì´ìŠ¤ìš© : Traceì°½ìœ¼ë¡œ ì‚¬ìš©í•  ê²½ìš° ì‚¬ìš©
 BOOL CDlgSummary::Trace(const std::wstring& trace) {
-	AddText(trace+L"\r\n");
-	GoBottom();
-	return true;
+    AddText(trace + L"\r\n");
+    GoBottom();
+    return true;
 }
 
-// ¸Ş½ÃÁö Æ®·¹ÀÌ½º¿ë (°æ°íÃ¢)
+// ë©”ì‹œì§€ íŠ¸ë ˆì´ìŠ¤ìš© (ê²½ê³ ì°½)
 void CDlgSummary::Alert(const WCHAR* msg) {
-	MessageBox(hDlgSummary, msg, L"Alert", MB_OK);
+    MessageBox(hDlgSummary, msg, L"Alert", MB_OK);
 }
 
-// ¿ä¾àÃ¢ÀÇ º¸¿©Áö´Â À§Ä¡¸¦ Á¦ÀÏ ¸¶Áö¸·ÁÙÀÌ º¸ÀÌ°Ô ÀÌµ¿
+// ìš”ì•½ì°½ì˜ ë³´ì—¬ì§€ëŠ” ìœ„ì¹˜ë¥¼ ì œì¼ ë§ˆì§€ë§‰ì¤„ì´ ë³´ì´ê²Œ ì´ë™
 void CDlgSummary::GoBottom() {
-	// Ä¿¼­¸¦ ¹®¼­ÀÇ ³¡À¸·Î ÀÌµ¿½ÃÅµ´Ï´Ù.
-	//SetFocus(hSumRichEdit);
-	//SendMessage(hSumRichEdit, EM_SETSEL, -1, 0);
-	SendMessage(hSumRichEdit, EM_SCROLL, SB_BOTTOM, 0);
+    // ì»¤ì„œë¥¼ ë¬¸ì„œì˜ ëìœ¼ë¡œ ì´ë™ì‹œí‚µë‹ˆë‹¤.
+    SendMessage(hSumRichEdit, EM_SCROLL, SB_BOTTOM, 0);
 }
 
-// #c8c8c8 »ö»óÀ» COLORREF·Î º¯È¯
-COLORREF CDlgSummary::HexToCOLORREF(const std::string& hexCode) {
-	// »ö»ó ÄÚµå¿¡¼­ '#' ¹®ÀÚ¸¦ Á¦°ÅÇÕ´Ï´Ù.
-	std::string hex = hexCode.substr(1);
-
-	// 16Áø¼ö °ªÀ» 10Áø¼ö·Î º¯È¯ÇÕ´Ï´Ù.
-	int r = std::stoi(hex.substr(0, 2), nullptr, 16);
-	int g = std::stoi(hex.substr(2, 2), nullptr, 16);
-	int b = std::stoi(hex.substr(4, 2), nullptr, 16);
-
-	// COLORREF °ªÀ¸·Î º¯È¯ÇÕ´Ï´Ù. RGB ¸ÅÅ©·Î¸¦ »ç¿ëÇÕ´Ï´Ù.
-	return RGB(r, g, b);
-}
-
-// ÆùÆ® »ö»óÀ» º¯°æÇÏ´Â ÇÔ¼ö
+// í°íŠ¸ ìƒ‰ìƒì„ ë³€ê²½í•˜ëŠ” í•¨ìˆ˜
 void CDlgSummary::SetFont() {
-	CHARFORMAT2 cf;
-	ZeroMemory(&cf, sizeof(cf));
-	cf.cbSize = sizeof(cf);
-	cf.dwMask = CFM_SIZE | CFM_COLOR;
-	cf.yHeight = settings["cb_sumfont_size"] * 20; // Æ÷ÀÎÆ® ´ÜÀ§ÀÇ ÆùÆ® Å©±â¸¦ Æ®À¢Æ¼¿§À¸·Î º¯È¯
-	//SendMessage(hRichEdit, EM_GETCHARFORMAT, SCF_DEFAULT, (LPARAM)&cf);
+    CHARFORMAT2 cf;
+    ZeroMemory(&cf, sizeof(cf));
+    cf.cbSize = sizeof(cf);
+    cf.dwMask = CFM_SIZE | CFM_COLOR;
+    cf.yHeight = settings["cb_sumfont_size"] * 20; // í¬ì¸íŠ¸ ë‹¨ìœ„ì˜ í°íŠ¸ í¬ê¸°ë¥¼ íŠ¸ìœ•ìŠ¤ë‹¨ìœ„ë¡œ ë³€í™˜
 
-	//cf.dwMask = CFM_COLOR; // »ö»ó º¯°æÀ» ³ªÅ¸³À´Ï´Ù.
-	cf.crTextColor = HexToCOLORREF(settings["ed_sumfont_color"]); // ¿øÇÏ´Â »ö»óÀ» RGB °ªÀ¸·Î ¼³Á¤ÇÕ´Ï´Ù.
+    //cf.dwMask = CFM_COLOR; // ìƒ‰ìƒ ë³€ê²½ì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤.
+    cf.crTextColor = HexToCOLORREF(settings["ed_sumfont_color"]); // ì›í•˜ëŠ” ìƒ‰ìƒì„ RGB ê°’ìœ¼ë¡œ ì„¤ì •í•©ë‹ˆë‹¤.
 
-	// ÆùÆ® »ö»ó º¯°æÀ» Àû¿ëÇÕ´Ï´Ù.
-	SendMessage(hSumRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
+    // í°íŠ¸ ìƒ‰ìƒ ë³€ê²½ì„ ì ìš©í•©ë‹ˆë‹¤.
+    SendMessage(hSumRichEdit, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
 }
-
-//SetFocus(hRichEdit);
-//SendMessage(hRichEdit, EM_SETSEL, end, -1);
-//SetRichEditSelColor(hRichEdit, RGB(200, 200, 255));
-//
-//// ¼±ÅÃÀ» Ãë¼ÒÇÏ°í ½Í´Ù¸é ´ÙÀ½°ú °°ÀÌ ÇÕ´Ï´Ù.
-//// ÀÌ´Â Ä¿¼­¸¦ ¹®¼­ÀÇ ³¡À¸·Î ÀÌµ¿½ÃÅ² ÈÄ ¼±ÅÃ ¿µ¿ªÀÌ ¾øµµ·Ï ÇÕ´Ï´Ù.
-//SendMessage(hRichEdit, EM_SETSEL, -1, 0);

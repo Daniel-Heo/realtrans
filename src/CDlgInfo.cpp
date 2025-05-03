@@ -1,6 +1,6 @@
-// ¿ä¾àÇØÁÖ´Â richedit dialogue control class
+ï»¿// ìš”ì•½í•´ì£¼ëŠ” richedit dialogue control class
 #include "CDlgInfo.h"
-#include <commctrl.h> // Common Controls Çì´õ
+#include <commctrl.h> // Common Controls í—¤ë”
 #include "StrConvert.h"
 #include "version.h"
 #pragma comment(lib, "comctl32.lib") //adds link to control control DLL
@@ -8,7 +8,6 @@
 
 extern CDlgInfo* DlgInfo;
 
-// ¿ä¾à ¹öÆ° Å¬¸¯½Ã ¹é±×¶ó¿îµå·Î ¿ä¾à
 INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 	case WM_INITDIALOG:
@@ -21,8 +20,8 @@ INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_COMMAND:
 		{
-			int wmId = LOWORD(wParam); // ¸Ş´º ¼±ÅÃ, ¹öÆ° Å¬¸¯ µîÀÇ ÄÁÆ®·Ñ ½Äº°ÀÚ
-			int wmEvent = HIWORD(wParam); // ¾Ë¸² ÄÚµå
+			int wmId = LOWORD(wParam); // ë©”ë‰´ ì„ íƒ, ë²„íŠ¼ í´ë¦­ ë“±ì˜ ì»¨íŠ¸ë¡¤ ì‹ë³„ì
+			int wmEvent = HIWORD(wParam); // ì•Œë¦¼ ì½”ë“œ
 
 			switch (wmId) {
 				case IDCANCEL:
@@ -59,7 +58,7 @@ INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return (INT_PTR)TRUE;
 
 	case WM_DESTROY:
-		// ÇÊ¿äÇÑ Á¤¸® ÀÛ¾÷ ¼öÇà
+		// í•„ìš”í•œ ì •ë¦¬ ì‘ì—… ìˆ˜í–‰
 		EndDialog(hwndDlg, 0);
 		DestroyWindow(hwndDlg);
 		return 0;
@@ -67,19 +66,19 @@ INT_PTR CALLBACK InfoProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-// Å¬·¡½º ¼±¾ğ
+// í´ë˜ìŠ¤ ì„ ì–¸
 CDlgInfo::CDlgInfo(HINSTANCE hInst) {
 	hInstance = hInst;
 	bVisible = FALSE;
 	bExistDlg = FALSE;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» »ı¼ºÇÏ°í ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìƒì„±í•˜ê³  ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
 void CDlgInfo::Create(HWND hWndP) {
-	// sysLink ÃÊ±âÈ­ : Common Controls ÃÊ±âÈ­ ( About Dialog »ç¿ëÀ» À§ÇØ ÇÊ¿ä )
+	// sysLink ì´ˆê¸°í™” : Common Controls ì´ˆê¸°í™” ( About Dialog ì‚¬ìš©ì„ ìœ„í•´ í•„ìš” )
 	INITCOMMONCONTROLSEX icex;
 	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	icex.dwICC = ICC_LINK_CLASS; // SysLink ÄÁÆ®·Ñ »ç¿ëÀ» À§ÇØ ÇÊ¿ä
+	icex.dwICC = ICC_LINK_CLASS; // SysLink ì»¨íŠ¸ë¡¤ ì‚¬ìš©ì„ ìœ„í•´ í•„ìš”
 	InitCommonControlsEx(&icex);
 
 	if (bExistDlg == FALSE) {
@@ -93,19 +92,19 @@ void CDlgInfo::Create(HWND hWndP) {
 	}
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìˆ¨ê¹€
 void CDlgInfo::Hide() {
 	ShowWindow(hDlgInfo, SW_HIDE);
 	bVisible = FALSE;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìˆ¨ê¹€
 void CDlgInfo::Show() {
 	ShowWindow(hDlgInfo, SW_SHOW);
 	bVisible = TRUE;
 }
 
-// ¸Ş½ÃÁö Æ®·¹ÀÌ½º¿ë (°æ°íÃ¢)
+// ë©”ì‹œì§€ íŠ¸ë ˆì´ìŠ¤ìš© (ê²½ê³ ì°½)
 void CDlgInfo::Alert(const WCHAR* msg) {
 	MessageBox(hDlgInfo, msg, L"Alert", MB_OK);
 }

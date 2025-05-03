@@ -24,12 +24,6 @@
     <ClInclude Include="RealTrans.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="SoundDev.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="CMenusDlg.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="CSettings.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -60,15 +54,21 @@
     <ClInclude Include="portable-file-dialogs.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="NemoViewer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="D2Render.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="BgJob.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Util.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RealTrans.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundDev.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="CMenusDlg.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CSettings.cpp">
@@ -93,6 +93,18 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CDlgTrans.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="NemoViewer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="D2Render.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="BgJob.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Util.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <windows.h>
 #include <Richedit.h>
 #include <string>
@@ -6,21 +6,21 @@
 
 class CDlgInfo {
 public:
-    HWND hDlgInfo; // DialogÀÇ ÇÚµé
-    HINSTANCE hInstance; // ¾ÖÇÃ¸®ÄÉÀÌ¼Ç ÀÎ½ºÅÏ½º ÇÚµé
-    HWND hWndParent; // ºÎ¸ð À©µµ¿ìÀÇ ÇÚµé
-    BOOL bVisible; // ¿ä¾àÃ¢ÀÌ º¸ÀÌ´ÂÁö ¿©ºÎ
-    BOOL bExistDlg; // ¿ä¾àÃ¢ÀÌ Á¸ÀçÇÏ´ÂÁö ¿©ºÎ
+    HWND hDlgInfo; // Dialogì˜ í•¸ë“¤
+    HINSTANCE hInstance; // ì• í”Œë¦¬ì¼€ì´ì…˜ ì¸ìŠ¤í„´ìŠ¤ í•¸ë“¤
+    HWND hWndParent; // ë¶€ëª¨ ìœˆë„ìš°ì˜ í•¸ë“¤
+    BOOL bVisible; // ìš”ì•½ì°½ì´ ë³´ì´ëŠ”ì§€ ì—¬ë¶€
+    BOOL bExistDlg; // ìš”ì•½ì°½ì´ ì¡´ìž¬í•˜ëŠ”ì§€ ì—¬ë¶€
 
 public:
     CDlgInfo(HINSTANCE hInst);
 
-    // RichEdit ÄÁÆ®·ÑÀ» »ý¼ºÇÏ°í ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+    // RichEdit ì»¨íŠ¸ë¡¤ì„ ìƒì„±í•˜ê³  ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
     void Create(HWND hWndParent);
 
-    void Alert(const WCHAR* msg); // °æ°íÃ¢À¸·Î »ç¿ëÇÒ °æ¿ì »ç¿ë
+    void Alert(const WCHAR* msg); // ê²½ê³ ì°½ìœ¼ë¡œ ì‚¬ìš©í•  ê²½ìš° ì‚¬ìš©
 
-    // ¿ä¾àÃ¢ ¼û±â±â ( ±âº»ÀûÀ¸·Î È°¼ºÈ­µÇ¸é ±× ´ÙÀ½ºÎÅÍ´Â ¼û±â±â¿Í º¸ÀÌ±â·Î Á¦¾î )
+    // ìš”ì•½ì°½ ìˆ¨ê¸°ê¸° ( ê¸°ë³¸ì ìœ¼ë¡œ í™œì„±í™”ë˜ë©´ ê·¸ ë‹¤ìŒë¶€í„°ëŠ” ìˆ¨ê¸°ê¸°ì™€ ë³´ì´ê¸°ë¡œ ì œì–´ )
     void Hide();
     void Show();
 

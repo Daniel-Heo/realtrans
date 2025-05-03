@@ -1,360 +1,146 @@
-#include "CDlgTrans.h"
+ï»¿#include "CDlgTrans.h"
 #include "StrConvert.h"
 #include "version.h"
 #include <windows.h>
 #include <fstream>
 #include "CSettings.h"
 #include "resource.h"
-#include <gdiplus.h>
-#include <vector> // std::vector
-#include <thread> // std::thread
+#include <vector>
+#include <thread>
 #include "portable-file-dialogs.h"
 #include "json.hpp"
+#include "RealTrans.h"
+#include "Util.h"
 
-#pragma comment(lib, "Comdlg32.lib") // °øÅë ´ëÈ­»óÀÚ ¶óÀÌºê·¯¸® ¸µÅ©
-
-using namespace Gdiplus;
 using json = nlohmann::json;
 
-extern CDlgTrans* DlgTrans;
-extern BOOL bStopMenu;
-extern std::string strExecutePath;
+#pragma comment(lib, "Comdlg32.lib") // ê³µí†µ ëŒ€í™”ìƒì ë¼ì´ë¸ŒëŸ¬ë¦¬ ë§í¬
+#pragma comment (lib,"gdiplus.lib")
+
 extern std::string addText;
 extern json settings;
 
-// string ÇüÀ» WCHAR* ·Î º¯È¯ÇÏ´Â ÇÔ¼ö
+// GDI+ë¥¼ ì´ˆê¸°í™”í•˜ê¸° ìœ„í•œ ë³€ìˆ˜ë“¤
+ULONG_PTR           g_gdiplusToken;
+GdiplusStartupInput g_gdiplusStartupInput;
+
+// string í˜•ì„ WCHAR* ë¡œ ë³€í™˜í•˜ëŠ” í•¨ìˆ˜
 void StringToWChar(const std::string& s, WCHAR* outStr) {
-	// º¯È¯µÈ ¹®ÀÚ¿­ÀÇ ±æÀÌ¸¦ °è»êÇÕ´Ï´Ù. ¸ÖÆ¼¹ÙÀÌÆ®¸¦ ¿ÍÀÌµå ¹®ÀÚ·Î º¯È¯ÇÒ ¶§ ÇÊ¿äÇÑ ±æÀÌ¸¦ ¾ò½À´Ï´Ù.
+	// ë³€í™˜ëœ ë¬¸ìì—´ì˜ ê¸¸ì´ë¥¼ ê³„ì‚°í•©ë‹ˆë‹¤. ë©€í‹°ë°”ì´íŠ¸ë¥¼ ì™€ì´ë“œ ë¬¸ìë¡œ ë³€í™˜í•  ë•Œ í•„ìš”í•œ ê¸¸ì´ë¥¼ ì–»ìŠµë‹ˆë‹¤.
 	int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
 
-	// ½ÇÁ¦ º¯È¯À» ¼öÇàÇÕ´Ï´Ù.
+	// ì‹¤ì œ ë³€í™˜ì„ ìˆ˜í–‰í•©ë‹ˆë‹¤.
 	MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, outStr, len);
 }
 
-BOOL CDlgTrans::BrowseFile(WCHAR* szPath, WCHAR* szFile)
-{
-	auto selection = pfd::open_file("Select a file", ".",
-		{ "Text File", "*.txt",
-		  "All Files", "*" },
-		pfd::opt::multiselect).result();
-	
-	if( selection.size()==0 ) return FALSE;
-	std::string firstFile = selection[0]; // Ã¹ ¹øÂ° ÆÄÀÏ °æ·Î
-	if( firstFile.length()>0 )
-		StringToWChar(firstFile, szFile);
-	else return FALSE;
-
-	return TRUE;
-}
-
-// ÆÄÀÏ ÀúÀå ´ëÈ­»óÀÚ¸¦ ÅëÇØ ÆÄÀÏ ÀÌ¸§À» ¼±ÅÃÇÏ´Â ÇÔ¼ö
-BOOL CDlgTrans::BrowseSaveFile(WCHAR* szPath, WCHAR* szFile) {
-	OPENFILENAME ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL; // ºÎ¸ğ À©µµ¿ì ÇÚµé
-	ofn.lpstrFile = szFile; // ÆÄÀÏ ÀÌ¸§ ¹öÆÛ
-	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrFilter = TEXT("Text File\0*.txt\0All File\0*.*\0"); // ÇÊÅÍ ¼³Á¤
-	ofn.nFilterIndex = 1; // ±âº» ÇÊÅÍ ¼±ÅÃ
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = MAX_PATH;
-	ofn.lpstrInitialDir = szPath; // ÃÊ±â µğ·ºÅä¸®
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT; // ÇÃ·¡±× ¼³Á¤
-
-	// ÆÄÀÏ ÀúÀå ´ëÈ­»óÀÚ ¿­±â
-	if (GetSaveFileName(&ofn) == TRUE) {
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-#if 0
-// ÆÄÀÏ ¼±ÅÃ ´ëÈ­»óÀÚ¸¦ Ç¥½ÃÇÏ´Â ÇÔ¼ö
-BOOL BrowseFile(WCHAR* szPath, WCHAR* szFile)
-{
-	OPENFILENAME ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFilter = TEXT("Text Files (*.txt)\0*.txt\0"); // ÆÄÀÏ ÇÊÅÍ ¼³Á¤
-	ofn.nFilterIndex = 1;
-	ofn.lpstrCustomFilter = NULL;
-	ofn.nMaxCustFilter = 40;
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrInitialDir = TEXT("."); // szPath;
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = MAX_PATH;
-	ofn.lpstrDefExt = L"";
-	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-
-	if (GetOpenFileName(&ofn) == 0) {
-		//DWORD dwError = CommDlgExtendedError(); // ¿À·ù ÄÚµå È®ÀÎ
-		//MessageBoxA(NULL, "failed! :(", NULL, NULL);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-#endif
-
-BOOL WriteToFile(const std::wstring& fileName, const std::string& content) {
-	FILE* file = nullptr;
-
-	// _wfopen_s¸¦ »ç¿ëÇÏ¿© À¯´ÏÄÚµå ÆÄÀÏ¸íÀ¸·Î ÆÄÀÏ ¿­±â
-	errno_t err = _wfopen_s(&file, fileName.c_str(), L"wb");  // ¹ÙÀÌ³Ê¸® ¸ğµå·Î ¿­±â
-	if (err != 0 || file == nullptr) {
-		throw std::runtime_error("Failed to open file with wstring filename");
-	}
-
-	// std::ofstreamÀ» »ç¿ëÇÏ¿© ÆÄÀÏ¿¡ ¸ÖÆ¼¹ÙÀÌÆ® µ¥ÀÌÅÍ ÀÛ¼º
-	std::ofstream ofs(file);  // C++ ½ºÆ®¸²À¸·Î ¿¬°á
-	ofs.write(content.c_str(), content.size());  // µ¥ÀÌÅÍ ÀÛ¼º
-
-	ofs.close();  // ½ºÆ®¸² ´İ±â
-	fclose(file);  // ÆÄÀÏ ´İ±â
-
-	return TRUE;
-}
-
-BOOL ReadToFile(const std::wstring& fileName, std::string& content) {
-	FILE* file = nullptr;
-	errno_t err = _wfopen_s(&file, fileName.c_str(), L"rb"); // ÆÄÀÏÀ» ¹ÙÀÌ³Ê¸® ¸ğµå·Î ¿±´Ï´Ù.
-
-	if (err != 0 || file == nullptr) {
-		// ÆÄÀÏÀ» ¿­Áö ¸øÇÑ °æ¿ì, ¿À·ù¸¦ ¹İÈ¯ÇÕ´Ï´Ù.
-		//std::cerr << "ÆÄÀÏÀ» ¿­ ¼ö ¾ø½À´Ï´Ù: " << std::string(fileName.begin(), fileName.end()) << std::endl;
-		return FALSE;
-	}
-
-	// ÆÄÀÏ Å©±â¸¦ ¾ò±â À§ÇØ ÆÄÀÏ Æ÷ÀÎÅÍ¸¦ ³¡À¸·Î ÀÌµ¿
-	fseek(file, 0, SEEK_END);
-	long fileSize = ftell(file);
-	rewind(file);
-
-	// ÆÄÀÏ ³»¿ëÀ» ÀĞ±â À§ÇØ º¤ÅÍ »ç¿ë
-	std::vector<char> buffer(fileSize);
-	size_t bytesRead = fread(buffer.data(), 1, fileSize, file);
-
-	// \rÀº »èÁ¦ \nÀº \r\nÀ¸·Î 
-	std::vector<char> bufferOut(fileSize*2);
-	size_t pos = 0;
-	for (size_t i = 0; i < bytesRead; i++) {
-		if (buffer[i] == '\r') {
-		}
-		else if (buffer[i] == '\n') {
-			bufferOut[pos++] = '\r';
-			bufferOut[pos++] = '\n';
-		}
-		else {
-			bufferOut[pos++] = buffer[i];
-		}
-	}
-	// bufferOut »çÀÌÁî¸¦ pos·Î º¯°æ
-	bufferOut.resize(pos);
-
-	if (bytesRead != fileSize) {
-		// ÀĞÀº µ¥ÀÌÅÍ°¡ ÆÄÀÏ Å©±â¿Í ÀÏÄ¡ÇÏÁö ¾Ê´Â °æ¿ì
-		//std::cerr << "ÆÄÀÏÀ» ¿ÏÀüÈ÷ ÀĞÁö ¸øÇß½À´Ï´Ù." << std::endl;
-		fclose(file);
-		return FALSE;
-	}
-
-	// ÆÄÀÏ ³»¿ëÀ» ¹®ÀÚ¿­·Î º¯È¯
-	content = std::string(bufferOut.begin(), bufferOut.end());
-
-	// ÆÄÀÏ ´İ±â
-	fclose(file);
-
-	return TRUE;
-}
-
-// ÆÄÀÏ ÀúÀå
-BOOL CDlgTrans::OutputFile()
-{
-	// ÆÄÀÏ ¼±ÅÃ ´ëÈ­»óÀÚ¸¦ Ç¥½ÃÇÑ´Ù.
-	WCHAR strFileName[MAX_PATH] = { 0 };
-	memset(strFileName, 0, sizeof(strFileName));
-	WCHAR strPath[MAX_PATH] = { 0 };
-	GetModuleFileName(NULL, strPath, MAX_PATH);
-	if (!BrowseSaveFile(strPath, strFileName)) return FALSE;
-	std::wstring wstrFileName = strFileName;
-
-	// rich2ÀÇ ÅØ½ºÆ®¸¦ °¡Á®¿Â´Ù.
-	int text_length = SendMessage(hRich2, WM_GETTEXTLENGTH, 0, 0); // ÅØ½ºÆ® ±æÀÌ °¡Á®¿À±â
-	WCHAR* pBuf = new WCHAR[text_length + 1];
-	SendMessage(hRich2, WM_GETTEXT, text_length + 1, (LPARAM)pBuf);
-	std::string strOut = WCHARToString(pBuf);
-
-	WriteToFile(wstrFileName, strOut);
-
-	return TRUE;
-}
-
-BOOL CDlgTrans::InputFile()
-{
-	// ¿µ»óÆÄÀÏ ¼±ÅÃ
-	WCHAR strFileName[MAX_PATH];
-	memset(strFileName, 0, sizeof(strFileName));
-	WCHAR strPath[MAX_PATH] = { 0 };
-	GetModuleFileName(NULL, strPath, MAX_PATH);
-	if (!BrowseFile(strPath, strFileName)) return FALSE;
-
-	std::wstring wstrFileName = strFileName;
-
-	std::string strText = "";
-	ReadToFile(wstrFileName, strText);
-
-	// rich1¿¡ ÅØ½ºÆ®¸¦ ¾´´Ù.
-	if (hRich1 != NULL && strText.length() > 0) {
-		SendMessage(hRich1, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
-		SendMessage(hRich1, EM_REPLACESEL, FALSE, (LPARAM)StringToWString(strText).c_str());
-	}
-
-	return TRUE;
-}
-
-// ¹ø¿ªÀ» ¼öÇàÇÏ´Â ÇÔ¼ö
-void CDlgTrans::Translate(std::string& strOut, std::string& srcLang, std::string& tgtLang) {
-	std::string strFileName = strExecutePath + "translate.txt";
-	std::ofstream outFile(strFileName);
-	outFile<<srcLang << " -> " << tgtLang << std::endl;
-	outFile <<strOut;
-	outFile.close();
-}
-
-void CDlgTrans::CheckTransFile() {
-	//if( isTrans!=TRUE ) return;
-
-	// ÆÄÀÏÀ» ÀĞ¾îµéÀÎ´Ù.
-	std::string strFileName = strExecutePath + "translate_out.txt";
-	std::ifstream inFile(strFileName);
-	// ÆÄÀÏÀÌ ¾øÀ¸¸é ¸®ÅÏ
-	if (!inFile.is_open()) {
-		return;
-	}
-
-	SETTEXTEX st;
-	st.flags = ST_DEFAULT; // ±âº» ¼³Á¤ »ç¿ë
-	st.codepage = 1200;    // UTF-16LE ÄÚµå ÆäÀÌÁö
-	DWORD start = 0, end = 0;
-
-	// ÆÄÀÏÀ» ÀĞ¾îµéÀÎ´Ù.
-	std::string strTmp;
-	while (std::getline(inFile, strTmp)) {
-		// rich2¿¡ ÅØ½ºÆ®¸¦ ¾´´Ù.
-		if (hRich2 != NULL) {
-			SendMessage(hRich2, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
-
-			// Ä¿¼­ À§Ä¡(ÇöÀç ¼±ÅÃÀÇ ³¡)¸¦ ¾ò½À´Ï´Ù.
-			SendMessage(hRich2, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
-			SendMessage(hRich2, EM_REPLACESEL, (WPARAM)&st, (LPARAM)StringToWString(strTmp).c_str());
-		}
-	}
-	// ÆÄÀÏÀ» ´İ´Â´Ù.
-	inFile.close();
-
-	// ÆÄÀÏÀ» »èÁ¦ÇÑ´Ù.
-	remove(strFileName.c_str());
-}
-
-void GetWindowSize(HWND hWnd, int& width, int& height) {
-	RECT rect;
-	if (GetWindowRect(hWnd, &rect)) {
-		width = rect.right - rect.left;   // ³Êºñ °è»ê
-		height = rect.bottom - rect.top;  // ³ôÀÌ °è»ê
-	}
-	else {
-		// GetWindowRect ½ÇÆĞ ½Ã
-		width = 0;
-		height = 0;
-	}
-}
-
-void CDlgTrans::ProgressBar(int percent) {
-	transPercent = percent;
-	RECT invalidRect = { 803, 5, 1203, 29 };  // ´Ù½Ã ±×¸± ¿µ¿ª
-	InvalidateRect(hWnd, &invalidRect, FALSE);  // ¹«È¿È­ÇÏ¿© ´Ù½Ã ±×¸®±â ¿äÃ»
-	UpdateWindow(hWnd);  // Áï½Ã È­¸é¿¡ Ç¥½Ã
-	if( percent==100 ) isTrans = FALSE;
-}
-
-// Å¬·¡½º ¼±¾ğ
+// í´ë˜ìŠ¤ ì„ ì–¸
 CDlgTrans::CDlgTrans(HINSTANCE hInst) {
 	hInstance = hInst;
 	bVisible = FALSE;
 	bExistDlg = FALSE;
 	isTrans = FALSE;
-	hWnd = NULL;
+	m_hwnd = NULL;
+	m_hwnd = NULL;
 	hRich1 = NULL;
 	hRich2 = NULL;
 	transPercent = 0;
+	m_pGdiMenuNormal = nullptr;
+	m_pGdiMenuOver = nullptr;
+	m_pGdiBarBg = nullptr;
+	m_pGdiBar = nullptr;
+	window_width = 0;
+	window_height = 0;
+
+	GdiplusStartup(&g_gdiplusToken, &g_gdiplusStartupInput, NULL);
+}
+
+// ì†Œë©¸ì ì¶”ê°€
+CDlgTrans::~CDlgTrans() {
+	// GDI+ ì´ë¯¸ì§€ ê°ì²´ í•´ì œ
+	if (m_pGdiMenuNormal) {
+		delete m_pGdiMenuNormal;
+		m_pGdiMenuNormal = nullptr;
+	}
+	if (m_pGdiMenuOver) {
+		delete m_pGdiMenuOver;
+		m_pGdiMenuOver = nullptr;
+	}
+	if (m_pGdiBarBg) {
+		delete m_pGdiBarBg;
+		m_pGdiBarBg = nullptr;
+	}
+	if (m_pGdiBar) {
+		delete m_pGdiBar;
+		m_pGdiBar = nullptr;
+	}
+
+	GdiplusShutdown(g_gdiplusToken);
 }
 
 void CDlgTrans::InitDialogControls() {
 	int index;
-	TCHAR buffer[256];    // ¹®ÀÚ¿­À» ÀúÀåÇÒ ¹öÆÛ
+	TCHAR buffer[256];    // ë¬¸ìì—´ì„ ì €ì¥í•  ë²„í¼
+	HWND sel;
 
-	// ¼³Á¤°ªÀÌ ¾øÀ» °æ¿ì ±âº»°ª ¼³Á¤ : config.jsonÀÌ ÀÖ´Â »óÅÂ¿¡¼­ default °ªÀÌ ¾øÀ¸¸é ÀÌ ·çÆ¾ÀÌ ÇÊ¿äÇÔ.
+	// ì„¤ì •ê°’ì´ ì—†ì„ ê²½ìš° ê¸°ë³¸ê°’ ì„¤ì • : config.jsonì´ ìˆëŠ” ìƒíƒœì—ì„œ default ê°’ì´ ì—†ìœ¼ë©´ ì´ ë£¨í‹´ì´ í•„ìš”í•¨.
 	if (settings.value("txt_trans_src", "") == "") {
 		settings["txt_trans_src"] = "eng_Latn";
 	}
 	if (settings.value("txt_trans_tgt", "") == "") {
 		settings["txt_trans_tgt"] = "kor_Hang";
 	}
-	
+
 	LoadString(hInstance, IDS_TRANSLATE, buffer, 256);
 
-	// ¹ø¿ª	¹öÆ°
+	RECT client;
+	GetClientRect(m_hwnd, &client);
+
+	// ë²ˆì—­	ë²„íŠ¼
 	CreateWindow(
 		L"BUTTON", buffer,
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-		43, 5, 200, 24,
-		hWnd, (HMENU)IDC_BTN_TRANSLATE, GetModuleHandle(nullptr), nullptr
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+		43, 0, 200, 24,
+		m_hwnd, (HMENU)IDC_BTN_TRANSLATE, GetModuleHandle(nullptr), nullptr
 	);
-	// ÆÄÀÏ ¿­±â ¹öÆ°
+	// íŒŒì¼ ì—´ê¸° ë²„íŠ¼
 	CreateWindow(
 		L"BUTTON", L"File",
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-		253, 5, 100, 24,
-		hWnd, (HMENU)IDC_BTN_OPEN_FILE, GetModuleHandle(nullptr), nullptr
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+		243, 0, 100, 24,
+		m_hwnd, (HMENU)IDC_BTN_OPEN_FILE, GetModuleHandle(nullptr), nullptr
 	);
-	// À½¼º ¾ğ¾î ¼±ÅÃ ÄŞº¸¹Ú½º
+	// ìŒì„± ì–¸ì–´ ì„ íƒ ì½¤ë³´ë°•ìŠ¤
 	CreateWindow(
 		L"COMBOBOX", L"",
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST| WS_VSCROLL,
-		363, 5, 150, 24,
-		hWnd, (HMENU)IDC_CB_SRCLANG, GetModuleHandle(nullptr), nullptr
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL | WS_CLIPCHILDREN,
+		343, 0, 150, 24,
+		m_hwnd, (HMENU)IDC_CB_SRCLANG, GetModuleHandle(nullptr), nullptr
 	);
-	// '->'¸¦ ³ªÅ¸³»´Â static control Ãß°¡
+	// '->'ë¥¼ ë‚˜íƒ€ë‚´ëŠ” static control ì¶”ê°€
 	CreateWindow(
 		L"STATIC", L"->",
-		WS_CHILD | WS_VISIBLE | SS_CENTER,
-		513, 5, 20, 24,
-		hWnd, (HMENU)IDC_STATIC_ARROW, GetModuleHandle(nullptr), nullptr
+		WS_CHILD | WS_VISIBLE | SS_CENTER | WS_CLIPCHILDREN,
+		493, 0, 20, 24,
+		m_hwnd, (HMENU)IDC_STATIC_ARROW, GetModuleHandle(nullptr), nullptr
 	);
-	
-	// ¹ø¿ª ¾ğ¾î ¼±ÅÃ ÄŞº¸¹Ú½º
+
+	// ë²ˆì—­ ì–¸ì–´ ì„ íƒ ì½¤ë³´ë°•ìŠ¤
 	CreateWindow(
 		L"COMBOBOX", L"",
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST| WS_VSCROLL,
-		533, 5, 150, 24,
-		hWnd, (HMENU)IDC_CB_TGTLANG, GetModuleHandle(nullptr), nullptr
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL | WS_CLIPCHILDREN,
+		513, 0, 150, 24,
+		m_hwnd, (HMENU)IDC_CB_TGTLANG, GetModuleHandle(nullptr), nullptr
 	);
 
-	// ÆÄÀÏ ÀúÀå ¹öÆ°
+	// íŒŒì¼ ì €ì¥ ë²„íŠ¼
 	CreateWindow(
 		L"BUTTON", L"Save",
-		WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-		693, 5, 100, 24,
-		hWnd, (HMENU)IDC_BTN_SAVE_FILE, GetModuleHandle(nullptr), nullptr
+		WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
+		663, 0, 100, 24,
+		m_hwnd, (HMENU)IDC_BTN_SAVE_FILE, GetModuleHandle(nullptr), nullptr
 	);
 
-	// ¾ğ¾î¿Í °ü·Ã µ¥ÀÌÅÍ ½ÖÀ» ¹è¿­·Î ÃÊ±âÈ­
+	// ì–¸ì–´ì™€ ê´€ë ¨ ë°ì´í„° ìŒì„ ë°°ì—´ë¡œ ì´ˆê¸°í™”
 	LanguageData languages[] = {
 		{L"Korean", L"kor_Hang"}, {L"English", L"eng_Latn"},
 		{L"German", L"deu_Latn"}, {L"French", L"fra_Latn"}, {L"Italian", L"ita_Latn"},
@@ -380,144 +166,156 @@ void CDlgTrans::InitDialogControls() {
 	};
 	int lenLang = sizeof(languages) / sizeof(languages[0]);
 
-	// ¿øº» ÅØ½ºÆ® ¹Ú½º
-	HWND hListBox = GetDlgItem(hWnd, IDC_CB_SRCLANG);
+	// ì›ë³¸ í…ìŠ¤íŠ¸ ë°•ìŠ¤
+	HWND hListBox = GetDlgItem(m_hwnd, IDC_CB_SRCLANG);
 	if (hListBox != NULL) {
 		for (int i = 0; i < lenLang; ++i) {
 			index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)languages[i].language);
 			SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)languages[i].data);
 			if (CompareStringWString(settings.value("txt_trans_src", ""), (WCHAR*)languages[i].data)) {
-				// ¿øÇÏ´Â µ¥ÀÌÅÍ¸¦ °¡Áø Ç×¸ñÀ» Ã£¾ÒÀ¸¹Ç·Î, ÇØ´ç Ç×¸ñÀ» ¼±ÅÃÇÕ´Ï´Ù.
+				// ì›í•˜ëŠ” ë°ì´í„°ë¥¼ ê°€ì§„ í•­ëª©ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, í•´ë‹¹ í•­ëª©ì„ ì„ íƒí•©ë‹ˆë‹¤.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)index, 0);
 			}
 		}
 	}
 
-	// Ãâ·Â ÅØ½ºÆ® ¹Ú½º
-	hListBox = GetDlgItem(hWnd, IDC_CB_TGTLANG);
+	// ì¶œë ¥ í…ìŠ¤íŠ¸ ë°•ìŠ¤
+	hListBox = GetDlgItem(m_hwnd, IDC_CB_TGTLANG);
 	if (hListBox != NULL) {
 		for (int i = 0; i < lenLang; ++i) {
 			index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)languages[i].language);
 			SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)languages[i].data);
 			if (CompareStringWString(settings.value("txt_trans_tgt", ""), (WCHAR*)languages[i].data)) {
-				// ¿øÇÏ´Â µ¥ÀÌÅÍ¸¦ °¡Áø Ç×¸ñÀ» Ã£¾ÒÀ¸¹Ç·Î, ÇØ´ç Ç×¸ñÀ» ¼±ÅÃÇÕ´Ï´Ù.
+				// ì›í•˜ëŠ” ë°ì´í„°ë¥¼ ê°€ì§„ í•­ëª©ì„ ì°¾ì•˜ìœ¼ë¯€ë¡œ, í•´ë‹¹ í•­ëª©ì„ ì„ íƒí•©ë‹ˆë‹¤.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)index, 0);
 			}
 		}
 	}
 
-	// Æø : 1280-43 = 1237, 1237/2 = 618
-	// ³ôÀÌ : 400-34-5 = 361
-	// richedit ÄÁÆ®·Ñ Ãß°¡ ÁÂ¿ì 2°³
+	// í­ : 1280-43 = 1237, 1237/2 = 618
+	// ë†’ì´ : 400-34-5 = 361
+	// richedit ì»¨íŠ¸ë¡¤ ì¶”ê°€ ì¢Œìš° 2ê°œ
+	int width = (client.right - client.left - 43)/2;
+	int height = client.bottom - client.top - 24;
 	hRich1 = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
-		WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE, // | ES_READONLY,
-		44, 34, 590, 310, hWnd, (HMENU)1001, GetModuleHandle(NULL), NULL);
+		WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | WS_BORDER | WS_CLIPCHILDREN,
+		43, 24, width, height, m_hwnd, (HMENU)1002, GetModuleHandle(NULL), NULL);
 
 	hRich2 = CreateWindowEx(0, L"RichEdit50W", TEXT(""),
-		WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE, // | ES_READONLY,
-		648, 34, 600, 310, hWnd, (HMENU)1002, GetModuleHandle(NULL), NULL);
+		WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | WS_BORDER | WS_CLIPCHILDREN,
+		43+width, 24, width, height, m_hwnd, (HMENU)1003, GetModuleHandle(NULL), NULL);
+
+	// ë°°ê²½ìƒ‰ ë³€ê²½
+	SendMessage(hRich1, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(5, 5, 5));
+	SendMessage(hRich2, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(5, 5, 5));
 
 	CHARFORMAT2 cf;
 	ZeroMemory(&cf, sizeof(cf));
 	cf.cbSize = sizeof(cf);
-	cf.dwMask = CFM_SIZE | CFM_COLOR; // ÆùÆ® Å©±â¿Í »ö»ó º¯°æÀ» ³ªÅ¸³À´Ï´Ù.
-	cf.yHeight = 12 * 20; // Æ÷ÀÎÆ® ´ÜÀ§ÀÇ ÆùÆ® Å©±â¸¦ Æ®À¢Æ¼¿§À¸·Î º¯È¯
-	cf.crTextColor = RGB(200, 200, 255);; // ¿øÇÏ´Â »ö»óÀ» RGB °ªÀ¸·Î ¼³Á¤ÇÕ´Ï´Ù.
+	cf.dwMask = CFM_SIZE | CFM_COLOR; // í°íŠ¸ í¬ê¸°ì™€ ìƒ‰ìƒ ë³€ê²½ì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤.
+	cf.yHeight = 12 * 20; // í¬ì¸íŠ¸ ë‹¨ìœ„ì˜ í°íŠ¸ í¬ê¸°ë¥¼ íŠ¸ìœ•ìŠ¤ì ìœ¼ë¡œ ë³€í™˜
+	cf.crTextColor = RGB(200, 200, 255);; // ì›í•˜ëŠ” ìƒ‰ìƒì„ RGB ê°’ìœ¼ë¡œ ì„¤ì •í•©ë‹ˆë‹¤.
 
-	// ÆùÆ® »ö»ó º¯°æÀ» Àû¿ëÇÕ´Ï´Ù.
+	// í°íŠ¸ ìƒ‰ìƒ ë³€ê²½ì„ ì ìš©í•©ë‹ˆë‹¤.
 	SendMessage(hRich1, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
 	SendMessage(hRich2, EM_SETCHARFORMAT, SCF_ALL, (LPARAM)&cf);
 
-	// ¹è°æ»ö º¯°æ
-	SendMessage(hRich1, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
-	SendMessage(hRich2, EM_SETBKGNDCOLOR, 0, (LPARAM)RGB(0, 0, 0));
+	// RichEdit ì»¨íŠ¸ë¡¤ì„ Z-ìˆœì„œì—ì„œ ë§¨ ìœ„ë¡œ ì´ë™
+	//SetWindowPos(hRich1, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	//SetWindowPos(hRich2, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+	// GDI ì´ˆê¸°í™”
+	LoadImages(); // ì´ë¯¸ì§€ ë¡œë“œ
 }
 
 void CDlgTrans::ShowDialogControls() {
 	ShowWindow(hRich1, SW_SHOW);
 	ShowWindow(hRich2, SW_SHOW);
-	// ¹öÆ° º¸ÀÌ±â
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_TRANSLATE), SW_SHOW);
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_OPEN_FILE), SW_SHOW);
-	ShowWindow(GetDlgItem(hWnd, IDC_CB_SRCLANG), SW_SHOW);
-	ShowWindow(GetDlgItem(hWnd, IDC_CB_TGTLANG), SW_SHOW);
-	ShowWindow(GetDlgItem(hWnd, IDC_STATIC_ARROW), SW_SHOW);
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_SAVE_FILE), SW_SHOW);
+	// ë²„íŠ¼ ë³´ì´ê¸°
+	
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_TRANSLATE), SW_SHOW);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_OPEN_FILE), SW_SHOW);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_CB_SRCLANG), SW_SHOW);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_CB_TGTLANG), SW_SHOW);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_STATIC_ARROW), SW_SHOW);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_SAVE_FILE), SW_SHOW);
 }
 
 void CDlgTrans::HideDialogControls() {
 	ShowWindow(hRich1, SW_HIDE);
 	ShowWindow(hRich2, SW_HIDE);
-	// ¹öÆ° ¼û±â±â
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_TRANSLATE), SW_HIDE);
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_OPEN_FILE), SW_HIDE);
-	ShowWindow(GetDlgItem(hWnd, IDC_CB_SRCLANG), SW_HIDE);
-	ShowWindow(GetDlgItem(hWnd, IDC_CB_TGTLANG), SW_HIDE);
-	ShowWindow(GetDlgItem(hWnd, IDC_STATIC_ARROW), SW_HIDE);
-	ShowWindow(GetDlgItem(hWnd, IDC_BTN_SAVE_FILE), SW_HIDE);
+	// ë²„íŠ¼ ìˆ¨ê¸°ê¸°
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_TRANSLATE), SW_HIDE);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_OPEN_FILE), SW_HIDE);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_CB_SRCLANG), SW_HIDE);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_CB_TGTLANG), SW_HIDE);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_STATIC_ARROW), SW_HIDE);
+	ShowWindow(GetDlgItem(m_hwnd, IDC_BTN_SAVE_FILE), SW_HIDE);
 
-	// progress bar »èÁ¦
-	RECT invalidRect = { 43, 5, 1203, 29 };  // ´Ù½Ã ±×¸± ¿µ¿ª
-	InvalidateRect(hWnd, &invalidRect, FALSE);  // ¹«È¿È­ÇÏ¿© ´Ù½Ã ±×¸®±â ¿äÃ»
+	// progress bar ì‚­ì œ
+	RECT invalidRect = { 43, 5, 1203, 29 };  // ë‹¤ì‹œ ê·¸ë¦´ ì˜ì—­
+	InvalidateRect(m_hwnd, &invalidRect, FALSE);  // ë¬´íš¨í™”í•˜ì—¬ ë‹¤ì‹œ ê·¸ë¦¬ê¸° ìš”ì²­
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» »ı¼ºÇÏ°í ÃÊ±âÈ­ÇÏ´Â ÇÔ¼ö
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìƒì„±í•˜ê³  ì´ˆê¸°í™”í•˜ëŠ” í•¨ìˆ˜
 void CDlgTrans::Create(HWND hWndP) {
 	if (bExistDlg == FALSE) {
-		hWnd = hWndP;
+		RECT client;
+		GetClientRect(hWndP, &client);
+		 
+		// D2D ë Œë”ë§ì„ ìœ„í•œ ë³„ë„ ì°¨ì¼ë“œ ìœˆë„ìš° ìƒì„±
+		m_hwnd = hWndP;
+
+		// ì»¨íŠ¸ë¡¤ ì´ˆê¸°í™”
 		InitDialogControls();
 		bExistDlg = TRUE;
 	}
-
-	/*if (bVisible == FALSE) {
-		Show();
-	}*/
 }
 
 void CDlgTrans::Destroy() {
 	if (bExistDlg == TRUE) {
-		//DestroyWindow(hDlg);
 		bExistDlg = FALSE;
 	}
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìˆ¨ê¹€
 void CDlgTrans::Hide() {
-	//ShowWindow(hDlg, SW_HIDE);
 	HideDialogControls();
 	bVisible = FALSE;
 }
 
-// RichEdit ÄÁÆ®·ÑÀ» ¼û±è
+// RichEdit ì»¨íŠ¸ë¡¤ì„ ìˆ¨ê¹€
 void CDlgTrans::Show() {
-	//ShowWindow(hDlg, SW_SHOW);
 	ShowDialogControls();
 	bVisible = TRUE;
+	// ì°½ì„ ë‹¤ì‹œ ê·¸ë¦¬ë„ë¡ í•¨
+	InvalidateRect(m_hwnd, NULL, FALSE);
+	UpdateWindow(m_hwnd);
 }
 
-// rich1ÀÇ ÅØ½ºÆ®¸¦ °¡Á®¿È
-void CDlgTrans::GetText(std::string &strOut, std::string &srcLang, std::string &tgtLang) {
+// rich1ì˜ í…ìŠ¤íŠ¸ë¥¼ ê°€ì ¸ì˜´
+void CDlgTrans::GetText(std::string& strOut, std::string& srcLang, std::string& tgtLang) {
 	LPARAM itemData;
-	// ÅØ½ºÆ® ±æÀÌ¸¦ °¡Á®¿Â´Ù.
+	// í…ìŠ¤íŠ¸ ê¸¸ì´ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
 	int nLen = GetWindowTextLength(hRich1);
-	// ÅØ½ºÆ® ±æÀÌ¸¸Å­ ¹öÆÛ¸¦ ÇÒ´çÇÑ´Ù.
+	// í…ìŠ¤íŠ¸ ê¸¸ì´ë§Œí¼ ë²„í¼ë¥¼ í• ë‹¹í•œë‹¤.
 	WCHAR* pBuf = new WCHAR[nLen + 1];
-	// ¹öÆÛ¿¡ ÅØ½ºÆ®¸¦ º¹»çÇÑ´Ù.
+	// ë²„í¼ì— í…ìŠ¤íŠ¸ë¥¼ ë³µì‚¬í•œë‹¤.
 	GetWindowText(hRich1, pBuf, nLen + 1);
-	// ¹öÆÛÀÇ ³»¿ëÀ» std::stringÀ¸·Î º¯È¯ÇÑ´Ù.
+	// ë²„í¼ì˜ ë‚´ìš©ì„ std::stringìœ¼ë¡œ ë³€í™˜í•œë‹¤.
 	strOut = WStringToString(pBuf);
 
 	LRESULT nSel = 0;
 	HWND hCbBox;
 
-	hCbBox = GetDlgItem(hWnd, IDC_CB_SRCLANG);
+	hCbBox = GetDlgItem(m_hwnd, IDC_CB_SRCLANG);
 	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 	itemData = SendMessage(hCbBox, CB_GETITEMDATA, nSel, 0);
 	if (itemData != CB_ERR) {
 		srcLang = WCHARToString((WCHAR*)itemData);
 	}
 
-	hCbBox = GetDlgItem(hWnd, IDC_CB_TGTLANG);
+	hCbBox = GetDlgItem(m_hwnd, IDC_CB_TGTLANG);
 	nSel = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 	itemData = SendMessage(hCbBox, CB_GETITEMDATA, nSel, 0);
 	if (itemData != CB_ERR) {
@@ -525,100 +323,187 @@ void CDlgTrans::GetText(std::string &strOut, std::string &srcLang, std::string &
 	}
 }
 
-// ¸Ş½ÃÁö Æ®·¹ÀÌ½º¿ë (°æ°íÃ¢)
-void CDlgTrans::Alert(const WCHAR* msg) {
-	MessageBox(hWnd, msg, L"Alert", MB_OK);
+void GetWindowSize(HWND m_hwnd, int& width, int& height) {
+	RECT rect;
+	if (GetWindowRect(m_hwnd, &rect)) {
+		width = rect.right - rect.left;   // ë„ˆë¹„ ê³„ì‚°
+		height = rect.bottom - rect.top;  // ë†’ì´ ê³„ì‚°
+	}
+	else {
+		// GetWindowRect ì‹¤íŒ¨ ì‹œ
+		width = 10;
+		height = 10;
+	}
 }
 
-// ¿ä¾à ¹öÆ° Å¬¸¯½Ã ¹é±×¶ó¿îµå·Î ¿ä¾à
+void CDlgTrans::ProgressBar(int percent) {
+	static int oldPer = 0;
+	if (percent != oldPer) {
+		transPercent = percent;
+		RECT invalidRect = { 765, 0, 1165, 24 };  // ë‹¤ì‹œ ê·¸ë¦´ ì˜ì—­
+		InvalidateRect(m_hwnd, &invalidRect, TRUE);  // ë¬´íš¨í™”í•˜ì—¬ ë‹¤ì‹œ ê·¸ë¦¬ê¸° ìš”ì²­
+		if (percent == 100) isTrans = FALSE;
+		oldPer = percent;
+	}
+}
+
+// ì´ë¯¸ì§€ ë¡œë“œ í•¨ìˆ˜
+BOOL CDlgTrans::LoadImages() {
+	// ì´ë¯¸ì§€ íŒŒì¼ ê²½ë¡œ ì„¤ì •
+	std::wstring normalImagePath = StringToWString(RealTrans::GetInstance()->GetExecutePath()) + L"lmenu_normal.png";
+	std::wstring overImagePath = StringToWString(RealTrans::GetInstance()->GetExecutePath()) + L"lmenu_over.png";
+	std::wstring barBgImgPath = StringToWString(RealTrans::GetInstance()->GetExecutePath()) + L"progressbar_silver.png";
+	std::wstring barImgPath = StringToWString(RealTrans::GetInstance()->GetExecutePath()) + L"progressbar.png";
+
+	// ì´ë¯¸ì§€ ë¡œë“œ
+	bool success = true;
+
+	// ì¼ë°˜ ë©”ë‰´ ì´ë¯¸ì§€ ë¡œë“œ
+	m_pGdiMenuNormal = new Image(normalImagePath.c_str());
+	if (m_pGdiMenuNormal->GetLastStatus() != Ok) {
+		TRACE(L"GDI+ ì¼ë°˜ ë©”ë‰´ ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨: %d\n", m_pGdiMenuNormal->GetLastStatus());
+		success = false;
+	}
+
+	// ì˜¤ë²„ ë©”ë‰´ ì´ë¯¸ì§€ ë¡œë“œ
+	m_pGdiMenuOver = new Image(overImagePath.c_str());
+	if (m_pGdiMenuOver->GetLastStatus() != Ok) {
+		TRACE(L"GDI+ ì˜¤ë²„ ë©”ë‰´ ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨: %d\n", m_pGdiMenuOver->GetLastStatus());
+		success = false;
+	}
+
+	// í”„ë¡œê·¸ë ˆìŠ¤ë°” ë°°ê²½ ì´ë¯¸ì§€ ë¡œë“œ
+	m_pGdiBarBg = new Image(barBgImgPath.c_str());
+	if (m_pGdiBarBg->GetLastStatus() != Ok) {
+		TRACE(L"GDI+ í”„ë¡œê·¸ë ˆìŠ¤ë°” ë°°ê²½ ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨: %d\n", m_pGdiBarBg->GetLastStatus());
+		success = false;
+	}
+
+	// í”„ë¡œê·¸ë ˆìŠ¤ë°” ì´ë¯¸ì§€ ë¡œë“œ
+	m_pGdiBar = new Image(barImgPath.c_str());
+	if (m_pGdiBar->GetLastStatus() != Ok) {
+		TRACE(L"GDI+ í”„ë¡œê·¸ë ˆìŠ¤ë°” ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨: %d\n", m_pGdiBar->GetLastStatus());
+		success = false;
+	}
+
+	// ë¡œë“œ ì„±ê³µ ì—¬ë¶€ ë°˜í™˜
+	return success;
+}
+
+// #c8c8c8 ìƒ‰ìƒì„ COLORREFë¡œ ë³€í™˜
+COLORREF CDlgTrans::HexToCOLORREF(const std::string& hexCode) {
+	// ìƒ‰ìƒ ì½”ë“œì—ì„œ '#' ë¬¸ìë¥¼ ì œê±°í•©ë‹ˆë‹¤.
+	std::string hex = hexCode.substr(1);
+
+	// 16ì§„ìˆ˜ ê°’ì„ 10ì§„ìˆ˜ë¡œ ë³€í™˜í•©ë‹ˆë‹¤.
+	int r = std::stoi(hex.substr(0, 2), nullptr, 16);
+	int g = std::stoi(hex.substr(2, 2), nullptr, 16);
+	int b = std::stoi(hex.substr(4, 2), nullptr, 16);
+
+	// COLORREF ê°’ìœ¼ë¡œ ë³€í™˜í•©ë‹ˆë‹¤. RGB ë§¤í¬ë¡œë¥¼ ì‚¬ìš©í•©ë‹ˆë‹¤.
+	return RGB(r, g, b);
+}
+
+// OnPaint í•¨ìˆ˜ êµ¬í˜„ - D2Render ì‚¬ìš©
+void CDlgTrans::OnPaint() {
+	TRACE(L"DlgTrans OnPaint\n");
+	PAINTSTRUCT ps;
+
+	HDC hdc = BeginPaint(m_hwnd, &ps);
+
+	// GDI
+	Graphics graphics(hdc);
+
+	RECT client;
+	GetClientRect(m_hwnd, &client);
+
+	// ì™¼ìª½ ë©”ë‰´ ì˜ì—­
+	int width = client.right - client.left;
+	int height = client.bottom - client.top;
+	HBRUSH hBrush = CreateSolidBrush(HexToCOLORREF(settings["bg_color"])); // ë˜ëŠ” settings["bg_color"]ì—ì„œ ë³€í™˜ëœ ê°’
+	RECT menuRect = { 0, 0, 43, height };
+	FillRect(hdc, &menuRect, hBrush);
+	if (width > 763) {
+		menuRect = { 763, 0, width, 24 };
+		FillRect(hdc, &menuRect, hBrush);
+	}
+	DeleteObject(hBrush);  // ë¸ŒëŸ¬ì‹œ ì‚­ì œ í•„ìˆ˜
+
+	// ë²ˆì—­ì§„í–‰ í‘œì‹œ ì˜ì—­
+	if (RealTrans::GetInstance()->GetStopMenu() == FALSE) {
+		graphics.DrawImage(m_pGdiMenuNormal, 0, 0, m_pGdiMenuNormal->GetWidth(), m_pGdiMenuNormal->GetHeight());
+	}
+	else {
+		graphics.DrawImage(m_pGdiMenuOver, 0, 0, m_pGdiMenuOver->GetWidth(), m_pGdiMenuOver->GetHeight());
+	}
+
+	// ë²ˆì—­ìƒíƒœ í‘œì‹œ
+	if (isTrans == TRUE) {
+		graphics.DrawImage(m_pGdiBarBg, 765, 0, m_pGdiBarBg->GetWidth(), m_pGdiBarBg->GetHeight());
+
+		// ë²ˆì—­ ì§„í–‰ %
+		int width = m_pGdiBar->GetWidth() * transPercent / 100;
+		graphics.DrawImage(m_pGdiBar, 765, 0, width, m_pGdiBar->GetHeight());
+	}
+
+	// 7. ì •ë¦¬
+	EndPaint(m_hwnd, &ps);
+}
+
+void CDlgTrans::ReplaceText(HWND hEdit, std::wstring txt) {
+	SendMessage(hEdit, EM_SETSEL, (WPARAM)0, (LPARAM)-1);
+	SendMessage(hEdit, EM_REPLACESEL, FALSE, (LPARAM)txt.c_str());
+}
+
+// ë©”ì‹œì§€ íŠ¸ë ˆì´ìŠ¤ìš© (ê²½ê³ ì°½)
+void CDlgTrans::Alert(const WCHAR* msg) {
+	MessageBox(m_hwnd, msg, L"Alert", MB_OK);
+}
+
+// ìš”ì•½ ë²„íŠ¼ í´ë¦­ì‹œ ë°±ê·¸ë¼ìš´ë“œë¡œ ìš”ì•½
 BOOL CDlgTrans::WndProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	static int no=0;
 	switch (uMsg) {
 	case WM_INITDIALOG:
 	{
-		CreateWindowEx(0, L"STATIC", APP_TITLE_VERSION, WS_CHILD | WS_VISIBLE | SS_CENTER,
-			70, 20, 100, 20, hwndDlg, (HMENU)IDC_STATIC, GetModuleHandle(NULL), NULL);
 		return (INT_PTR)TRUE;
 	}
 	case WM_PAINT:
-		// »ç°¢Çü ±×¸®±â
 	{
-		// ½ÃÀÛÁ¡ : 34+10 = 43, 5+24+5 = 34
-		// Á¾·áÁ¡ : 1280 - 43 - 10 = 1280 - 53 =1227, 400 - 34 -5 = 400 - 39 = 361
-		// Áß°£Á¡ : 1227/2 = 613, [613-5=608]
-		// »ç°¢Çü ±×¸®±â : 43, 34, 600, 310, 648, 34, 600, 310
-		// À©µµ¿ì Ã¢¿¡¼­ ±×·¡ÇÈ ÀÛ¾÷À» ½ÃÀÛÇÕ´Ï´Ù.
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hwndDlg, &ps);
-
-		Graphics graphics(hdc);
-		if (bStopMenu == FALSE) {
-			Image image(L"lmenu_normal.png");
-			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
-		}
-		else {
-			Image image(L"lmenu_over.png");
-			graphics.DrawImage(&image, 0, 0, image.GetWidth(), image.GetHeight());
-		}
-
-		// ¹ø¿ª»óÅÂ Ç¥½Ã
-		if (isTrans == TRUE) {
-			Image image1(L"progressbar_silver.png");
-			graphics.DrawImage(&image1, 803, 5, image1.GetWidth(), image1.GetHeight());
-
-			// ¹ø¿ª ÁøÇà %
-			Image image2(L"progressbar.png");
-			int width = image2.GetWidth() * transPercent / 100;
-			graphics.DrawImage(&image2, 803, 5, width, image2.GetHeight());
-		}
-
-		// È¸»ö Ææ »ı¼º (È¸»öÀ¸·Î Å×µÎ¸®¸¦ ±×¸± °ÍÀÓ)
-		HPEN hPen = CreatePen(PS_SOLID, 1, RGB(128, 128, 128));
-		// »ı¼ºÇÑ ÆæÀ» µğ¹ÙÀÌ½º ÄÁÅØ½ºÆ®¿¡ ¼±ÅÃ
-		SelectObject(hdc, hPen);
-
-		// Åõ¸í ºê·¯½Ã »ı¼º (³»ºÎ¸¦ ºñ¿öµÎ±â À§ÇÔ)
-		HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
-		// »ı¼ºÇÑ ºê·¯½Ã¸¦ µğ¹ÙÀÌ½º ÄÁÅØ½ºÆ®¿¡ ¼±ÅÃ
-		SelectObject(hdc, hBrush);
-
-		// È¸»ö Å×µÎ¸®¿Í Åõ¸í ³»ºÎ¸¦ °¡Áø »ç°¢Çü ±×¸®±â
-		GetWindowSize(hwndDlg, window_width, window_height);
-		int width = (window_width - 64) / 2; // À©µµ¿ìÀÇ ³Êºñ¿¡¼­ ¿©¹éÀ» »« °ª
-		int height = window_height - 42; // À©µµ¿ìÀÇ ³ôÀÌ¿¡¼­ ¿©¹éÀ» »« °ª
-		Rectangle(hdc, 43, 33, 35 + width, window_height - 50);
-		Rectangle(hdc, 38 + width, 33, window_width - 29, window_height - 50);
-
-		//MoveWindow(hRich1, 44, 34, width, height, TRUE);
-		//MoveWindow(hRich2, 54 + width, 34, width, height, TRUE);
-
-		// »ç¿ëÀÌ ³¡³­ GDI ¿ÀºêÁ§Æ® Á¦°Å
-		DeleteObject(hPen);
-		DeleteObject(hBrush); // ½ÇÁ¦·Î´Â NULL_BRUSH´Â ½Ã½ºÅÛ ¿ÀºêÁ§Æ®ÀÌ¹Ç·Î Á¦°ÅÇÏÁö ¾Ê¾Æµµ µË´Ï´Ù.
-
-		EndPaint(hWnd, &ps);
+		// D2Renderë¥¼ ì‚¬ìš©í•˜ì—¬ OnPaint í•¨ìˆ˜ í˜¸ì¶œ
+		OnPaint();
+		return 0;
 	}
 	break;
 	case WM_COMMAND:
 	{
-		int wmId = LOWORD(wParam); // ¸Ş´º ¼±ÅÃ, ¹öÆ° Å¬¸¯ µîÀÇ ÄÁÆ®·Ñ ½Äº°ÀÚ
-		int wmEvent = HIWORD(wParam); // ¾Ë¸² ÄÚµå
+		int wmId = LOWORD(wParam); // ë©”ë‰´ ì„ íƒ, ë²„íŠ¼ í´ë¦­ ë“±ì˜ ì»¨íŠ¸ë¡¤ ì‹ë³„ì
+		int wmEvent = HIWORD(wParam); // ì•Œë¦¼ ì½”ë“œ
 		std::string strTmp, srcLang, tgtLang;
+
+		// ì›ë˜ í´ë¼ì´ì–¸íŠ¸ ì˜ì—­ì„ ì €ì¥ (ë¬´íš¨í™” ì˜ì—­ ìµœì†Œí™”ë¥¼ ìœ„í•´)
+		RECT originalRect;
+		GetClientRect(m_hwnd, &originalRect);
 
 		switch (wmId) {
 		case IDCANCEL:
 		case IDOK:
 			return (INT_PTR)TRUE;
-			// ¹ø¿ª ¹öÆ° Å¬¸¯½Ã¿¡ ¹ø¿ªÀ» ¼öÇà
+			// ë²ˆì—­ ë²„íŠ¼ í´ë¦­ì‹œì— ë²ˆì—­ì„ ìˆ˜í–‰
 		case IDC_BTN_TRANSLATE:
-			isTrans = TRUE;
-			ProgressBar(10); // ½ÃÀÛ½Ã 10%
-			// ³Ñ°ÜÁÙ ÀÎÀÚ µ¥ÀÌÅÍ »ı¼º
-			GetText(strTmp, srcLang, tgtLang);
-			// ¹ø¿ªÀ» ¼öÇàÇÑ´Ù.
-			Translate(strTmp, srcLang, tgtLang);
+			{
+				isTrans = TRUE;
+				ProgressBar(10); // ì‹œì‘ì‹œ 10%
+				// ì˜¤ë¥¸ìª½ ì—ë””í„° ë°ì´í„° ì‚­ì œ
+				ReplaceText(hRich2, L"");
+				// ë„˜ê²¨ì¤„ ì¸ì ë°ì´í„° ìƒì„±
+				GetText(strTmp, srcLang, tgtLang);
+				// ë²ˆì—­ì„ ìˆ˜í–‰í•œë‹¤.
+				Translate(strTmp, srcLang, tgtLang);
+			}
 			break;
 		case IDC_BTN_OPEN_FILE:
-			// ÆÄÀÏÀ» ¿­¾î¼­ ÅØ½ºÆ®¸¦ ÀĞ¾îµéÀÎ´Ù.
+			// íŒŒì¼ì„ ì—´ì–´ì„œ í…ìŠ¤íŠ¸ë¥¼ ì½ì–´ë“¤ì¸ë‹¤.
 			InputFile();
 			break;
 		case IDC_BTN_SAVE_FILE:
@@ -626,58 +511,254 @@ BOOL CDlgTrans::WndProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			break;
 		case IDC_CB_SRCLANG:
 			if (wmEvent == CBN_SELCHANGE) {
-				// ÄŞº¸¹Ú½º¿¡¼­ ¼±ÅÃÇÑ Ç×¸ñÀÇ ÀÎµ¦½º¸¦ °¡Á®¿É´Ï´Ù.
+				// ì½¤ë³´ë°•ìŠ¤ì—ì„œ ì„ íƒí•œ í•­ëª©ì˜ ì¸ë±ìŠ¤ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
 				int nSel = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
-				// ÄŞº¸¹Ú½º¿¡¼­ ¼±ÅÃÇÑ Ç×¸ñÀÇ µ¥ÀÌÅÍ¸¦ °¡Á®¿É´Ï´Ù.
+				// ì½¤ë³´ë°•ìŠ¤ì—ì„œ ì„ íƒí•œ í•­ëª©ì˜ ë°ì´í„°ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
 				LRESULT itemData = SendMessage((HWND)lParam, CB_GETITEMDATA, nSel, 0);
 				if (itemData != CB_ERR) {
-					// µ¥ÀÌÅÍ¸¦ ¹®ÀÚ¿­·Î º¯È¯ÇÏ¿© Ãâ·ÂÇÕ´Ï´Ù.
+					// ë°ì´í„°ë¥¼ ë¬¸ìì—´ë¡œ ë³€í™˜í•˜ì—¬ ì¶œë ¥í•©ë‹ˆë‹¤.
 					settings["txt_trans_src"] = WCHARToString((WCHAR*)itemData);
-					SaveSimpleSettings();
+					CSettings::GetInstance()->SaveSimpleSettings();
 				}
 			}
 			break;
 		case IDC_CB_TGTLANG:
 			if (wmEvent == CBN_SELCHANGE) {
-				// ÄŞº¸¹Ú½º¿¡¼­ ¼±ÅÃÇÑ Ç×¸ñÀÇ ÀÎµ¦½º¸¦ °¡Á®¿É´Ï´Ù.
+				// ì½¤ë³´ë°•ìŠ¤ì—ì„œ ì„ íƒí•œ í•­ëª©ì˜ ì¸ë±ìŠ¤ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
 				int nSel = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
-				// ÄŞº¸¹Ú½º¿¡¼­ ¼±ÅÃÇÑ Ç×¸ñÀÇ µ¥ÀÌÅÍ¸¦ °¡Á®¿É´Ï´Ù.
+				// ì½¤ë³´ë°•ìŠ¤ì—ì„œ ì„ íƒí•œ í•­ëª©ì˜ ë°ì´í„°ë¥¼ ê°€ì ¸ì˜µë‹ˆë‹¤.
 				LRESULT itemData = SendMessage((HWND)lParam, CB_GETITEMDATA, nSel, 0);
 				if (itemData != CB_ERR) {
-					// µ¥ÀÌÅÍ¸¦ ¹®ÀÚ¿­·Î º¯È¯ÇÏ¿© Ãâ·ÂÇÕ´Ï´Ù.
+					// ë°ì´í„°ë¥¼ ë¬¸ìì—´ë¡œ ë³€í™˜í•˜ì—¬ ì¶œë ¥í•©ë‹ˆë‹¤.
 					settings["txt_trans_tgt"] = WCHARToString((WCHAR*)itemData);
-					SaveSimpleSettings();
+					CSettings::GetInstance()->SaveSimpleSettings();
 				}
 			}
 			break;
 		}
 	}
 	break;
+	case WM_ERASEBKGND:
+		return TRUE; // ë°°ê²½ ì§€ìš°ê¸°ë¥¼ ë§‰ìŒ
 	case WM_SIZE:
 	{
 		int width, height;
-		window_width = LOWORD(lParam); // »õ·Î¿î À©µµ¿ìÀÇ ³Êºñ
-		window_height = HIWORD(lParam); // »õ·Î¿î À©µµ¿ìÀÇ ³ôÀÌ
-		width = (window_width - 64) / 2; // À©µµ¿ìÀÇ ³Êºñ¿¡¼­ ¿©¹éÀ» »« °ª
-		height = window_height - 42; // À©µµ¿ìÀÇ ³ôÀÌ¿¡¼­ ¿©¹éÀ» »« °ª
+		window_width = LOWORD(lParam); // ìƒˆë¡œìš´ ìœˆë„ìš°ì˜ ë„ˆë¹„
+		window_height = HIWORD(lParam); // ìƒˆë¡œìš´ ìœˆë„ìš°ì˜ ë†’ì´
+		width = (window_width - 43) / 2; // ìœˆë„ìš°ì˜ ë„ˆë¹„ì—ì„œ ì—¬ë°±ì„ ëº€ ê°’
+		height = window_height - 24; // ìœˆë„ìš°ì˜ ë†’ì´ì—ì„œ ì—¬ë°±ì„ ëº€ ê°’
 
-		// ÅØ½ºÆ®¹Ú½ºÀÇ Å©±â¿Í À§Ä¡¸¦ À©µµ¿ìÀÇ Å©±â¿¡ ¸ÂÃß¾î Á¶Á¤
-		// 34, 10, rich, 10, rich, 10
-		MoveWindow(hRich1, 44, 34, width, height, TRUE);
-		MoveWindow(hRich2, 54 + width, 34, width, height, TRUE);
+		// í…ìŠ¤íŠ¸ë°•ìŠ¤ì˜ í¬ê¸°ì™€ ìœ„ì¹˜ë¥¼ ìœˆë„ìš°ì˜ í¬ê¸°ì— ë§ì¶”ì–´ ì¡°ì •
+		MoveWindow(hRich1, 43, 24, width, height, TRUE);
+		MoveWindow(hRich2, 43 + width, 24, width, height, TRUE);
 	}
 	break;
 
 	case WM_CLOSE:
-		//EndDialog(hwndDlg, 0);
-		//DestroyWindow(hwndDlg);
 		return (INT_PTR)TRUE;
 
 	case WM_DESTROY:
-		// ÇÊ¿äÇÑ Á¤¸® ÀÛ¾÷ ¼öÇà
-		//EndDialog(hwndDlg, 0);
-		//DestroyWindow(hwndDlg);
+		// í•„ìš”í•œ ì •ë¦¬ ì‘ì—… ìˆ˜í–‰
 		return 0;
 	}
 	return (INT_PTR)FALSE;
+}
+
+/*----------------------------------------
+ * íŒŒì¼ ê´€ë ¨
+ ----------------------------------------*/
+
+BOOL CDlgTrans::BrowseFile(WCHAR* szPath, WCHAR* szFile)
+{
+	auto selection = pfd::open_file("Select a file", ".",
+		{ "Text File", "*.txt",
+		  "All Files", "*" },
+		pfd::opt::multiselect).result();
+
+	if (selection.size() == 0) return FALSE;
+	std::string firstFile = selection[0]; // ì²« ë²ˆì§¸ íŒŒì¼ ê²½ë¡œ
+	if (firstFile.length() > 0)
+		StringToWChar(firstFile, szFile);
+	else return FALSE;
+
+	return TRUE;
+}
+
+// íŒŒì¼ ì €ì¥ ëŒ€í™”ìƒìë¥¼ í†µí•´ íŒŒì¼ ì´ë¦„ì„ ì„ íƒí•˜ëŠ” í•¨ìˆ˜
+BOOL CDlgTrans::BrowseSaveFile(WCHAR* szPath, WCHAR* szFile) {
+	OPENFILENAME ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL; // ë¶€ëª¨ ìœˆë„ìš° í•¸ë“¤
+	ofn.lpstrFile = szFile; // íŒŒì¼ ì´ë¦„ ë²„í¼
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrFilter = TEXT("Text File\0*.txt\0All File\0*.*\0"); // í•„í„° ì„¤ì •
+	ofn.nFilterIndex = 1; // ê¸°ë³¸ í•„í„° ì„ íƒ
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = MAX_PATH;
+	ofn.lpstrInitialDir = szPath; // ì´ˆê¸° ë””ë ‰í† ë¦¬
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT; // í”Œë˜ê·¸ ì„¤ì •
+
+	// íŒŒì¼ ì €ì¥ ëŒ€í™”ìƒì ì—´ê¸°
+	if (GetSaveFileName(&ofn) == TRUE) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+BOOL WriteToFile(const std::wstring& fileName, const std::string& content) {
+	FILE* file = nullptr;
+
+	// _wfopen_së¥¼ ì‚¬ìš©í•˜ì—¬ ìœ ë‹ˆì½”ë“œ íŒŒì¼ëª…ìœ¼ë¡œ íŒŒì¼ ì—´ê¸°
+	errno_t err = _wfopen_s(&file, fileName.c_str(), L"wb");  // ë°”ì´ë„ˆë¦¬ ëª¨ë“œë¡œ ì—´ê¸°
+	if (err != 0 || file == nullptr) {
+		throw std::runtime_error("Failed to open file with wstring filename");
+	}
+
+	// std::ofstreamì„ ì‚¬ìš©í•˜ì—¬ íŒŒì¼ì— ë©€í‹°ë°”ì´íŠ¸ ë°ì´í„° ì‘ì„±
+	std::ofstream ofs(file);  // C++ ìŠ¤íŠ¸ë¦¼ìœ¼ë¡œ ì—°ê²°
+	ofs.write(content.c_str(), content.size());  // ë°ì´í„° ì‘ì„±
+
+	ofs.close();  // ìŠ¤íŠ¸ë¦¼ ë‹«ê¸°
+	fclose(file);  // íŒŒì¼ ë‹«ê¸°
+
+	return TRUE;
+}
+
+BOOL ReadToFile(const std::wstring& fileName, std::string& content) {
+	FILE* file = nullptr;
+	errno_t err = _wfopen_s(&file, fileName.c_str(), L"rb"); // íŒŒì¼ì„ ë°”ì´ë„ˆë¦¬ ëª¨ë“œë¡œ ì—½ë‹ˆë‹¤.
+
+	if (err != 0 || file == nullptr) {
+		// íŒŒì¼ì„ ì—´ì§€ ëª»í•œ ê²½ìš°, ì˜¤ë¥˜ë¥¼ ë°˜í™˜í•©ë‹ˆë‹¤.
+		return FALSE;
+	}
+
+	// íŒŒì¼ í¬ê¸°ë¥¼ ì–»ê¸° ìœ„í•´ íŒŒì¼ í¬ì¸í„°ë¥¼ ëìœ¼ë¡œ ì´ë™
+	fseek(file, 0, SEEK_END);
+	long fileSize = ftell(file);
+	rewind(file);
+
+	// íŒŒì¼ ë‚´ìš©ì„ ì½ê¸° ìœ„í•´ ë²¡í„° ì‚¬ìš©
+	std::vector<char> buffer(fileSize);
+	size_t bytesRead = fread(buffer.data(), 1, fileSize, file);
+
+	// \rì€ ì‚­ì œ \nì€ \r\nìœ¼ë¡œ 
+	std::vector<char> bufferOut(fileSize * 2);
+	size_t pos = 0;
+	for (size_t i = 0; i < bytesRead; i++) {
+		if (buffer[i] == '\r') {
+		}
+		else if (buffer[i] == '\n') {
+			bufferOut[pos++] = '\r';
+			bufferOut[pos++] = '\n';
+		}
+		else {
+			bufferOut[pos++] = buffer[i];
+		}
+	}
+	// bufferOut ì‚¬ì´ì¦ˆë¥¼ posë¡œ ë³€ê²½
+	bufferOut.resize(pos);
+
+	if (bytesRead != fileSize) {
+		// ì½ì€ ë°ì´í„°ê°€ íŒŒì¼ í¬ê¸°ì™€ ì¼ì¹˜í•˜ì§€ ì•ŠëŠ” ê²½ìš°
+		fclose(file);
+		return FALSE;
+	}
+
+	// íŒŒì¼ ë‚´ìš©ì„ ë¬¸ìì—´ë¡œ ë³€í™˜
+	content = std::string(bufferOut.begin(), bufferOut.end());
+
+	// íŒŒì¼ ë‹«ê¸°
+	fclose(file);
+
+	return TRUE;
+}
+
+// íŒŒì¼ ì €ì¥
+BOOL CDlgTrans::OutputFile()
+{
+	// íŒŒì¼ ì„ íƒ ëŒ€í™”ìƒìë¥¼ í‘œì‹œí•œë‹¤.
+	WCHAR strFileName[MAX_PATH] = { 0 };
+	memset(strFileName, 0, sizeof(strFileName));
+	WCHAR strPath[MAX_PATH] = { 0 };
+	GetModuleFileName(NULL, strPath, MAX_PATH);
+	if (!BrowseSaveFile(strPath, strFileName)) return FALSE;
+	std::wstring wstrFileName = strFileName;
+
+	// rich2ì˜ í…ìŠ¤íŠ¸ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
+	int text_length = SendMessage(hRich2, WM_GETTEXTLENGTH, 0, 0); // í…ìŠ¤íŠ¸ ê¸¸ì´ ê°€ì ¸ì˜¤ê¸°
+	WCHAR* pBuf = new WCHAR[text_length + 1];
+	SendMessage(hRich2, WM_GETTEXT, text_length + 1, (LPARAM)pBuf);
+	std::string strOut = WCHARToString(pBuf);
+
+	WriteToFile(wstrFileName, strOut);
+
+	return TRUE;
+}
+
+BOOL CDlgTrans::InputFile()
+{
+	// ì˜ìƒíŒŒì¼ ì„ íƒ
+	WCHAR strFileName[MAX_PATH];
+	memset(strFileName, 0, sizeof(strFileName));
+	WCHAR strPath[MAX_PATH] = { 0 };
+	GetModuleFileName(NULL, strPath, MAX_PATH);
+	if (!BrowseFile(strPath, strFileName)) return FALSE;
+
+	std::wstring wstrFileName = strFileName;
+
+	std::string strText = "";
+	ReadToFile(wstrFileName, strText);
+
+	// rich1ì— í…ìŠ¤íŠ¸ë¥¼ ì“´ë‹¤.
+	if (hRich1 != NULL && strText.length() > 0) {
+		ReplaceText(hRich1, StringToWString(strText));
+	}
+
+	return TRUE;
+}
+
+// ë²ˆì—­ì„ ìˆ˜í–‰í•˜ëŠ” í•¨ìˆ˜
+void CDlgTrans::Translate(std::string& strOut, std::string& srcLang, std::string& tgtLang) {
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + "translate.txt";
+	std::ofstream outFile(strFileName);
+	outFile << srcLang << " -> " << tgtLang << std::endl;
+	outFile << strOut;
+	outFile.close();
+}
+
+void CDlgTrans::CheckTransFile() {
+	// íŒŒì¼ì„ ì½ì–´ë“¤ì¸ë‹¤.
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + "translate_out.txt";
+	std::ifstream inFile(strFileName);
+	// íŒŒì¼ì´ ì—†ìœ¼ë©´ ë¦¬í„´
+	if (!inFile.is_open()) {
+		return;
+	}
+
+	SETTEXTEX st;
+	st.flags = ST_DEFAULT; // ê¸°ë³¸ ì„¤ì • ì‚¬ìš©
+	st.codepage = 1200;    // UTF-16LE ì½”ë“œ í˜ì´ì§€
+	DWORD start = 0, end = 0;
+
+	// íŒŒì¼ì„ ì½ì–´ë“¤ì¸ë‹¤.
+	std::string strTmp;
+	while (std::getline(inFile, strTmp)) {
+		// rich2ì— í…ìŠ¤íŠ¸ë¥¼ ì“´ë‹¤.
+		if (hRich2 != NULL) {
+			SendMessage(hRich2, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
+
+			// ì»¤ì„œ ìœ„ì¹˜(í˜„ì¬ ì„ íƒì˜ ë)ë¥¼ ì–»ìŠµë‹ˆë‹¤.
+			SendMessage(hRich2, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+			SendMessage(hRich2, EM_REPLACESEL, (WPARAM)&st, (LPARAM)StringToWString(strTmp).c_str());
+		}
+	}
+	// íŒŒì¼ì„ ë‹«ëŠ”ë‹¤.
+	inFile.close();
+
+	// íŒŒì¼ì„ ì‚­ì œí•œë‹¤.
+	remove(strFileName.c_str());
 }

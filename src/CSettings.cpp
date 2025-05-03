@@ -3,10 +3,12 @@
 #include <iostream>
 #include <stdexcept> // std::invalid_argument, std::out_of_range 예외를 처리하기 위해 포함
 #include "Resource.h"
-#include "json.hpp" // 또는 경로를 지정해야 할 경우: #include "External/json.hpp"
+#include "json.hpp" 
 #include "StrConvert.h"
 #include "CDlgSummary.h"
 #include "language.h"
+#include "BgJob.h"
+#include "RealTrans.h"
 
 // 기본 모델 크기
 #define DEFULAT_MODEL_SIZE "small"
@@ -20,11 +22,13 @@ using json = nlohmann::json;
 
 // 환경 설정을 위한 JSON 객체 생성
 extern json settings;
-extern bool isRefreshEnv;
-extern time_t nSummaryTime;
-extern CDlgSummary* DlgSum;
-extern std::string strExecutePath;
-extern std::string addText;
+
+// 싱글톤 인스턴스 초기화
+CSettings* CSettings::s_instance = nullptr;
+
+// 다이얼로그 참조를 위한 외부 변수 처리
+//extern CDlgSummary* DlgSum;
+//extern std::string addText;
 
 // 번역 결과 언어
 WCHAR langArr[32][2][40] = {
@@ -52,25 +56,73 @@ LPCWSTR langEnv[] = {
 	L"Hindi"
 };
 
-// JSON 객체를 문자열로 출력하는 함수
-void PrintJson()
-{
-	// JSON 객체 생성 및 사용 예시
-	json j;
-	j["name"] = "John";
-	j["age"] = 30;
-	j["is_student"] = false;
-	j["skills"] = { "C++", "Python", "JavaScript" };
+// 생성자
+CSettings::CSettings() : m_hDlg(NULL) {
+	// 기본값 초기화
+	DefaultJson();
+	m_hInst = GetModuleHandle(NULL);
+}
 
-	// JSON 객체를 문자열로 출력
-	//std::cout << j.dump(4) << std::endl;
+// 소멸자
+CSettings::~CSettings() {
+	// 필요한 정리 작업
+	if (m_hDlg != NULL) {
+		DestroyWindow(m_hDlg);
+		m_hDlg = NULL;
+	}
+}
+
+// 싱글톤 인스턴스 접근자
+CSettings* CSettings::GetInstance() {
+	if (s_instance == nullptr) {
+		s_instance = new CSettings();
+	}
+	return s_instance;
+}
+
+// 인스턴스 소멸
+void CSettings::DestroyInstance() {
+	if (s_instance != nullptr) {
+		delete s_instance;
+		s_instance = nullptr;
+	}
+}
+
+// 다이얼로그 생성 메서드
+BOOL CSettings::Create(HWND hWndParent) {
+	// 이미 생성된 다이얼로그가 있으면 포커스를 주고 종료
+	if (m_hDlg != NULL) {
+		SetFocus(m_hDlg);
+		return TRUE;
+	}
+
+	// 다이얼로그 생성시 this 포인터를 lParam으로 전달
+	m_hDlg = CreateDialogParam(
+		m_hInst,
+		MAKEINTRESOURCE(IDD_DIALOG_SETUP),
+		hWndParent,
+		StaticDialogProc,
+		(LPARAM)this
+	);
+
+	if (m_hDlg == NULL) {
+		DWORD error = GetLastError();
+		char buffer[256];
+		sprintf_s(buffer, "CreateDialogParam failed with error %d", error);
+		MessageBoxA(NULL, buffer, "Error", MB_OK | MB_ICONERROR);
+		return FALSE;
+	}
+
+	// 다이얼로그 표시
+	ShowWindow(m_hDlg, SW_SHOW);
+	return TRUE;
 }
 
 // Python 프로그램에 전달할 명령을 pymsg.json 파일로 저장하는 함수 : Python 프로그램은 pymsg.json 파일을 읽어서 명령을 수행
-void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang )
+void CSettings::MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang)
 {
 	std::string txt = "{ \"src_lang\": \"" + src_lang + "\", \"tgt_lang\": \"" + tgt_lang + "\" }";
-	std::string strFileName = strExecutePath + "pymsg.json";
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + "pymsg.json";
 	std::ofstream file(strFileName);
 	if (!file.is_open()) {
 		std::cerr << "Error: Unable to open file for writing: " << strFileName << std::endl;
@@ -81,18 +133,17 @@ void MakeChildCmd(const std::string& src_lang, const std::string& tgt_lang )
 }
 
 // 설정파일 저장
-void SaveSimpleSettings() {
-	std::string strFileName = strExecutePath + "config.json";
+void CSettings::SaveSimpleSettings() {
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + "config.json";
 	std::ofstream file(strFileName);
 	if (file.is_open()) {
 		file << settings.dump(4);
-		//std::cout << "입력 받은 문자열 :: " << file.dump() << std::endl;
 		file.close();
 	}
 }
 
 // 현재 설정을 파일로 저장
-void SaveSettings(HWND hwnd, const std::string& filePath) {
+void CSettings::SaveSettings(HWND hwnd, const std::string& filePath) {
 	BOOL old_pctrans = settings["ck_pctrans"];
 	LRESULT nSel = 0;
 	LPARAM itemData;
@@ -169,7 +220,6 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	if (itemData != CB_ERR) {
 		settings["cb_apitrans_lang"] = WCHARToString((WCHAR*)itemData);
 	}
-
 	// json 파일로 저장
 	std::string tgt_lang;
 	if (settings["ck_pctrans"] == true) tgt_lang = settings["cb_pctrans_lang"];
@@ -189,7 +239,7 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	settings["cb_summary_api"] = SendMessage(hCbBox, CB_GETCURSEL, 0, 0);
 
 	GetDlgItemText(hwnd, IDC_EDIT_FONT_COLOR, comboBoxItem, 256);
-	settings["ed_font_color"]= WCHARToString(comboBoxItem);
+	settings["ed_font_color"] = WCHARToString(comboBoxItem);
 
 	GetDlgItemText(hwnd, IDC_EDIT_OLDFONT_COLOR, comboBoxItem, 256);
 	settings["ed_oldfont_color"] = WCHARToString(comboBoxItem);
@@ -203,8 +253,8 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	GetDlgItemText(hwnd, IDC_EDIT_FONT_SIZE, comboBoxItem, 256);
 	settings["cb_font_size"] = wstringToInt(comboBoxItem);
 
-	GetDlgItemText(hwnd, IDC_EDIT_OLDFONT_SIZE, comboBoxItem, 256);
-	settings["cb_oldfont_size"] = wstringToInt(comboBoxItem);
+	//GetDlgItemText(hwnd, IDC_EDIT_OLDFONT_SIZE, comboBoxItem, 256);
+	//settings["cb_oldfont_size"] = wstringToInt(comboBoxItem);
 
 	GetDlgItemText(hwnd, IDC_EDIT_SUMFONT_SIZE, comboBoxItem, 256);
 	settings["cb_sumfont_size"] = wstringToInt(comboBoxItem);
@@ -225,24 +275,24 @@ void SaveSettings(HWND hwnd, const std::string& filePath) {
 	settings["ed_summary_hint"] = WCHARToString(lpString);
 
 	// 요약 갱신시간 초기화
-	nSummaryTime = 0;
+	BgJob::GetInstance()->ResetSummaryTime();
 
 	// 폰트 초기화
-	DlgSum->SetFont();
+	RealTrans::GetInstance()->SetSummaryFont();
 
 	// JSON 파일로 저장
-	std::string strFileName = strExecutePath + filePath;
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + filePath;
 	std::ofstream file(strFileName.c_str());
 	if (file.is_open() == false) {
 		std::cerr << "Error: Unable to open file for writing: " << strFileName << std::endl;
-		return; 
+		return;
 	}
 	file << settings.dump(4); // 예쁘게 출력하기 위해 4를 들여쓰기로 사용
 	file.close(); // 파일을 닫음
 }
 
 // JSON 객체에 기본값 설정 : 초기화 시에도 사용
-void defaultJson() {
+void CSettings::DefaultJson() {
 	// 언어 모델 크기 설정
 	settings["ui_lang"] = 0; // 환경설정 언어 설정
 	settings["model_size"] = DEFULAT_MODEL_SIZE; // 모델 사이즈
@@ -286,13 +336,12 @@ void defaultJson() {
 }
 
 // 설정 화면 갱신
-void RefreshSettings(HWND hwnd, BOOL isStart)
+void CSettings::RefreshSettings(HWND hwnd, BOOL isStart)
 {
 	WCHAR tmp[256];
 	int index;
 	int itemCount;
 	HWND hListBox;
-	//json langMap;
 
 	// 모델 사이즈
 	hListBox = GetDlgItem(hwnd, IDC_COMBO_MODEL_SIZE); // ListBox의 핸들을 가져옵니다.
@@ -303,7 +352,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"small");
 		}
 
-		if( settings.find("model_size") == settings.end() ) settings["model_size"] = DEFULAT_MODEL_SIZE;
+		if (settings.find("model_size") == settings.end()) settings["model_size"] = DEFULAT_MODEL_SIZE;
 		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
 		for (int i = 0; i < itemCount; ++i) {
 			SendMessage(hListBox, CB_GETLBTEXT, (WPARAM)i, (LPARAM)tmp);
@@ -419,8 +468,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
-			//if (settings["cb_voice_lang"] == itemData ) {
-			if (CompareStringWString(settings.value("cb_voice_lang", ""),(WCHAR*)itemData)==true) {
+			if (CompareStringWString(settings.value("cb_voice_lang", ""), (WCHAR*)itemData) == true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
 				break;
@@ -636,7 +684,6 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		itemCount = SendMessage(hListBox, CB_GETCOUNT, 0, 0);
 		for (int i = 0; i < itemCount; ++i) {
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
-			//if (settings["cb_pctrans_lang"] == itemData) {
 			if (CompareStringWString(settings.value("cb_pctrans_lang", ""), (WCHAR*)itemData) == true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
@@ -649,7 +696,7 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	hListBox = GetDlgItem(hwnd, IDC_COMBO_APITRANS_LANG); // ListBox의 핸들을 가져옵니다.
 	if (hListBox != NULL) {
 		if (isStart) {
-			for (int i = 0; i < 32;i++) {
+			for (int i = 0; i < 32; i++) {
 				index = SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)langArr[i][0]);
 				SendMessage(hListBox, CB_SETITEMDATA, (WPARAM)index, (LPARAM)langArr[i][1]);
 			}
@@ -660,14 +707,10 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 			LPARAM itemData = SendMessage(hListBox, CB_GETITEMDATA, (WPARAM)i, 0);
 			if (CompareStringWString(settings.value("cb_apitrans_lang", ""), (WCHAR*)itemData) == true) {
 				// 원하는 데이터를 가진 항목을 찾았으므로, 해당 항목을 선택합니다.
-				//DlgSum->Alert((WCHAR*)itemData);
 				SendMessage(hListBox, CB_SETCURSEL, (WPARAM)i, 0);
 				break;
 			}
 		}
-
-		// 첫 번째 아이템을 선택 상태로 설정
-		//SendMessage(hListBox, CB_SETCURSEL, settings["cb_summary_lang"].get<int>(), 0); // 두번째 1,0
 	}
 
 	// 요약 언어
@@ -700,7 +743,6 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	hListBox = GetDlgItem(hwnd, IDC_COMBO_SUM_API); // ListBox의 핸들을 가져옵니다.
 	if (hListBox != NULL) {
 		if (isStart) {
-			//SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"Google");
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"OpenAI");
 		}
 
@@ -717,8 +759,8 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 	SetDlgItemText(hwnd, IDC_EDIT_FONT_SIZE, tmp);
 
 	// 지나간 폰트 사이즈 
-	wsprintf(tmp, L"%d", settings["cb_oldfont_size"].get<int>());
-	SetDlgItemText(hwnd, IDC_EDIT_OLDFONT_SIZE, tmp);
+	//wsprintf(tmp, L"%d", settings["cb_oldfont_size"].get<int>());
+	//SetDlgItemText(hwnd, IDC_EDIT_OLDFONT_SIZE, tmp);
 
 	// 요약 폰트 사이즈 
 	wsprintf(tmp, L"%d", settings["cb_sumfont_size"].get<int>());
@@ -730,15 +772,16 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 		std::string transparentPercent = "";
 		if (isStart) {
 			// 0 ~ 100까지의 숫자를 추가합니다.
-			for (int i = 0; i <= 100; ++i) {
+			for (int i = 0; i <= 100;) {
 				wsprintf(tmp, L"%d", i);
 				SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)tmp);
+				i += 10;
 			}
 		}
 
-		// settings["transparent"].get<int>()를 transparentPercent에 넣기
 		if (settings.find("transparent") == settings.end()) settings["transparent"] = DEFULAT_TRANSPARENT;
-		SendMessage(hListBox, CB_SETCURSEL, (WPARAM)settings["transparent"].get<int>(), 0);
+		wsprintf(tmp, L"%d", settings["transparent"].get<int>());
+		SetDlgItemText(hwnd, IDC_COMBO_TRANSPARENT, tmp);
 	}
 
 	// 폰트 컬러
@@ -759,20 +802,19 @@ void RefreshSettings(HWND hwnd, BOOL isStart)
 }
 
 // 초기화
-void InitSettings(HWND hwnd) {
+void CSettings::InitSettings(HWND hwnd) {
 	// settings에 Default 값 셋팅
-	defaultJson();
+	DefaultJson();
 	RefreshSettings(hwnd, false);
 }
 
 // 설정 파일 읽기
-void ReadSettings(const std::string& filePath) {
+void CSettings::ReadSettings(const std::string& filePath) {
 	// 파일에서 JSON 데이터 읽기
-	std::string strFileName = strExecutePath +filePath;
+	std::string strFileName = RealTrans::GetInstance()->GetExecutePath() + filePath;
 	std::ifstream file(strFileName);
 	if (file.is_open()) {
 		file >> settings;
-		//std::cout << "입력 받은 문자열 :: " << file.dump() << std::endl;
 		file.close();
 
 		// 추가 인자 확인
@@ -780,120 +822,137 @@ void ReadSettings(const std::string& filePath) {
 		if (settings.find("bg_color") == settings.end()) settings["bg_color"] = DEFULAT_BG_COLOR;
 	}
 	else {
-		defaultJson();
+		DefaultJson();
 	}
 }
 
 // 설정 파일을 읽고 현재 설정에	적용
-void LoadSettings(HWND hwnd, const std::string& filePath)
+void CSettings::LoadSettings(HWND hwnd, const std::string& filePath)
 {
 	ReadSettings(filePath);
 
 	RefreshSettings(hwnd, true);
 }
 
-void SetFontSize(HWND hEdit) {
+void CSettings::DumpSettings() {
+	// json 객체를 문자열로 변환 (들여쓰기 포함)
+	std::string dump = settings.dump(4);
+
+	// UTF-8 문자열을 UTF-16으로 변환
+	std::wstring wdump = Utf8ToWideString(dump);
+
+	// OutputDebugString으로 출력
+	OutputDebugStringW(L"===== Settings Dump =====\n");
+	OutputDebugStringW(wdump.c_str());
+	OutputDebugStringW(L"\n========================\n");
+}
+
+void CSettings::SetFontSize(HWND hEdit) {
 	HFONT hFont = CreateFont(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET,
 		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH | FF_SWISS, TEXT("Arial"));
 	SendMessage(hEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
 }
 
-// Setting Dialog 메시지 처리
-INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+// 정적 다이얼로그 프로시저 - 인스턴스와 연결된 실제 프로시저 호출
+INT_PTR CALLBACK CSettings::StaticDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	// WM_INITDIALOG 메시지에서 인스턴스 포인터 설정
+	if (uMsg == WM_INITDIALOG) {
+		// lParam으로 전달된 this 포인터를 hwndDlg의 사용자 데이터로 저장
+		SetWindowLongPtr(hwndDlg, GWLP_USERDATA, (LONG_PTR)lParam);
+		CSettings* pThis = (CSettings*)lParam;
+		// 다이얼로그 핸들 저장
+		pThis->m_hDlg = hwndDlg;
+	}
 
-	//if (GetCurrentThreadId() != g_MainUIThreadID) return (INT_PTR)FALSE;
+	// 인스턴스 포인터 가져오기
+	CSettings* pThis = (CSettings*)GetWindowLongPtr(hwndDlg, GWLP_USERDATA);
 
+	// 인스턴스가 있으면 해당 인스턴스의 DialogProc 호출
+	if (pThis) {
+		return pThis->DialogProc(hwndDlg, uMsg, wParam, lParam);
+	}
+
+	return FALSE;
+}
+
+// 인스턴스 다이얼로그 프로시저
+INT_PTR CSettings::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 	case WM_INITDIALOG:
 	{
 		// 다이얼로그 초기화 코드 시작
 		LoadSettings(hwndDlg, "config.json");
-		//addText +=settings.dump(4);
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_HINT));
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_TRANS_API_KEY));
 		SetFontSize(GetDlgItem(hwndDlg, IDC_EDIT_SUMMARY_API_KEY));
 
 		return (INT_PTR)TRUE;
 	}
-	case WM_PAINT:
-	{
 
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		int wmEvent = HIWORD(wParam);
+
+		switch (wmId)
+		{
+		case IDCANCEL: // 취소
+			EndDialog(hwndDlg, LOWORD(wParam));
+			m_hDlg = NULL;
+			return (INT_PTR)TRUE;
+		case IDSUPPLY: // 저장 및 종료
+			SaveSettings(hwndDlg, "config.json");
+			EndDialog(hwndDlg, LOWORD(wParam));
+			m_hDlg = NULL;
+			return (INT_PTR)TRUE;
+		case ID_INIT: // 초기화
+			if (wmEvent == BN_CLICKED)
+				InitSettings(hwndDlg);
+			break;
+
+		case IDC_CHECK_PCTRANS:
+			if (wmEvent == BN_CLICKED) {
+				// PC 번역 체크박스 처리 로직
+				//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_PCTRANS) == BST_CHECKED);
+				// 필요한 처리를 여기에 구현
+			}
+			break;
+		case IDC_CHECK_APITRANS:
+			if (wmEvent == BN_CLICKED) {
+				// API 번역 체크박스 처리 로직
+				//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_APITRANS) == BST_CHECKED);
+				// 필요한 처리를 여기에 구현
+			}
+			break;
+		case IDC_COMBO_MODEL_SIZE:
+		case IDC_COMBO_PROC:
+		case IDC_COMBO_INPUT_DEV:
+			if (wmEvent == CBN_SELCHANGE) {
+				// 콤보박스 선택 변경 처리
+				TCHAR szLoadedString[256];
+				TCHAR szLoadedStringALERT[256];
+
+				HINSTANCE hInst = GetModuleHandle(NULL);
+				LoadStringW(hInst, IDS_ALERT, szLoadedStringALERT, 256);
+				if (LoadStringW(hInst, IDS_MODEL_CHANGE_WARNING, szLoadedString, 256) > 0) {
+					MessageBox(hwndDlg, szLoadedString, szLoadedStringALERT, MB_OK | MB_ICONWARNING);
+				}
+			}
+			break;
+
+		}
 	}
 	break;
-	case WM_COMMAND:
-		{
-			int wmId = LOWORD(wParam);
-			int wmEvent = HIWORD(wParam);
-
-			switch (wmId)
-			{
-			case IDCANCEL: // 취소
-				EndDialog(hwndDlg, LOWORD(wParam));
-				return (INT_PTR)TRUE;
-			case IDSUPPLY: // 저장 및 종료
-				SaveSettings(hwndDlg, "config.json");
-				isRefreshEnv = true;
-				EndDialog(hwndDlg, LOWORD(wParam));
-				return (INT_PTR)TRUE;
-			case ID_INIT: // 초기화
-				if (wmEvent == BN_CLICKED)
-					InitSettings(hwndDlg);
-				//return (INT_PTR)TRUE;
-				break;
-
-			case IDC_CHECK_PCTRANS:
-				if (wmEvent == BN_CLICKED) {
-					// 체크박스 상태 읽기
-					//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_PCTRANS) == BST_CHECKED);
-					//if (checked) {
-					//	// 첫 번째 체크박스가 체크되어 있으면, 두 번째 체크박스를 체크 해제합니다. : 중복사용을 위해 막음
-					//	//CheckDlgButton(hwndDlg, IDC_CHECK_APITRANS, BST_UNCHECKED);
-					//}
-				}
-				break;
-			case IDC_CHECK_APITRANS:
-				if (wmEvent == BN_CLICKED) {
-					// 체크박스 상태 읽기
-					//bool checked = (IsDlgButtonChecked(hwndDlg, IDC_CHECK_APITRANS) == BST_CHECKED);
-					//if (checked) {
-					//	// 첫 번째 체크박스가 체크되어 있으면, 두 번째 체크박스를 체크 해제합니다. : 중복사용을 위해 막음
-					//	//CheckDlgButton(hwndDlg, IDC_CHECK_PCTRANS, BST_UNCHECKED);
-					//}
-				}
-				break;
-			case IDC_COMBO_MODEL_SIZE:
-			case IDC_COMBO_PROC:
-			case IDC_COMBO_INPUT_DEV:
-				if (wmEvent == CBN_SELCHANGE) {
-					// 콤보박스에서 선택한 항목의 인덱스를 가져옵니다.
-					int index = SendMessage((HWND)lParam, CB_GETCURSEL, 0, 0);
-					// 해당 인덱스에 해당하는 문자열을 가져옵니다.
-					//WCHAR tmp[256];
-					//SendMessage((HWND)lParam, CB_GETLBTEXT, (WPARAM)index, (LPARAM)tmp);
-					// settings["model_size"]의 내용과 비교하여 같은지 확인
-					//if (CompareStringWString(settings.value("model_size", ""), (WCHAR*)tmp) != true) {
-						TCHAR szLoadedString[256]; // 로드된 문자열을 저장할 버퍼
-						TCHAR szLoadedStringALERT[256]; // 로드된 문자열을 저장할 버퍼
-
-						// 문자열 리소스 로드
-						HINSTANCE hInst = GetModuleHandle(NULL);
-						LoadStringW(hInst, IDS_ALERT, szLoadedStringALERT, 256);
-						if (LoadStringW(hInst, IDS_MODEL_CHANGE_WARNING, szLoadedString, 256) > 0)
-						{
-							// 문자열 사용 (예: 메시지 박스로 표시)
-							MessageBox(hwndDlg, szLoadedString, szLoadedStringALERT, MB_OK| MB_ICONWARNING);
-						}
-					//}
-				}
-				break;
-
-			}
-		}
-		break;
 	case WM_CLOSE:
 		EndDialog(hwndDlg, 0);
+		m_hDlg = NULL;
 		return (INT_PTR)TRUE;
 	}
 	return (INT_PTR)FALSE;
+}
+
+// 글로벌 다이얼로그 프로시저 함수 (외부에서 접근하기 위한 함수)
+INT_PTR CALLBACK DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	return CSettings::StaticDialogProc(hwndDlg, uMsg, wParam, lParam);
 }

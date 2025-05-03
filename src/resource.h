@@ -1,8 +1,7 @@
-//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by 
+﻿//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++에서 생성한 포함 파일입니다.
+// RealTrans.rc에서 사용되고 있습니다.
 //
-#define _APS_NO_MFC                     1
 #define IDR_MENU1                       2
 #define IDINIT                          3
 #define IDS_MODEL_CHANGE_WARNING        4
@@ -94,12 +93,13 @@
 #define IDC_STATIC_ARROW                1064
 #define IDC_BTN_OPEN_FILE               1065
 #define IDC_BTN_SAVE_FILE               1066
-#define IDC_STATIC                      4294967295
+#define IDC_STATIC                      65535
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
+#define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32771
 #define _APS_NEXT_CONTROL_VALUE         1067

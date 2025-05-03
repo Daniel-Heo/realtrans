@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <codecvt>
 #include "openai_api.h"
 #include "json.hpp"
@@ -10,7 +10,7 @@ using json = nlohmann::json;
 
 //extern CDlgSummary* DlgSum;
 
-// ÀÔ·Â ¹®ÀÚ¿­¿¡¼­ Æ¯Á¤ ¹®ÀÚ¸¦ ÇÊÅÍ¸µÇÏ´Â ÇÔ¼ö
+// ì…ë ¥ ë¬¸ìì—´ì—ì„œ íŠ¹ì • ë¬¸ìë¥¼ í•„í„°ë§í•˜ëŠ” í•¨ìˆ˜
 std::string FilterString(const std::string& input) {
     std::string result;
     for (char ch : input) {
@@ -24,10 +24,10 @@ std::string FilterString(const std::string& input) {
     return result;
 }
 
-// DeepL API¸¦ »ç¿ëÇÏ¿© ¹ø¿ªÇÒ °æ¿ì
-//  °á°ú´Â °¡Á®¿À´Âµ¥ ³»¿ëÀÌ ¾ø´Â °æ¿ì°¡ ÀÖ´Ù. ÀÌ°ÍÀº deepL¿¡¼­ ¹ß»ıÇÏ´Â ¹®Á¦·Î º¸ÀÎ´Ù.
+// DeepL APIë¥¼ ì‚¬ìš©í•˜ì—¬ ë²ˆì—­í•  ê²½ìš°
+//  ê²°ê³¼ëŠ” ê°€ì ¸ì˜¤ëŠ”ë° ë‚´ìš©ì´ ì—†ëŠ” ê²½ìš°ê°€ ìˆë‹¤. ì´ê²ƒì€ deepLì—ì„œ ë°œìƒí•˜ëŠ” ë¬¸ì œë¡œ ë³´ì¸ë‹¤.
 void RequestDeepL(const std::string& text, std::string& strOut, const std::string& lang, const std::string& api_key, const int dns_type) {
-    // WinHTTP ¼¼¼Ç ÃÊ±âÈ­
+    // WinHTTP ì„¸ì…˜ ì´ˆê¸°í™”
     HINTERNET hSession = WinHttpOpen(L"A WinHTTP Example Program/1.0",
         WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
         WINHTTP_NO_PROXY_NAME,
@@ -38,7 +38,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         return;
     }
 
-    // HTTP/2 »ç¿ë ¼³Á¤
+    // HTTP/2 ì‚¬ìš© ì„¤ì •
     DWORD dwHttp2Option = WINHTTP_PROTOCOL_FLAG_HTTP2;
     BOOL bHttp2Enabled = WinHttpSetOption(hSession,
         WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL,
@@ -46,15 +46,15 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         sizeof(dwHttp2Option));
 
     //if (!bHttp2Enabled) {
-    //    // HTTP/2 ¼³Á¤ ½ÇÆĞ Ã³¸®
+    //    // HTTP/2 ì„¤ì • ì‹¤íŒ¨ ì²˜ë¦¬
     //    std::cout << "Failed to enable HTTP/2: " << GetLastError() << std::endl;
     //}
     //else {
-    //    // HTTP/2 ¼³Á¤ ¼º°ø Ã³¸®
+    //    // HTTP/2 ì„¤ì • ì„±ê³µ ì²˜ë¦¬
     //    std::cout << "HTTP/2 enabled successfully" << std::endl;
     //}
 
-    // ¿¬°á ÇÚµé »ı¼º
+    // ì—°ê²° í•¸ë“¤ ìƒì„±
 	std::wstring deepl_dns;
 	if (dns_type == 1) deepl_dns = L"api-free.deepl.com";
 	else if (dns_type == 2) deepl_dns = L"api.deepl.com";
@@ -67,7 +67,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         return;
     }
 
-    // ¿äÃ» ÇÚµé »ı¼º
+    // ìš”ì²­ í•¸ë“¤ ìƒì„±
     HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"POST",
         L"/v2/translate",
         NULL, WINHTTP_NO_REFERER,
@@ -80,7 +80,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         return;
     }
 
-    // ÇÊ¿äÇÑ Çì´õ Ãß°¡
+    // í•„ìš”í•œ í—¤ë” ì¶”ê°€
     std::wstring headers = L"Content-Type: application/json\r\n";
     headers += L"Authorization: DeepL-Auth-Key ";
     headers += StringToWString(api_key);
@@ -102,7 +102,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         postData.size(),
         0);
 
-    // ÀÀ´ä ¹Ş±â
+    // ì‘ë‹µ ë°›ê¸°
     if (bResults) bResults = WinHttpReceiveResponse(hRequest, NULL);
     else {
         //wprintf(L"Error %u in WinHttpSendRequest.\n", GetLastError());
@@ -136,20 +136,20 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
     }
     */
 
-    // ÀÀ´ä ³»¿ë ÀĞ±â
+    // ì‘ë‹µ ë‚´ìš© ì½ê¸°
     //DWORD dwSize = 0;
     DWORD dwDownloaded = 0;
     LPSTR pszOutBuffer;
     std::string response = "";
     if (bResults) {
         do {
-            // ÀÀ´ä Å©±â È®ÀÎ
+            // ì‘ë‹µ í¬ê¸° í™•ì¸
             dwSize = 0;
             if (!WinHttpQueryDataAvailable(hRequest, &dwSize)) {
                 //wprintf(L"Error %u in WinHttpQueryDataAvailable.\n", GetLastError());
             }
 
-            // ÀÀ´ä ³»¿ë ÇÒ´ç ¹× ÀĞ±â
+            // ì‘ë‹µ ë‚´ìš© í• ë‹¹ ë° ì½ê¸°
             pszOutBuffer = new char[dwSize + 1];
             if (!pszOutBuffer) {
                 //wprintf(L"Out of memory\n");
@@ -169,7 +169,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
             }
         } while (dwSize > 0);
 
-        // ÀÀ´ä È®ÀÎ
+        // ì‘ë‹µ í™•ì¸
         //json j = json::parse(response);
         //wprintf(L"size: [%d]", response.length());
         //std::cout << j.dump(4) << std::endl;
@@ -183,7 +183,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         if (dwStatusCode == 200)
         {
             if (j.contains("translations")) {
-                //{"translations": [{"detected_source_language":"EN", "text" : "°á°ú"}] }
+                //{"translations": [{"detected_source_language":"EN", "text" : "ê²°ê³¼"}] }
                 j["translations"][0]["text"].get_to(strOut);
 			}
             else {
@@ -203,7 +203,7 @@ void RequestDeepL(const std::string& text, std::string& strOut, const std::strin
         //std::cout << Utf8ToCodePage949(strOut.c_str()) << std::endl;
     }
 
-    // ÇÚµé Á¤¸®
+    // í•¸ë“¤ ì •ë¦¬
     if (hRequest) WinHttpCloseHandle(hRequest);
     if (hConnect) WinHttpCloseHandle(hConnect);
     if (hSession) WinHttpCloseHandle(hSession);
@@ -215,7 +215,7 @@ int main()
     // DeepL API
     std::string apiKey = "xx";
     std::string textToTranslate = "Hello, world!";
-    std::string targetLanguage = "KO"; // ÇÑ±¹¾î·Î ¹ø¿ª
+    std::string targetLanguage = "KO"; // í•œêµ­ì–´ë¡œ ë²ˆì—­
     std::string strOut;
     RequestDeepL(textToTranslate, strOut, targetLanguage, apiKey);
 }

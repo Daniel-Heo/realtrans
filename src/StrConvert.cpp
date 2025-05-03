@@ -342,6 +342,98 @@ bool CompareStringWString(const std::string& str, const std::wstring& wstr) {
     return wstr == convertedWStr;
 }
 
+// std::wstring을 받아 각 wchar_t를 16진수 문자열로 변환하는 함수
+std::wstring ConvertToHexString(const std::wstring& input)
+{
+    std::wstringstream ss;
+
+    for (wchar_t ch : input)
+    {
+        // 4자리 16진수로 포맷, 앞을 0으로 채움
+        ss << std::uppercase << std::setfill(L'0') << std::setw(4) << std::hex << static_cast<int>(ch) << L' ';
+    }
+
+    return ss.str();
+}
+
+std::string Trim(std::string& input) {
+    if (input.empty()) {
+        return input;
+    }
+
+    // 문자열 시작 부분의 공백, 개행 문자 제거
+    size_t start = 0;
+    while (start < input.length() &&
+        (input[start] == ' ' || input[start] == '\r' || input[start] == '\n')) {
+        start++;
+    }
+
+    // 문자열이 모두 공백, 개행 문자로만 이루어진 경우
+    if (start == input.length()) {
+        input.clear();
+        return input;
+    }
+
+    // 문자열 끝 부분의 공백, 개행 문자 제거
+    size_t end = input.length() - 1;
+    while (end > start &&
+        (input[end] == ' ' || input[end] == '\r' || input[end] == '\n')) {
+        end--;
+    }
+
+    // 시작과 끝 위치를 기준으로 새로운 부분 문자열 추출
+    input = input.substr(start, end - start + 1);
+    return input;
+}
+
+std::vector<std::string> CutBySize(std::string txt, int size) {
+    std::vector<std::string> result;
+
+    if (txt.empty() || size <= 0) {
+        return result;
+    }
+
+    size_t position = 0;
+    size_t length = txt.length();
+
+    while (position < length) {
+        int currentSize = 0;
+        size_t startPosition = position;
+        size_t endPosition = position;
+
+        while (position < length && currentSize < size) {
+            unsigned char c = static_cast<unsigned char>(txt[position]);
+            int byteCount = ((c & 0x80) == 0) ? 1 :
+                ((c & 0xE0) == 0xC0) ? 2 :
+                ((c & 0xF0) == 0xE0) ? 3 :
+                ((c & 0xF8) == 0xF0) ? 4 : 1;
+
+            if (position + byteCount > length) {
+                break;
+            }
+
+            if (currentSize + byteCount > size) {
+                break;
+            }
+
+            currentSize += byteCount;
+            position += byteCount;
+            endPosition = position;
+        }
+
+        if (startPosition < endPosition) {
+            result.push_back(txt.substr(startPosition, endPosition - startPosition));
+        }
+        else {
+            // 단일 문자가 size보다 큰 경우 (매우 드문 경우) 처리
+            // 이 경우 무한 루프 방지를 위해 position 증가
+            position++;
+        }
+    }
+
+    return result;
+}
+
 #if 0
 int convert_euckr_to_utf8(const char* euckr_input, std::string& output) {
     int utf16_length, utf8_length;
