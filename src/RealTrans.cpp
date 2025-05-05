@@ -595,9 +595,6 @@ LRESULT RealTrans::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
     case WM_CLOSE:
     case WM_DESTROY:
         CSettings::GetInstance()->MakeChildCmd("exit", "exit");
-        if (m_pBgJob) {
-            m_pBgJob->RequestExit();
-        }
         // COM 해제
         CoUninitialize();
         // 종료 플래그 설정
