@@ -578,6 +578,9 @@ if __name__ == '__main__':
         else:
             ARGS.cuda_dev = 'cpu'
 
+    if os.path.exists(ARGS.work_path+"/pymsg.json"):
+        os.remove(ARGS.work_path+"/pymsg.json") # 기존에 처리되지 못한 명령 삭제
+
     torch.device(ARGS.cuda_dev)
     print('#Translation processing with ' + ARGS.cuda_dev)
 
