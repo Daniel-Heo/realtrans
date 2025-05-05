@@ -12,7 +12,7 @@
 
 // 기본 모델 크기
 #define DEFULAT_MODEL_SIZE "small"
-#define DEFULAT_PROC "cuda float16"
+#define DEFULAT_PROC "nvidia float16"
 #define DEFULAT_INPUT_DEV "speaker"
 #define DEFULAT_TRANSPARENT 95
 #define DEFULAT_BG_COLOR "#000000"
@@ -299,7 +299,7 @@ void CSettings::DefaultJson() {
 
 	// 입력장치 및 처리방식 설정
 	settings["input_dev"] = "speaker";
-	settings["proc"] = "cuda float16"; // 처리장치 설정
+	settings["proc"] = "nvidia float16"; // 처리장치 설정
 
 	settings["txt_trans_src"] = "eng_Latn"; // 텍스트 번역 소스 언어
 	settings["txt_trans_tgt"] = "kor_Hang"; // 텍스트 번역 대상 언어	
@@ -383,8 +383,10 @@ void CSettings::RefreshSettings(HWND hwnd, BOOL isStart)
 	hListBox = GetDlgItem(hwnd, IDC_COMBO_PROC); // ListBox의 핸들을 가져옵니다.
 	if (hListBox != NULL) {
 		if (isStart) {
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"cuda float16");
-			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"cuda float32");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"nvidia float16");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"nvidia float32");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"amd float16");
+			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"amd float32");
 			SendMessage(hListBox, CB_ADDSTRING, 0, (LPARAM)L"CPU");
 		}
 

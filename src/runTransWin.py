@@ -373,7 +373,7 @@ def main(ARGS):
     ctrans_manager.check_fwmodel(model_size)
 
     # cuda 사용 여부에 따라 데이터 타입 변경 : CPU는 float32, GPU는 float16
-    if ARGS.cuda_dev == 'cpu' or ARGS.proc == "cuda float32":
+    if ARGS.cuda_dev == 'cpu' or ARGS.proc == "nvidia float32" or ARGS.proc == "amd float32":
         data_type = "float32"
     else:
         data_type = "float16"
@@ -503,7 +503,10 @@ def main(ARGS):
             wav_data = bytearray()
 
     # GPU 메모리 해제
-    torch.cuda.empty_cache()
+    if ARGS.cuda_dev == 'cuda': # cuda / rocm
+        torch.cuda.empty_cache()
+    else:
+        pass  # CPU 사용 시 메모리 해제 불필요
 
 # int16 -> float로 변환
 def Int2Float(data, dtype=np.float32):
@@ -527,8 +530,8 @@ if __name__ == '__main__':
                         help="Voice input Language : eng_Latn, kor_Hang")
     parser.add_argument('-t', '--target_lang', type=str, default=None, # kor_Hang
                         help="Transfer Language : eng_Latn, kor_Hang, xx")
-    parser.add_argument('-p', '--proc', type=str, default="cuda float16",
-                        help="Process Method : cuda float16, cuda float32, CPU")
+    parser.add_argument('-p', '--proc', type=str, default="nvidia float16",
+                        help="Process Method : nvidia float16, nvidia float32, amd float16, amd float32, CPU")
     parser.add_argument('-v', '--view', type=str, default=None,
                         help="Debug mode : None, not None")
     parser.add_argument('-w', '--webRTC_aggressiveness', type=int, default=3,
@@ -567,7 +570,14 @@ if __name__ == '__main__':
     if ARGS.proc == "CPU" or ARGS.cuda_dev == 'cpu':
         ARGS.cuda_dev = 'cpu'
     else:
-        ARGS.cuda_dev = 'cuda'
+        # AMD GPU 지원 확인
+        if torch.cuda.is_available():
+            ARGS.cuda_dev = 'cuda'
+        elif hasattr(torch, 'hip') and torch.hip.is_available():
+            ARGS.cuda_dev = 'cuda'  # AMD HIP/ROCm
+        else:
+            ARGS.cuda_dev = 'cpu'
+
     torch.device(ARGS.cuda_dev)
     print('#Translation processing with ' + ARGS.cuda_dev)
 
