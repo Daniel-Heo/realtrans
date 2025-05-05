@@ -26,7 +26,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 > 1. Install Python
 > 2. Run install.bat in the RealTrans folder
-> 3. Install CuDNN
+> 3. Install CuDNN (Nvidia only)
 > 4. Run realtrans.exe in the RealTrans folder
 
 #### 1. Install Python ( Require 3.12.x ) : https://www.python.org/downloads/ ( *** Make sure to select run Admin and add PATH during installation. *** ) - Supports only up to Python 3.12. (Recommended version: 3.12.10 Windows installer (64-bit) ) *Important*
@@ -40,7 +40,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
 ( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
-> Run install.bat
+> Run install.bat ( if AMD, install_amd.bat )
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
 * Method 2: When installing from cmd, run install.bat from the realtrans folder (downloaded realtrans folder)
 
@@ -55,7 +55,9 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 - Not supported by torch.
 
-### 3. Install CuDNN
+#### * Note) AMD first implemented it in 2.2.3, but I haven't been able to test it because I don't have a graphics card. If you have any errors, please leave a comment so we can help you solve the problem.
+
+### 3. Install CuDNN (Nvidia only)
 If not installed, you may encounter the following error:
 
 Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
@@ -258,7 +260,7 @@ After)
 
 > 1. 파이선 설치
 > 2. RealTrans 폴더의 install.bat 실행
-> 3. CuDNN 설치
+> 3. CuDNN 설치 ( Nvidia인 경우만 )
 > 4. RealTrans 폴더의 realtrans.exe 실행
 
 #### 1. 파이선 설치 ( https://wikidocs.net/8 - *** 설치중 run Admin과 PATH 추가를 꼭 선택하세요. *** ) - 파이선 3.12까지만 지원. ( 권장버젼 : 3.12.10 Windows installer (64-bit) ) *중요*
@@ -269,10 +271,10 @@ After)
 - python --version 실행 ( 실행이 되어서 python version이 출력되면 정상임으로 exit()를 입력하여 빠져나옴 )
 * 파이선이 정상적으로 실행이 되지 않을 경우에 파이선이 중복으로 설치되었을 수 있으며 이 경우에는 기존에 설치된 파이선들을 다 제거하고 다시 설치해보세요. 중복이 아닌 경우에는 환경변수에 python path가 누락되어있을 수 있습니다. 이 경우에는 재설치를 하시거나 윈도우의 고급 시스템 설정/환경변수/시스템 변수에서 Path를 선택하고 편집해서 python 경로를 추가해주시고 적용을 해주셔야합니다.
 
-#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행
+#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행 ( AMD인 경우 install_amd.bat )
 ( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
-> install.bat 실행
+> install.bat 실행 ( AMD인 경우 install_amd.bat )
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
 * 방법 2 : cmd에서 설치시에는 해당 realtrans 폴더에서 install.bat 실행 (down 받은 realtrans 폴더 )
 
@@ -286,8 +288,10 @@ After)
 ##### * 주의 ) RTX 5080/5090은 현재 지원하지 않습니다.
 
  - torch에서 지원하지 않습니다.
-  
-### 3. CuDNN 설치
+
+#### * 주의 ) AMD는 2.2.3에서 처음으로 구현은 하였지만 그래픽카드가 없어서 테스트하지는 못했습니다. 오류시 댓글남겨주시면 문제점 해결에 도움을 드릴 수 있습니다.
+
+### 3. CuDNN 설치 ( Nvidia인 경우만 )
 
  설치하지 않을 경우 다음과 같은 에러가 발생합니다. 
 
