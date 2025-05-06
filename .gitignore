@@ -1,5 +1,5 @@
 # main dir .gitignore
 
 # batch file
-*.bat
+release.bat
 .vs

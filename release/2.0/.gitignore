@@ -35,7 +35,6 @@ bld/
 *.bak
 *.back
 *.backup
-*_
 *.zip
 
 # 패키지 및 로컬 설치 파일
@@ -61,4 +60,3 @@ docs/
 images/
 메모/
 다운/
-*.txt
