@@ -1,5 +1,5 @@
 """
-NemoTokenizer의 Python 인터페이스
+Python interface for NemoTokenizer
 """
 
 import os
@@ -8,19 +8,19 @@ import importlib.util
 from typing import List, Union, Dict, Any, Optional
 
 
-# C++ 확장 모듈 로딩 시도
+# Attempt to load the C++ extension module
 def _load_extension():
     try:
-        # 먼저 일반적인 임포트 시도
+        # Try standard import first
         from .nemo_tokenizer_core import NemoTokenizerCore
         return NemoTokenizerCore
     except ImportError:
-        # 모듈 경로 직접 찾기 시도
+        # Try to manually locate the module
         try:
-            # 현재 파일의 디렉토리 경로
+            # Directory path of the current file
             module_dir = os.path.dirname(os.path.abspath(__file__))
             
-            # 다양한 확장자 시도 (플랫폼에 따라 달라질 수 있음)
+            # Try various extensions (depends on platform)
             for ext in ['.so', '.pyd', '.dll', '.dylib']:
                 module_path = os.path.join(module_dir, f"nemo_tokenizer_core{ext}")
                 if os.path.exists(module_path):
@@ -30,147 +30,146 @@ def _load_extension():
                         spec.loader.exec_module(module)
                         return module.NemoTokenizerCore
             
-            # 모듈을 찾을 수 없음
+            # Module not found
             raise ImportError(
-                "NemoTokenizer C++ 확장 모듈을 가져올 수 없습니다. "
-                "파일 경로: {} 에서 모듈을 찾을 수 없습니다. "
-                "패키지를 올바르게 설치했는지 확인하세요. "
+                "Unable to load NemoTokenizer C++ extension module. "
+                "Module not found at path: {}. "
+                "Please ensure the package is installed correctly. "
                 "Error: {}".format(module_dir, str(sys.exc_info()[1]))
             )
         except Exception as e:
-            # 디버깅을 위한 자세한 오류 메시지
+            # Detailed error message for debugging
             raise ImportError(
-                "NemoTokenizer C++ 확장 모듈을 로드하는 중 오류가 발생했습니다. "
-                "패키지를 올바르게 설치했는지 확인하세요. "
+                "An error occurred while loading the NemoTokenizer C++ extension module. "
+                "Please ensure the package is installed correctly. "
                 "Error: {}".format(str(e))
             )
 
 
-# C++ 확장 모듈 로딩 시도
+# Attempt to load the C++ extension module
 NemoTokenizerCore = _load_extension()
-
 
 
 class NemoTokenizer:
     """
-    NemoTokenizer 클래스 - SentencePiece 및 WordPiece 토큰화를 지원합니다.
+    NemoTokenizer class - Supports SentencePiece and WordPiece tokenization.
     
-    C++ 구현을 감싸는 Python 인터페이스를 제공합니다.
+    Provides a Python interface wrapping the C++ implementation.
     """
     
     def __init__(self, tokenizer_file: Optional[str] = None):
         """
-        NemoTokenizer 초기화
+        Initialize the NemoTokenizer
         
         Args:
-            tokenizer_file: 토크나이저 JSON 파일 경로 (선택사항)
+            tokenizer_file: Path to the tokenizer JSON file (optional)
         """
         self._tokenizer = NemoTokenizerCore()
         
         if tokenizer_file is not None:
             if not os.path.exists(tokenizer_file):
-                raise FileNotFoundError(f"토크나이저 파일을 찾을 수 없습니다: {tokenizer_file}")
+                raise FileNotFoundError(f"Tokenizer file not found: {tokenizer_file}")
             self.load_tokenizer(tokenizer_file)
     
     def load_tokenizer(self, tokenizer_file: str) -> None:
         """
-        토크나이저 JSON 파일 로드
+        Load tokenizer JSON file
         
         Args:
-            tokenizer_file: 토크나이저 JSON 파일 경로
+            tokenizer_file: Path to the tokenizer JSON file
         """
         if not os.path.exists(tokenizer_file):
-            raise FileNotFoundError(f"토크나이저 파일을 찾을 수 없습니다: {tokenizer_file}")
+            raise FileNotFoundError(f"Tokenizer file not found: {tokenizer_file}")
         
         self._tokenizer.loadTokenizer(tokenizer_file)
     
     def batch_tokenize(self, texts: List[str], add_special_tokens: bool = True) -> List[List[str]]:
         """
-        여러 텍스트를 한번에 토큰화
+        Tokenize multiple texts at once
         
         Args:
-            texts: 토큰화할 텍스트 리스트
-            add_special_tokens: 특수 토큰 추가 여부
+            texts: List of texts to tokenize
+            add_special_tokens: Whether to add special tokens
             
         Returns:
-            각 텍스트에 대한 토큰 리스트의 리스트
+            List of token lists for each text
         """
-        return self._tokenizer.batch_tokenize(texts)
+        return self._tokenizer.batch_tokenize(texts, add_special_tokens)
     
     def tokenize(self, text: str, add_special_tokens: bool = True) -> List[str]:
         """
-        텍스트를 토큰으로 분리
+        Split text into tokens
         
         Args:
-            text: 토큰화할 텍스트
-            add_special_tokens: 특수 토큰 추가 여부
+            text: Text to tokenize
+            add_special_tokens: Whether to add special tokens
             
         Returns:
-            토큰 리스트
+            List of tokens
         """
-        return self._tokenizer.tokenize(text)
+        return self._tokenizer.tokenize(text, add_special_tokens)
     
     def encode(self, text: str, add_special_tokens: bool = True) -> List[int]:
         """
-        텍스트를 토큰 ID로 변환
+        Convert text to token IDs
         
         Args:
-            text: 인코딩할 텍스트
-            add_special_tokens: 특수 토큰 추가 여부
+            text: Text to encode
+            add_special_tokens: Whether to add special tokens
             
         Returns:
-            토큰 ID 리스트
+            List of token IDs
         """
         return self._tokenizer.encode(text, add_special_tokens)
     
     def decode(self, ids: List[int], skip_special_tokens: bool = True) -> str:
         """
-        토큰 ID를 텍스트로 변환
+        Convert token IDs to text
         
         Args:
-            ids: 디코딩할 토큰 ID 리스트
-            skip_special_tokens: 특수 토큰 삭제 여부
+            ids: List of token IDs to decode
+            skip_special_tokens: Whether to remove special tokens
             
         Returns:
-            복원된 텍스트
+            Reconstructed text
         """
-        return self._tokenizer.decode(ids)
+        return self._tokenizer.decode(ids, skip_special_tokens)
     
     def convert_tokens_to_ids(self, tokens: List[str], add_special_tokens: bool = True) -> List[int]:
         """
-        토큰을 ID로 변환
+        Convert tokens to IDs
         
         Args:
-            tokens: 변환할 토큰 리스트
-            add_special_tokens: 특수 토큰 추가 여부
+            tokens: List of tokens to convert
+            add_special_tokens: Whether to add special tokens
             
         Returns:
-            토큰 ID 리스트
+            List of token IDs
         """
-        return self._tokenizer.convert_tokens_to_ids(tokens)
+        return self._tokenizer.convert_tokens_to_ids(tokens, add_special_tokens)
     
     def convert_ids_to_tokens(self, ids: List[int], skip_special_tokens: bool = True) -> List[str]:
         """
-        ID를 토큰으로 변환
+        Convert IDs to tokens
         
         Args:
-            ids: 변환할 ID 리스트
-            skip_special_tokens: 특수 토큰 삭제 여부
+            ids: List of IDs to convert
+            skip_special_tokens: Whether to remove special tokens
             
         Returns:
-            토큰 리스트
+            List of tokens
         """
-        return self._tokenizer.convert_ids_to_tokens(ids)
+        return self._tokenizer.convert_ids_to_tokens(ids, skip_special_tokens)
     
     def convert_tokens_to_text(self, tokens: List[str], skip_special_tokens: bool = True) -> str:
         """
-        토큰을 원본 텍스트로 변환
+        Convert tokens back to original text
         
         Args:
-            tokens: 변환할 토큰 리스트
-            skip_special_tokens: 특수 토큰 삭제 여부
+            tokens: List of tokens to convert
+            skip_special_tokens: Whether to remove special tokens
             
         Returns:
-            복원된 텍스트
+            Reconstructed text
         """
-        return self._tokenizer.convert_tokens_to_text(tokens)
+        return self._tokenizer.convert_tokens_to_text(tokens, skip_special_tokens)
