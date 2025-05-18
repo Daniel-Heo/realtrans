@@ -65,6 +65,10 @@ RealTrans::~RealTrans() {
     }
 }
 
+void RealTrans::SetSettingStatus(bool status) {
+    m_bSetupActive = status;
+}
+
 // 싱글톤 접근자
 RealTrans* RealTrans::GetInstance() {
     if (s_instance == nullptr) {
@@ -446,9 +450,6 @@ LRESULT RealTrans::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
             // 싱글톤 인스턴스를 통해 다이얼로그 생성
             CSettings::GetInstance()->Create(hWnd);
-
-            m_bSetupActive = false;
-
         }
         else if (pt.x > 0 && pt.x < 34 && pt.y > 44 && pt.y < 81) {
             // 요약

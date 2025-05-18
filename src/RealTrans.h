@@ -72,6 +72,9 @@ public:
     // Summary 관련
     void SetSummaryFont();
 
+    // Setting 관련
+	void SetSettingStatus(bool status);
+
     // 싱글톤 접근자
     static RealTrans* GetInstance();
 

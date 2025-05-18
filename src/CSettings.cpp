@@ -902,12 +902,14 @@ INT_PTR CSettings::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 		case IDCANCEL: // 취소
 			EndDialog(hwndDlg, LOWORD(wParam));
 			m_hDlg = NULL;
+			RealTrans::GetInstance()->SetSettingStatus(false);
 			return (INT_PTR)TRUE;
 		case IDSUPPLY: // 저장 및 종료
 			SaveSettings(hwndDlg, "config.json");
 			RealTrans::GetInstance()->SetNemoViewerConfig();
 			EndDialog(hwndDlg, LOWORD(wParam));
 			m_hDlg = NULL;
+			RealTrans::GetInstance()->SetSettingStatus(false);
 			return (INT_PTR)TRUE;
 		case ID_INIT: // 초기화
 			if (wmEvent == BN_CLICKED)
@@ -950,6 +952,7 @@ INT_PTR CSettings::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 	case WM_CLOSE:
 		EndDialog(hwndDlg, 0);
 		m_hDlg = NULL;
+		RealTrans::GetInstance()->SetSettingStatus(false);
 		return (INT_PTR)TRUE;
 	}
 	return (INT_PTR)FALSE;
