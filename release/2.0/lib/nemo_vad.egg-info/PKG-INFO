@@ -1,0 +1,94 @@
+Metadata-Version: 2.4
+Name: nemo_vad
+Version: 0.1.0
+Summary: Voice Activity Detection using NemoVad
+Author: Your Name
+Author-email: Daniel-Heo <gskywood1@gmail.com>
+License-Expression: MIT
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pybind11>=2.6.0
+Requires-Dist: numpy
+Dynamic: author
+Dynamic: license-file
+
+# NemoVAD
+
+NemoVAD is a Python package for efficient VAD processing. It wraps core functionality implemented in C++ with a Python interface, providing both performance and usability.
+
+Windows install has been tested.
+
+## Features
+
+- Support for int16, float32, float16
+- High-performance VAD using SIMD
+- Simple Python API
+
+## Installation
+Window
+```
+build_install.bat
+```
+
+### Requirements
+
+- Python 3.7 or higher
+- C++ compiler (with C++14 support)
+- CMake 3.12 or higher
+
+### Installation via pip (Not supported)
+
+```bash
+pip install nemo_vad
+```
+
+### Installation from source
+
+```bash
+git clone https://github.com/Daniel-Heo/NemoVad.git
+cd NemoVad
+build_install.bat
+```
+
+## Usage Example
+
+```python
+# VAD 생성 (스피커 출력 캡처)
+vad = nemo_vad.NemoVad(aggressiveness=2, device="speaker", sample_rate=16000)
+# 마이크 입력 캡처의 경우:
+# vad = nemo_vad.NemoVad(aggressiveness=2, device="mic", sample_rate=16000)
+# VAD 옵션 설정
+options = nemo_vad.VADOptions()
+options.voiced_duration_min_ms = 300        # 최소 음성 길이 0.3초
+options.voiced_duration_mid_ms = 3000       # 최대 음성 길이 3초
+options.voiced_duration_max_ms = 5000       # 최대 음성 길이 5초
+options.silence_duration_min_ms = 300       # 최소 무음 길이 0.1초
+options.ratio = 0.6
+vad.set_options(options)
+
+# VAD 시작
+vad.start()
+
+try:
+    # 실행 (필요한 만큼)
+    while running:
+        # 새 음성 데이터 확인
+        if vad.has_new_speech():
+            speech = vad.get_speech_data(dtype=np.float16)
+            # 음성 데이터 처리
+            print(f"audio size[{len(speech)}]")
+        
+        time.sleep(0.1)  # 100ms 지연
+except KeyboardInterrupt:
+    print("\n프로그램을 종료합니다.")
+    running = False
+finally:
+    # VAD 중지
+    print("\nVAD 중지")
+    vad.stop()
+```
+
+## License
+
+MIT

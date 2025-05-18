@@ -1,0 +1,15 @@
+LICENSE
+MANIFEST.in
+README.md
+pyproject.toml
+setup.py
+nemo_vad/__init__.py
+nemo_vad/nemo_vad.py
+nemo_vad/nemo_vad_core.cp312-win_amd64.pyd
+nemo_vad.egg-info/LICENSE
+nemo_vad.egg-info/PKG-INFO
+nemo_vad.egg-info/SOURCES.txt
+nemo_vad.egg-info/dependency_links.txt
+nemo_vad.egg-info/not-zip-safe
+nemo_vad.egg-info/requires.txt
+nemo_vad.egg-info/top_level.txt

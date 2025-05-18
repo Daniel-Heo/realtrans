@@ -11,183 +11,15 @@ lib_path = os.path.join(current_directory, 'lib')
 if lib_path not in sys.path:
     sys.path.append(lib_path)
 
-import soundcard as sc
+import nemo_vad
 import time
 from time import sleep
-import webrtcvad
 from halo import Halo
 import threading
-import collections, queue
 import numpy as np
 import torch
-import pyaudio
 import json
-import librosa
 import ctrans_manager
-
-# Low Level 사운드 입력을 처리하는 클래스
-class LoopbackAudio(threading.Thread):
-    def __init__(self, callback, device):
-        threading.Thread.__init__(self)
-        self.callback = callback
-        self.samplerate = 16000
-        self.block_size = 20 # 20ms
-        self.frame_size = int(self.samplerate * self.block_size / 1000)
-        self.stop_event = threading.Event()
-        self.is_paused = True
-        self.work_idx = 0 # 0~9 : LoopbackAudio의 처리
-        self.audio_data = [None] * 10
-
-        p = pyaudio.PyAudio()
-        audio_info = ""
-        if device == "speaker":
-            audio_info = p.get_default_output_device_info()
-            self.snd = sc.all_microphones(include_loopback=True)
-        else:
-            audio_info = p.get_default_input_device_info()
-            self.snd = sc.all_microphones(include_loopback=False)
-        for i in range(len(self.snd)):
-            if self.snd[i].name.find(audio_info['name'])>=0:
-                self.snd_index = i
-                self.snd_channels = self.snd[i].channels
-                break
-        p.terminate()
-
-    def run(self):
-        dev = self.snd[self.snd_index]
-
-        with dev.recorder(samplerate=self.samplerate) as recorder:
-            while not self.stop_event.is_set():
-                if self.is_paused == False:
-                    self.audio_data[self.work_idx] = recorder.record(numframes=self.frame_size)
-                    self.work_idx += 1
-                    if self.work_idx > 9:
-                        self.work_idx = 0
-
-    def stop(self):
-        self.stop_event.set()
-
-    def pause(self):
-        self.is_paused = True
-    
-    def resume(self):
-        self.is_paused = False
-    
-    def is_paused(self):
-        return self.is_paused
-
-class VADAudio(threading.Thread):
-    frame_duration_ms = 20 # 20ms
-
-    def __init__(self, aggressiveness=3, device=None):
-        threading.Thread.__init__(self)
-        self.device = device
-        self.stop_event = threading.Event()
-        self.work_idx = 0
-        self.soundcard_reader = LoopbackAudio(callback=None, device=self.device)
-        self.soundcard_reader.daemon = True
-        self.soundcard_reader.start()
-
-        self.voiced_duration = 0  # 음성 프레임의 지속 시간을 계산 : ms 단위
-        self.silence_duration = 0  # 비음성(정적) 지속 시간을 추적 : ms 단위
-    
-        self.vad = webrtcvad.Vad(aggressiveness)
-        self.collect_audio = []
-        self.speech = None
-
-        self.daemon = True
-        self.start()
-
-    def run(self):
-        padding_ms=600
-        ratio=0.60
-
-        num_padding_frames = padding_ms // self.frame_duration_ms # 300ms // 20ms = 15 frames : //(나눗셈의 정수형)
-        ring_buffer = collections.deque(maxlen=num_padding_frames) 
-        triggered = False
-
-        while not self.stop_event.is_set():
-            if self.work_idx != self.soundcard_reader.work_idx and not self.soundcard_reader.is_paused:
-                transposed_data = np.transpose(self.soundcard_reader.audio_data[self.work_idx])
-                if transposed_data.ndim == 1:
-                    frame = (transposed_data * 65536).astype(np.int16)
-                else:
-                    frame = (librosa.to_mono(transposed_data[0]) * 65536).astype(np.int16)
-                self.work_idx += 1
-                if self.work_idx > 9:
-                    self.work_idx = 0
-                
-                if len(frame) < 320:
-                    continue
-                is_speech = self.vad.is_speech(frame, 16000)
-
-                if not triggered:
-                    ring_buffer.append((frame, is_speech))
-                    num_voiced = sum(1 for _, speech in ring_buffer if speech)
-                    if num_voiced > ratio * len(ring_buffer):
-                        self.voiced_duration = num_voiced * self.frame_duration_ms
-                        self.silence_duration = 0
-                        triggered = True
-                        self.collect_audio = [f for f,s in ring_buffer if s]
-                        ring_buffer.clear()
-                else:
-                    if is_speech:
-                        self.collect_audio.append(frame)
-                        self.voiced_duration += self.frame_duration_ms
-                        self.silence_duration = 0  # 음성이 감지되면 정적 지속 시간을 리셋
-                        if self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                            self.silence_duration = 0  # 정적 지속 시간을 리셋
-                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
-                            self.collect_audio = []
-                    else:
-                        self.voiced_duration += self.frame_duration_ms
-                        self.silence_duration += self.frame_duration_ms
-                        if self.voiced_duration > 3000 and self.silence_duration > 10:  # 4초 이상 음성 감지시 10ms의 정적 후 음성 자르기
-                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                            self.silence_duration = 0  # 정적 지속 시간을 리셋
-                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
-                            self.collect_audio = []
-                        elif self.voiced_duration > 5000: # 5초 이상 음성 감지시 그대로 음성 자르기
-                            self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                            self.silence_duration = 0  # 정적 지속 시간을 리셋
-                            self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
-                            self.collect_audio = []
-
-                    ring_buffer.append((frame, is_speech))
-                    num_unvoiced = sum(1 for _, speech in ring_buffer if not speech)
-                    if num_unvoiced > ratio * len(ring_buffer):
-                        triggered = False
-                        self.voiced_duration = 0  # 정적 지속 시간을 리셋
-                        self.silence_duration = 0  # 정적 지속 시간을 리셋
-                        self.speech = np.concatenate(self.collect_audio) if self.collect_audio else np.array([])
-                        self.collect_audio = []
-                        ring_buffer.clear()
-            else:
-                time.sleep(0.01)
-        
-    def get_audio_data(self):
-        if self.speech is not None:
-            speech = self.speech
-            self.speech = None
-            return speech
-
-    def destroy(self):
-        self.soundcard_reader.stop()
-        self.soundcard_reader.join()
-
-    def stop(self):
-        self.stop_event.set()
-
-    def pause(self):
-        self.soundcard_reader.pause()
-    
-    def resume(self):
-        self.soundcard_reader.resume()
-
-    def is_paused(self):
-        return self.soundcard_reader.is_paused()
-
     
 # JSON 파일을 읽어서 번역 언어를 설정 : 번역 언어가 ALL인 경우에 사용
 def find_keys_with_value(json_data, target_value):
@@ -361,8 +193,15 @@ def main(ARGS):
     file_path = os.path.join(ARGS.exec_path, "hallucination_filter.json")
     json_filter = load_json_file(file_path)
 
-    vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
-                         device=ARGS.device)
+    vad_audio = nemo_vad.NemoVad(aggressiveness=2, device=ARGS.device)
+        # VAD 옵션 설정
+    options = nemo_vad.VADOptions()
+    options.voiced_duration_min_ms = 300        # 최소 음성 길이 0.3초
+    options.voiced_duration_mid_ms = 3000       # 최대 음성 길이 3초
+    options.voiced_duration_max_ms = 5000       # 최대 음성 길이 5초
+    options.silence_duration_min_ms = 300       # 최소 무음 길이 0.1초
+    options.ratio = 0.6
+    vad_audio.set_options(options)
 
     # Faster Whisper 원본 모델 로드
     from faster_whisper import WhisperModel
@@ -383,7 +222,7 @@ def main(ARGS):
     translator = Translator(ARGS)
 
     # 음성 입력 시작
-    vad_audio.resume()
+    vad_audio.start()
 
     wav_data = bytearray()
     while True:
@@ -431,7 +270,10 @@ def main(ARGS):
             sleep(0.01)
             continue
 
-        wav_data = vad_audio.get_audio_data()
+        if vad_audio.has_new_speech():
+            wav_data = vad_audio.get_speech_data(dtype=np.int16)
+        else:
+            wav_data = None
 
         if wav_data is None: 
             sleep(0.01)
@@ -441,9 +283,7 @@ def main(ARGS):
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
             if len(wav_data) > 0:
-                npAudioInt16 = np.frombuffer(wav_data, dtype=np.int16)
-                # 오디오 데이터를 부동소수점으로 변환
-                audio_float16 = Int2Float(npAudioInt16, dtype=np.float16)
+                audio_float16 =  Int2Float(wav_data, dtype=np.float16)
 
                 # Faster Whisper 원본 모델 사용
                 segments = None

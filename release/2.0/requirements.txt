@@ -1,10 +1,6 @@
 --extra-index-url https://download.pytorch.org/whl/cu128
-soundcard==0.4.2
 numpy==1.26.4
 Halo
-pyaudio
-resampy==0.4.3
-librosa==0.10.1
 setuptools
 tqdm
 huggingface_hub
@@ -13,4 +9,3 @@ faster_whisper==1.1.1
 torch==2.7.0
 torchaudio==2.7.0
 torchvision==0.22.0
-
