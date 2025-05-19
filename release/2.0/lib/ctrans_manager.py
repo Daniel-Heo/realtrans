@@ -203,7 +203,7 @@ class CTrans:
         resumable = False
         try:
             self.translator = ctranslate2.Translator(model_path, self.device)
-            self.tokenizer = NemoTokenizer(model_path+"/tokenizer.json")
+            self.tokenizer = NemoTokenizer(os.path.realpath(model_path+"/tokenizer.json"))
         except:
             # resume download
             print("#Model loading failed. Resume download start.")
@@ -214,7 +214,7 @@ class CTrans:
         if resumable:
             self._download_model(repo_id, resume=False)
             self.translator = ctranslate2.Translator(model_path, self.device)
-            self.tokenizer = NemoTokenizer(model_path+"/tokenizer.json")
+            self.tokenizer = NemoTokenizer(os.path.realpath(model_path+"/tokenizer.json"))
 
         if "nllb" in repo_id:
             self.model_type = "nllb"
