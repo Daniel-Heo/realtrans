@@ -221,20 +221,30 @@ Go to Start > Settings > System > Sound and select the device from which the sou
 
 - Error: Unable to open tokenizer.json file.
 
-The tokenizer.json file may be blocked as an unsafe file. It seems that it is blocked when the file received from an unauthenticated source is large enough. Right-click on the tokenizer.json file > Properties > [Unblock] checkbox, or open the file and click Save again. There are many other methods.
-The actual result was that even if you applied the unblocking to the file's properties, an error occurred saying that it could not be opened.
+It is likely that the file was blocked by Windows Defender or similar antivirus software due to one or more of the following reasons: large JSON file size, uncompressed download, or the presence of non-ASCII Korean characters.
 
-File location: C:\Users\userid\.cache\huggingface\hub\models--skywood folder, go to the subfolder of snapshots, and you will find the tokenizer.json file.
+File location:
+You can find the tokenizer.json file under the snapshots subdirectory in a folder starting with models--skywood inside:
+C:\Users\[YourUsername]\.cache\huggingface\hub\
 
-1. Uncheck file properties
-After downloading, right-click > Properties > Check [Unblock]
+[Register as an exception in Windows Defender]
 
-2. Set antivirus exceptions
-Process the path as an exception in Windows Defender or your company's security software
-Caution: Only if it is a trusted source
+Go to Settings → Windows Security → Virus & threat protection
 
-3. Resave (copy the contents and create a new file)
-Copy the existing JSON contents to a new text file → Save as tokenizer.json to remove the security tag.
+Under Virus & threat protection settings, click Manage settings
+
+Scroll down to Exclusions, and click Add or remove exclusions
+
+Choose File or Folder, and select the tokenizer.json file or the relevant folder
+
+[Unblock directly from file properties]
+
+Right-click the file → Select Properties
+
+At the bottom, you may see a message saying:
+"This file came from another computer and might be blocked to help protect this computer."
+
+Check the Unblock box → Click Apply, then OK
 
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
@@ -462,20 +472,20 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 
 - Error: tokenizer.json 파일을 열 수 없습니다.
 
-tokenizer.json파일이 안전하지 않은 파일로 차단될 수 있습니다. 인증되지 않은 곳에서 받은 파일로 사이즈가 어느정도 되면 차단되는 것 같습니다.tokenizer.json 파일의 오른쪽 클릭 > 속성 > [차단 해제] 체크하거나 파일을 열어서 다시 저장을 누르셔도 되고 다른 방법도 많습니다.
-실제 해본 결과는 파일의 속성의 차단 해제를 적용해도 열 수 없다는 오류가 발생하였습니다.
+대용량 JSON, 압축하지 않은 상태로 다운로드, 한글 비ASCII 문자열 포함 등의 이유로 Defender 등에서 차단당한 경우일 가능성이 있습니다.
 
 파일 위치 : C:\Users\사용자아이디\.cache\huggingface\hub\models--skywood로 시작하는 폴더의 snapshots의 하위 폴더에 들어가시면 tokenizer.json 파일이 존재
 
-1. 파일 속성 해제
-다운로드한 후 오른쪽 클릭 > 속성 > [차단 해제] 체크
+[Defender에서 예외 경로 또는 파일로 등록]
+1. 설정 → Windows 보안 → 바이러스 및 위협 방지
+2. "바이러스 및 위협 방지 설정" 아래 [설정 관리]
+3. "제외 항목" > [제외 추가 또는 제거]
+4. [파일] 또는 [폴더] 선택 후 `tokenizer.json` 또는 해당 폴더 지정
 
-2. 백신 예외 설정
-Windows Defender 또는 회사 보안 소프트웨어에서 해당 경로 예외 처리
-주의: 반드시 신뢰된 소스일 경우만
-
-3. 재저장 (내용 복사 후 새 파일 만들기)
-기존 JSON 내용을 새 텍스트 파일에 복사 → tokenizer.json으로 저장하면 보안 태그 제거됨
+[파일 속성에서 직접 차단 해제]
+1. 파일 우클릭 → "속성(Properties)"
+2. 하단의 "보안: 이 파일은 다른 컴퓨터에서 왔으며 차단될 수 있습니다."
+3. [차단 해제] 체크 → 적용 → 확인
 
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
