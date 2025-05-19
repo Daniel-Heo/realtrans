@@ -145,18 +145,19 @@ class CTrans:
         allow_patterns = [
             "config.json",
             "shared_vocabulary.json",
-            "model.bin",
             "special_tokens_map.json",
             "tokenizer.json",
             "tokenizer_config.json",
+            "model.bin",
         ]
 
         # 다운로드 옵션
         kwargs = {
+            "repo_type": "model",
             "local_files_only": False,
             "allow_patterns": allow_patterns,
             #"tqdm_class": disabled_tqdm,
-            "local_dir_use_symlinks": False
+            "local_dir_use_symlinks": False,
         }
 
         print(f"#Model loading. Please wait... It may take several minutes or more at first.")
@@ -166,7 +167,7 @@ class CTrans:
             if( resume == False):
                 model_path = snapshot_download(repo_id, **kwargs)
             else:
-                model_path = snapshot_download(repo_id, resume_download=resume,**kwargs)
+                model_path = snapshot_download(repo_id, **kwargs)
             print("#Loading Success!")
         except:
             # resume download
@@ -174,7 +175,7 @@ class CTrans:
             if( resume == False):
                 model_path = snapshot_download(repo_id, **kwargs)
             else:
-                model_path = snapshot_download(repo_id, resume_download=resume, **kwargs)
+                model_path = snapshot_download(repo_id, **kwargs)
             print("#Loading Success!")
 
         return model_path
@@ -211,7 +212,7 @@ class CTrans:
 
         # 모델 로딩 오류시 resume 다운로드
         if resumable:
-            self._download_model(repo_id, resume=True)
+            self._download_model(repo_id, resume=False)
             self.translator = ctranslate2.Translator(model_path, self.device)
             self.tokenizer = NemoTokenizer(model_path+"/tokenizer.json")
 
@@ -367,12 +368,13 @@ def check_fwmodel(
     allow_patterns = [
         "config.json",
         "preprocessor_config.json",
-        "model.bin",
         "tokenizer.json",
         "vocabulary.*",
+        "model.bin",
     ]
 
     kwargs = {
+        "repo_type": "model",
         "local_files_only": local_files_only,
         "allow_patterns": allow_patterns,
         #"tqdm_class": disabled_tqdm,
@@ -387,7 +389,7 @@ def check_fwmodel(
 
     print(f"#Checking FastWhisper Model. Please wait... It may take several minutes or more at first.")
     try:
-        ret=huggingface_hub.snapshot_download(repo_id, resume_download=True, **kwargs)
+        ret=huggingface_hub.snapshot_download(repo_id, **kwargs)
         print("#Checking Success!")
         return ret
     except (
@@ -395,6 +397,6 @@ def check_fwmodel(
         requests.exceptions.ConnectionError,
     ) as exception:
         kwargs["local_files_only"] = True
-        ret=huggingface_hub.snapshot_download(repo_id, resume_download=True, **kwargs)
+        ret=huggingface_hub.snapshot_download(repo_id, **kwargs)
         print("#Checking Success!")
         return ret
