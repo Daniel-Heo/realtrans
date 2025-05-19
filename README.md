@@ -443,6 +443,19 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 
 시작 > 설정 > 시스템 > 소리에서 출력장치를 소리가 최종적으로 나오는 장치를 선택하세요.
 
+- Error: tokenizer.json 파일을 열 수 없습니다.
+tokenizer.json파일이 안전하지 않은 파일로 차단될 수 있습니다. 인증되지 않은 곳에서 받은 파일로 사이즈가 어느정도 되면 차단되는 것 같습니다.tokenizer.json 파일의 오른쪽 클릭 > 속성 > [차단 해제] 체크하거나 파일을 열어서 다시 저장을 누르셔도 되고 다른 방법도 많습니다.
+실제 해본 결과는 파일의 속성의 차단 해제를 적용해도 열 수 없다는 오류가 발생하였습니다.
+
+파일 위치 : C:\Users\사용자아이디\.cache\huggingface\hub\models--skywood로 시작하는 폴더의 snapshots의 하위 폴더에 들어가시면 tokenizer.json 파일이 존재
+1. 파일 속성 해제
+다운로드한 후 오른쪽 클릭 > 속성 > [차단 해제] 체크
+2. 백신 예외 설정
+Windows Defender 또는 회사 보안 소프트웨어에서 해당 경로 예외 처리
+주의: 반드시 신뢰된 소스일 경우만
+3. 재저장 (내용 복사 후 새 파일 만들기)
+기존 JSON 내용을 새 텍스트 파일에 복사 → tokenizer.json으로 저장하면 보안 태그 제거됨
+
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
                ^^^^
