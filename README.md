@@ -219,6 +219,23 @@ This is a compatibility error that occurs when you overwrite a new version of Re
 
 Go to Start > Settings > System > Sound and select the device from which the sound is ultimately output.
 
+- Error: Unable to open tokenizer.json file.
+
+The tokenizer.json file may be blocked as an unsafe file. It seems that it is blocked when the file received from an unauthenticated source is large enough. Right-click on the tokenizer.json file > Properties > [Unblock] checkbox, or open the file and click Save again. There are many other methods.
+The actual result was that even if you applied the unblocking to the file's properties, an error occurred saying that it could not be opened.
+
+File location: C:\Users\userid\.cache\huggingface\hub\models--skywood folder, go to the subfolder of snapshots, and you will find the tokenizer.json file.
+
+1. Uncheck file properties
+After downloading, right-click > Properties > Check [Unblock]
+
+2. Set antivirus exceptions
+Process the path as an exception in Windows Defender or your company's security software
+Caution: Only if it is a trusted source
+
+3. Resave (copy the contents and create a new file)
+Copy the existing JSON contents to a new text file → Save as tokenizer.json to remove the security tag.
+
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
                ^^^^
