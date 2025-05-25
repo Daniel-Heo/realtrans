@@ -62,7 +62,7 @@ If not installed, you may encounter the following error:
 
 Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
 
-CuDNN Installation : https://developer.nvidia.com/cudnn-downloads 
+CuDNN Installation : https://developer.nvidia.com/cudnn-downloads (install 12.8)
 
 After extracting or installing the downloaded file, you will find three folders: bin, include, and lib.
 
@@ -324,7 +324,7 @@ After)
 
   - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
 
-CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads 
+CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads ( 12.8을 설치 )
 
 다운로드한 파일을 압축 해제하거나 설치를 하면 bin, include, lib 3개의 폴더가 존재한다.
 
