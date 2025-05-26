@@ -40,7 +40,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
 ( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
-> Run install.bat ( if AMD, install_amd.bat )
+> Run install.bat ( If you have an AMD graphics card, install_amd.bat )
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
 * Method 2: When installing from cmd, run install.bat from the realtrans folder (downloaded realtrans folder)
 
@@ -62,7 +62,7 @@ If not installed, you may encounter the following error:
 
 Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
 
-CuDNN Installation : https://developer.nvidia.com/cudnn-downloads (install 12.8)
+CuDNN Installation : https://developer.nvidia.com/cudnn-downloads 
 
 After extracting or installing the downloaded file, you will find three folders: bin, include, and lib.
 
@@ -298,10 +298,10 @@ After)
 - python --version 실행 ( 실행이 되어서 python version이 출력되면 정상임으로 exit()를 입력하여 빠져나옴 )
 * 파이선이 정상적으로 실행이 되지 않을 경우에 파이선이 중복으로 설치되었을 수 있으며 이 경우에는 기존에 설치된 파이선들을 다 제거하고 다시 설치해보세요. 중복이 아닌 경우에는 환경변수에 python path가 누락되어있을 수 있습니다. 이 경우에는 재설치를 하시거나 윈도우의 고급 시스템 설정/환경변수/시스템 변수에서 Path를 선택하고 편집해서 python 경로를 추가해주시고 적용을 해주셔야합니다.
 
-#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행 ( AMD인 경우 install_amd.bat )
+#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행 ( AMD 그래픽카드인 경우 install_amd.bat )
 ( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
-> install.bat 실행 ( AMD인 경우 install_amd.bat )
+> install.bat 실행 ( AMD 그래픽카드인 경우 install_amd.bat )
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
 * 방법 2 : cmd에서 설치시에는 해당 realtrans 폴더에서 install.bat 실행 (down 받은 realtrans 폴더 )
 
@@ -324,7 +324,7 @@ After)
 
   - Could not locate cudnn_ops64_9.dll. Please make sure it is in your library path!
 
-CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads ( 12.8을 설치 )
+CuDNN 설치 : https://developer.nvidia.com/cudnn-downloads 
 
 다운로드한 파일을 압축 해제하거나 설치를 하면 bin, include, lib 3개의 폴더가 존재한다.
 
