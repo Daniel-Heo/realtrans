@@ -55,7 +55,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 - Not supported by torch.
 
-#### * Note) AMD first implemented it in 2.2.3, but I haven't been able to test it because I don't have a graphics card. If you have any errors, please leave a comment so we can help you solve the problem.
+#### * Note) AMD Radeon is not currently supported.
 
 ### 3. Install CuDNN (Nvidia only)
 If not installed, you may encounter the following error:
@@ -316,7 +316,7 @@ After)
 
  - torch에서 지원하지 않습니다.
 
-#### * 주의 ) AMD는 2.2.3에서 처음으로 구현은 하였지만 그래픽카드가 없어서 테스트하지는 못했습니다. 오류시 댓글남겨주시면 문제점 해결에 도움을 드릴 수 있습니다.
+#### * 주의 ) AMD Radeon는 현재 지원되지 않습니다.
 
 ### 3. CuDNN 설치 ( Nvidia인 경우만 )
 
