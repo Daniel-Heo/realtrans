@@ -8,6 +8,7 @@
     <a href="https://github.com/Daniel-Heo/realtrans/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Daniel-Heo/realtrans?style=social"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Daniel-Heo/realtrans?style=social"></a>
 </p>
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Daniel-Heo/realtrans)
 
 ![](thumbnail.png?raw=true)
 
