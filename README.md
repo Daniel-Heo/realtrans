@@ -7,8 +7,8 @@
     <a href="https://github.com/Daniel-Heo/realtrans/commits/master"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Daniel-Heo/realtrans/latest"></a><br>
     <a href="https://github.com/Daniel-Heo/realtrans/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Daniel-Heo/realtrans?style=social"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Daniel-Heo/realtrans?style=social"></a>
+	<a href="https://deepwiki.com/Daniel-Heo/realtrans"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
-![](deepwiki.com/badge.svg)
 
 ![](thumbnail.png?raw=true)
 
