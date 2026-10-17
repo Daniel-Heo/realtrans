@@ -7,6 +7,7 @@
     <a href="https://github.com/Daniel-Heo/realtrans/commits/master"><img alt="GitHub commits since latest release (by date)" src="https://img.shields.io/github/commits-since/Daniel-Heo/realtrans/latest"></a><br>
     <a href="https://github.com/Daniel-Heo/realtrans/stargazers"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/Daniel-Heo/realtrans?style=social"></a>
     <a href="https://github.com/Daniel-Heo/realtrans/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/Daniel-Heo/realtrans?style=social"></a>
+	<a href="https://deepwiki.com/Daniel-Heo/realtrans"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
 
 ![](thumbnail.png?raw=true)
@@ -40,7 +41,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 #### 2. run realtrans install batch file in the RealTrans folder ( install python package )
 ( Caution: It is recommended to place the RealTrans folder in the simple format of C:\realtrans\. If the path is complex, contains spaces, or contains non-English characters, it may not run sometimes. )
 
-> Run install.bat ( if AMD, install_amd.bat )
+> Run install.bat ( If you have an AMD graphics card, install_amd.bat )
 * Method 1: Open Windows File Explorer, go to the realtrans folder, and click on the install.bat file to run it.
 * Method 2: When installing from cmd, run install.bat from the realtrans folder (downloaded realtrans folder)
 
@@ -55,7 +56,7 @@ This is a program for real-time voice translation. Recognizes and translates the
 
 - Not supported by torch.
 
-#### * Note) AMD first implemented it in 2.2.3, but I haven't been able to test it because I don't have a graphics card. If you have any errors, please leave a comment so we can help you solve the problem.
+#### * Note) AMD Radeon is not currently supported.
 
 ### 3. Install CuDNN (Nvidia only)
 If not installed, you may encounter the following error:
@@ -219,6 +220,33 @@ This is a compatibility error that occurs when you overwrite a new version of Re
 
 Go to Start > Settings > System > Sound and select the device from which the sound is ultimately output.
 
+- Error: Unable to open tokenizer.json file.
+
+It is likely that the file was blocked by Windows Defender or similar antivirus software due to one or more of the following reasons: large JSON file size, uncompressed download, or the presence of non-ASCII Korean characters.
+
+File location:
+You can find the tokenizer.json file under the snapshots subdirectory in a folder starting with models--skywood inside:
+C:\Users\[YourUsername]\.cache\huggingface\hub\
+
+[Register as an exception in Windows Defender]
+
+Go to Settings → Windows Security → Virus & threat protection
+
+Under Virus & threat protection settings, click Manage settings
+
+Scroll down to Exclusions, and click Add or remove exclusions
+
+Choose File or Folder, and select the tokenizer.json file or the relevant folder
+
+[Unblock directly from file properties]
+
+Right-click the file → Select Properties
+
+At the bottom, you may see a message saying:
+"This file came from another computer and might be blocked to help protect this computer."
+
+Check the Unblock box → Click Apply, then OK
+
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
                ^^^^
@@ -271,10 +299,10 @@ After)
 - python --version 실행 ( 실행이 되어서 python version이 출력되면 정상임으로 exit()를 입력하여 빠져나옴 )
 * 파이선이 정상적으로 실행이 되지 않을 경우에 파이선이 중복으로 설치되었을 수 있으며 이 경우에는 기존에 설치된 파이선들을 다 제거하고 다시 설치해보세요. 중복이 아닌 경우에는 환경변수에 python path가 누락되어있을 수 있습니다. 이 경우에는 재설치를 하시거나 윈도우의 고급 시스템 설정/환경변수/시스템 변수에서 Path를 선택하고 편집해서 python 경로를 추가해주시고 적용을 해주셔야합니다.
 
-#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행 ( AMD인 경우 install_amd.bat )
+#### 2. Realtrans 설치 : RealTrans 폴더의 install.bat 실행 ( AMD 그래픽카드인 경우 install_amd.bat )
 ( 주의 : RealTrans 폴더도 간단하게 C:\realtrans\ 형식의 폴더에 넣으시는걸 추천드립니다. 경로가 복잡하거나 스페이스가 들어가거나 영문외의 글자가 들어갈 경우에 가끔 실행이 안되는 경우가 있습니다. )
 
-> install.bat 실행 ( AMD인 경우 install_amd.bat )
+> install.bat 실행 ( AMD 그래픽카드인 경우 install_amd.bat )
 * 방법 1 : 윈도우 파일 탐색기 열어서 해당 realtrans 폴더로 가셔서 install.bat 파일을 눌러서 실행하세요.
 * 방법 2 : cmd에서 설치시에는 해당 realtrans 폴더에서 install.bat 실행 (down 받은 realtrans 폴더 )
 
@@ -289,7 +317,7 @@ After)
 
  - torch에서 지원하지 않습니다.
 
-#### * 주의 ) AMD는 2.2.3에서 처음으로 구현은 하였지만 그래픽카드가 없어서 테스트하지는 못했습니다. 오류시 댓글남겨주시면 문제점 해결에 도움을 드릴 수 있습니다.
+#### * 주의 ) AMD Radeon는 현재 지원되지 않습니다.
 
 ### 3. CuDNN 설치 ( Nvidia인 경우만 )
 
@@ -442,6 +470,23 @@ realtrans 압축파일의 install.bat을 실행하지 않을 경우 발생합니
 - 컴퓨터에서 소리는 나는데, RealTrans에서 음성 감지를 못하는 경우.
 
 시작 > 설정 > 시스템 > 소리에서 출력장치를 소리가 최종적으로 나오는 장치를 선택하세요.
+
+- Error: tokenizer.json 파일을 열 수 없습니다.
+
+대용량 JSON, 압축하지 않은 상태로 다운로드, 한글 비ASCII 문자열 포함 등의 이유로 Defender 등에서 차단당한 경우일 가능성이 있습니다.
+
+파일 위치 : C:\Users\사용자아이디\.cache\huggingface\hub\models--skywood로 시작하는 폴더의 snapshots의 하위 폴더에 들어가시면 tokenizer.json 파일이 존재
+
+[Defender에서 예외 경로 또는 파일로 등록]
+1. 설정 → Windows 보안 → 바이러스 및 위협 방지
+2. "바이러스 및 위협 방지 설정" 아래 [설정 관리]
+3. "제외 항목" > [제외 추가 또는 제거]
+4. [파일] 또는 [폴더] 선택 후 `tokenizer.json` 또는 해당 폴더 지정
+
+[파일 속성에서 직접 차단 해제]
+1. 파일 우클릭 → "속성(Properties)"
+2. 하단의 "보안: 이 파일은 다른 컴퓨터에서 왔으며 차단될 수 있습니다."
+3. [차단 해제] 체크 → 적용 → 확인
 
 - File "C:\python\Lib\site-packages\faster_whisper\transcribe.py", line 419, in transcribe
     language = max(
