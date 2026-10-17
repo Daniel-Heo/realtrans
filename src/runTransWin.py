@@ -1,4 +1,4 @@
-#!/bin/env python
+﻿#!/bin/env python
 #-*- coding: utf-8 -*-
 import sys
 import os
@@ -155,9 +155,9 @@ default_asr_options =  {
     "beam_size": 4, # 한 번에 beam_size만큼 탐색하고 가장 좋은 단어 연결을 선택. 각 탐색 단계에서 유지되는 최대 후보 시퀀스의 수를 결정합니다. 빔 서치는 특정 순간에 가장 가능성 있는 후보들만을 유지하여 계산 효율을 높이는 방식으로 작동
     "best_of": 2, # 5 : 생성할 시퀀스 수입니다. 생성 과정에서 고려할 총 후보 시퀀스의 수를 지정합니다. 생성된 모든 시퀀스 중에서 최종적으로 반환할 시퀀스의 질을 높이기 위해 더 많은 후보를 평가. best_of >= num_return_sequences(생성된 것에서 제일 좋은 것을 리턴한다.)
     "patience": 0.8, # 1 : 빔 서치 매개변수입니다. 인내도 계수입니다. 1.0이면 최상의 결과를 찾으면 탐색을 중단합니다. 0.5면 50%에서 탐색을 중단합니다. float 1 - 아니요
-    "repetition_penalty": 2, # 1 : 반복 토큰에 대한 패널티 요소.
+    "repetition_penalty": 1.0, # 1 : 반복 토큰 패널티. 2는 한국어 조사/어미(고,도,는…) 재사용을 억제해 "넣어두 고" 같은 띄어쓰기 오류를 만든다.
     "log_prob_threshold": -2, # -1.0(36%) 평균 로그 확률이 이 값보다 낮으면 디코딩이 실패로 간주됩니다. Optional[float] -1.0  log(p) 확률 70%(0.7)이면 log(0.7) = -0.35, 90%이면 log(0.9) = -0.10, 30%이면 log(0.3) = -1.20, 50%이면 log(0.5) = -0.69, 10%이면 log(0.1) = -2.30
-    "no_repeat_ngram_size": 1, # 0 : 반복을 피하기 위한 n-그램의 크기.
+    "no_repeat_ngram_size": 0, # 0 : 1이면 같은 토큰을 세그먼트 안에서 두 번 못 씀 → 두 번째 "고"가 금지되어 " 고"가 선택됨. 반복 억제가 필요하면 3 이상.
     
     "length_penalty": 1, # 1 : 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
     "compression_ratio_threshold": 2.4, # gzip 압축률이 이 값보다 높으면 디코딩된 문자열이 중복되어 실패로 간주됩니다. Optional[float] 2.4 
@@ -283,7 +283,7 @@ def main(ARGS):
             audio_length_seconds = len(wav_data) >> 14 # 2^4*1024
 
             if len(wav_data) > 0:
-                audio_float16 =  Int2Float(wav_data, dtype=np.float16)
+                audio_float16 =  Int2Float(wav_data)
 
                 # Faster Whisper 원본 모델 사용
                 segments = None

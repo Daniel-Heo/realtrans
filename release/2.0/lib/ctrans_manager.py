@@ -1,4 +1,4 @@
-import ctranslate2
+﻿import ctranslate2
 from huggingface_hub import snapshot_download
 import os
 from nemo_tokenizer import NemoTokenizer
@@ -47,8 +47,8 @@ class CTrans:
             "sampling_topp": 1, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
             "num_hypotheses": 1, #int = 1, # 빔 한개당 각 단계별 최종 결과 수입니다. beam_size보다 작거나 같아야 합니다. beam_size보다 작으면 확률이 높은 것만 반환됩니다.
             "sampling_temperature": 0.8, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
-            "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
-            "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
+            "repetition_penalty": 1.1, #float = 1, # 반복 토큰 패널티. 2는 한국어 조사/어미(고,도,는…) 재사용을 억제해 띄어쓰기를 깨뜨린다.
+            "no_repeat_ngram_size": 0, #int = 0, # 1이면 같은 토큰을 두 번 못 씀 → 조사가 공백 포함 토큰(▁고)으로 대체됨. 반복 억제가 필요하면 3 이상.
             "length_penalty": 0.8, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
             
             "coverage_penalty": 0.4, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
@@ -80,8 +80,8 @@ class CTrans:
             "sampling_topp": 0.8, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
             "num_hypotheses": 1, #int = 1, # 빔 한개당 각 단계별 최종 결과 수입니다. beam_size보다 작거나 같아야 합니다. beam_size보다 작으면 확률이 높은 것만 반환됩니다.
             "sampling_temperature": 0.8, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
-            "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
-            "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
+            "repetition_penalty": 1.1, #float = 1, # 반복 토큰 패널티. 2는 한국어 조사/어미(고,도,는…) 재사용을 억제해 띄어쓰기를 깨뜨린다.
+            "no_repeat_ngram_size": 0, #int = 0, # 1이면 같은 토큰을 두 번 못 씀 → 조사가 공백 포함 토큰(▁고)으로 대체됨. 반복 억제가 필요하면 3 이상.
             "length_penalty": 1, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
             
             "coverage_penalty": 0, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
@@ -113,8 +113,8 @@ class CTrans:
             "sampling_topp": 0.8, #float = 1, # 누적 확률이 이 값을 초과하는 가장 가능성이 높은 토큰을 유지합니다.
             "num_hypotheses": 1, #int = 1, # 빔 한개당 각 단계별 최종 결과 수입니다. beam_size보다 작거나 같아야 합니다. beam_size보다 작으면 확률이 높은 것만 반환됩니다.
             "sampling_temperature": 0.8, #float = 1, # 생성 과정에서 확률적 요소를 조절하여 결과의 다양성과 예측 가능성 사이의 균형을 조정하는 데 사용. 모델의 출력 로짓(softmax 전의 값)에 sampling_temperature를 사용하는 기본적인 식. adjusted logits= logits(출력로짓)/temperature(sampling_temperature). 조정된 로짓을 softmax 함수에 입력하면 최종 확률 분포를 얻을 수 있다. 0.1 ( 높은확률이지만 다양성 부족), 1 (기본), 10 (낮은확률이지만 다양성 높음)
-            "repetition_penalty": 2, #float = 1, # 반복 토큰에 대한 패널티 요소.
-            "no_repeat_ngram_size": 1, #int = 0, # 0 : 반복을 피하기 위한 n-그램의 크기.
+            "repetition_penalty": 1.1, #float = 1, # 반복 토큰 패널티. 2는 한국어 조사/어미(고,도,는…) 재사용을 억제해 띄어쓰기를 깨뜨린다.
+            "no_repeat_ngram_size": 0, #int = 0, # 1이면 같은 토큰을 두 번 못 씀 → 조사가 공백 포함 토큰(▁고)으로 대체됨. 반복 억제가 필요하면 3 이상.
             "length_penalty": 0.8, #float = 1, # 빔 서치 매개변수입니다. 생성되는 시퀀스의 길이에 대한 패널티를 설정합니다. 1보다 작으면 긴 시퀀스가 선호되기 쉽습니다. float 1 - 아니요
             
             "coverage_penalty": 0.3, #float = 0, # 빔 검색 중에 적용되는 커버리지 페널티 가중치입니다. 원본 단어가 과거에 번역된 경우 다시 번역될 가능성이 적으므로 더 낮은 정렬 확률을 할당
