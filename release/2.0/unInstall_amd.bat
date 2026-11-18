@@ -1,6 +1,6 @@
 @echo off
 
-pip uninstall -r requirements_amd.txt
+python -m pip uninstall -r requirements_amd.txt
 
 if errorlevel 1 (
     echo.

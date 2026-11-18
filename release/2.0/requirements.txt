@@ -1,6 +1,5 @@
 --extra-index-url https://download.pytorch.org/whl/cu128
 numpy==1.26.4
-Halo
 setuptools
 tqdm
 huggingface_hub

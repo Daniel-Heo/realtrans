@@ -227,7 +227,7 @@ void RealTrans::SetExecutePath() {
     }
 #endif
     m_strExecutePath = m_strExecutePath + "\\";
-    SetCurrentDirectory(StringToWString(m_strExecutePath).c_str());
+    SetCurrentDirectory(StringToWStringByLocale(m_strExecutePath).c_str()); // m_strExecutePath는 ANSI(CP_ACP)라 ANSI로 되돌려야 한글 경로가 깨지지 않는다
 }
 
 void RealTrans::SetSummaryFont() { 

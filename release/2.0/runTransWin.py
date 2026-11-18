@@ -14,7 +14,6 @@ if lib_path not in sys.path:
 import nemo_vad
 import time
 from time import sleep
-from halo import Halo
 import threading
 import numpy as np
 import torch
@@ -234,7 +233,7 @@ def main(ARGS):
             if work != None:
                 # 종료 체크
                 if work["tgt_lang"]=="exit":
-                    vad_audio.destroy()
+                    vad_audio.stop()
                     os.remove(ARGS.work_path+"/pymsg.json")
                     break
 
@@ -425,7 +424,7 @@ if __name__ == '__main__':
     print('#Translation processing with ' + ARGS.cuda_dev)
 
     # UTF-8 출력 설정
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)  # 파이프에서도 줄마다 바로 내보낸다
 
     # 메인 함수 호출
     t1 = threading.Thread(target=main, args=(ARGS,))

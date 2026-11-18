@@ -1,6 +1,6 @@
 @echo off
 
-pip uninstall -r requirements.txt
+python -m pip uninstall -r requirements.txt
 
 if errorlevel 1 (
     echo.

@@ -2,7 +2,7 @@
 
 echo AMD ROCm 지원 버전 설치를 시작합니다...
 
-pip install -r requirements_amd.txt
+python -m pip install -r requirements_amd.txt
 
 if errorlevel 1 (
     echo.
