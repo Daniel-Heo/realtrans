@@ -4,8 +4,8 @@ Halo
 setuptools
 tqdm
 huggingface_hub
-ctranslate2==4.6.0
-faster_whisper==1.1.1
+ctranslate2==4.9.0
+faster_whisper==1.2.1
 torch
 torchaudio
 torchvision

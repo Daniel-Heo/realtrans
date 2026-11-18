@@ -60,3 +60,6 @@ docs/
 images/
 메모/
 다운/
+
+# 기타 제외
+makezip.bat
